@@ -1,5 +1,5 @@
 dependencies {
-	compileOnly group: "com.liferay.portal", name: "release.dxp.api", version: "7.4.13.u99"
+	compileOnly group: "com.liferay.portal", name: "release.dxp.api", version: "7.4.13.u78"
 	compileOnly project(":dxp:apps:osb:osb-faro:osb-faro-api")
 	compileOnly project(":dxp:apps:osb:osb-faro:osb-faro-engine-client")
 }

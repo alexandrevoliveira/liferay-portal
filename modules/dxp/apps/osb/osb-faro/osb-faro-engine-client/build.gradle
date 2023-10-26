@@ -15,7 +15,7 @@ dependencies {
 	compileInclude group: "org.springframework.boot", name: "spring-boot", version: "2.4.13"
 	compileInclude group: "org.springframework.hateoas", name: "spring-hateoas", version: "1.4.1"
 
-	compileOnly group: "com.liferay.portal", name: "release.dxp.api", version: "7.4.13.u99"
+	compileOnly group: "com.liferay.portal", name: "release.dxp.api", version: "7.4.13.u78"
 	compileOnly project(":dxp:apps:osb:osb-faro:osb-faro-api")
 	compileOnly project(":dxp:apps:osb:osb-faro:osb-faro-contacts-api")
 }
