@@ -68,6 +68,9 @@ pipeline {
 							echo "Deploying UAT license."
 
 							echo "${LICENSE_UAT}" | base64 --decode > osb-faro-docker/cloud/license/license.xml
+
+							head -v 30 osb-faro-docker/cloud/license/license.xml
+							tail -c 30 osb-faro-docker/cloud/license/license.xml
 						fi
 					'''
                 }
