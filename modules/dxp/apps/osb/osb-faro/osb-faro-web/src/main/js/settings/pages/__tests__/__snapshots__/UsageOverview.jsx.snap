@@ -22,7 +22,7 @@ exports[`Subscription Details renders subscription details for BASIC PLAN 1`] = 
     class="m-0"
   />
   <div
-    class="card-body pb-0"
+    class="card-body"
   >
     <div
       class="mb-2"
