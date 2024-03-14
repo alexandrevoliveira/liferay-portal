@@ -34,9 +34,9 @@ describe('UserRoutes', () => {
 	});
 
 	it('if the user is AC Admin, then the tabs for toggling between users and user requests should render', () => {
-		const {queryByText} = render(<DefaultComponent />);
+		const {queryAllByText, queryByText} = render(<DefaultComponent />);
 
-		expect(queryByText('Manage Users')).toBeTruthy();
+		expect(queryAllByText('Manage Users')).toBeTruthy();
 		expect(queryByText('Requests')).toBeTruthy();
 	});
 
