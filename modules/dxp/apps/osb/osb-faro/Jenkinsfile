@@ -55,7 +55,7 @@ pipeline {
 
 						cd modules/dxp/apps/osb/osb-faro
 
-						../../../../../gradlew copyCloudResources
+						../../../../../gradlew copyCloudResources -Pcom.liferay.osb.faro.environment.name=$FARO_ENVIRONMENT
 
 						mkdir -p osb-faro-docker/cloud/license
 
