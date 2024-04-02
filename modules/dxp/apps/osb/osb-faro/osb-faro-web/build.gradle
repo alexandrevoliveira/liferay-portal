@@ -59,6 +59,8 @@ node {
 }
 
 packageRunWebpack {
+	dependsOn copyCSS
+
 	if (project.hasProperty("faroEnvironmentName")) {
 		environment "FARO_ENVIRONMENT_NAME", faroEnvironmentName
 	}
