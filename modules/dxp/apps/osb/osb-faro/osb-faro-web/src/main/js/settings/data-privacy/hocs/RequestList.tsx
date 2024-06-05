@@ -441,13 +441,12 @@ const RequestList: React.FC<IRequestListProps> = ({
 
 					return (
 						authorized &&
-						!itemsSelected &&
 						status === GDPRRequestStatuses.Completed && (
 							<ClayLink
 								className={classnames}
-								// @ts-ignore
-								externalLink
-								href={`/o/proxy/download/data-control-tasks/${id}?projectGroupId=${groupId}`}
+								{...(!itemsSelected && {
+									href: `/o/proxy/download/data-control-tasks/${id}?projectGroupId=${groupId}`
+								})}
 								onClick={() =>
 									analytics.track(
 										'Downloaded User Data Request'
@@ -471,9 +470,7 @@ const RequestList: React.FC<IRequestListProps> = ({
 						<Nav.Item>
 							{authorized && selectedItems.size ? (
 								<ClayLink
-									className='btn btn-primary button-root nav-btn'
-									// @ts-ignore
-									externalLink
+									className='btn btn-primary button-root nav-btn '
 									href={`/o/proxy/download/data-control-tasks?projectGroupId=${groupId}&ids=${selectedItems
 										.map(({id}) => id)
 										.join('&ids=')}`}
