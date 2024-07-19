@@ -1,4 +1,4 @@
-FROM liferay/dxp:7.4.13-u116
+FROM liferay/dxp:7.4.13-u124
 
 COPY --chown=liferay:liferay configs /home/liferay/configs
 COPY --chown=liferay:liferay license /home/liferay/deploy
