@@ -269,7 +269,7 @@ public class FaroSubscriptionDisplay {
 			startDate);
 
 		_pageViewsCounts = _setCounts(
-			cerebroEngineClient.getPageViews(faroProject, endDate, startDate),
+			cerebroEngineClient.getPageViews(faroProject, startDate, endDate),
 			subscriptionJSONObject.getLong(
 				"pageViewsCountSinceLastAnniversary"),
 			endDate, faroProject,
