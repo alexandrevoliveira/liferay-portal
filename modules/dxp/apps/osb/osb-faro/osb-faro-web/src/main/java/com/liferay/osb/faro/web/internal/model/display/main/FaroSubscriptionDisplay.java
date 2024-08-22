@@ -430,7 +430,7 @@ public class FaroSubscriptionDisplay {
 			FaroProject faroProject, JSONObject jsonObject, Date startDate)
 		throws Exception {
 
-		if (jsonObject.length() == 0) {
+		if (jsonObject.length() == 0 && (count != defaultValue)) {
 			jsonObject = JSONUtil.put(
 				"total", defaultValue
 			).put(
@@ -485,7 +485,7 @@ public class FaroSubscriptionDisplay {
 					previousMonthlyValueJSONObject.getLong(
 						"countSinceLastAnniversary");
 			}
-			else {
+			else if (totalSinceLastAnniversary != count){
 				countSinceLastAnniversary = totalSinceLastAnniversary;
 			}
 
@@ -497,7 +497,7 @@ public class FaroSubscriptionDisplay {
 		}
 
 		monthlyValueJSONObject.put(
-			"count", monthlyValueJSONObject.getLong("count") + 0
+			"count", monthlyValueJSONObject.getLong("count") + count
 		).put(
 			"countSinceLastAnniversary",
 			monthlyValueJSONObject.getLong("countSinceLastAnniversary") + count
