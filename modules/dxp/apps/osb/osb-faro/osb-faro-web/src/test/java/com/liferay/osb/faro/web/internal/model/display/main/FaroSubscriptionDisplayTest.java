@@ -281,12 +281,20 @@ public class FaroSubscriptionDisplayTest {
 			JSONUtil.put(
 				"monthlyValues",
 				JSONUtil.put(
+					_formatLocalDateTime(localDateTime1),
+					JSONUtil.put(
+						"count", 1
+					).put(
+						"countSinceLastAnniversary", 1
+					)
+				).put(
 					_formatLocalDateTime(localDateTime2),
 					JSONUtil.put(
 						"count", 1
 					).put(
 						"countSinceLastAnniversary", 2
-					))
+					)
+				)
 			).put(
 				"total", 2
 			).put(
@@ -299,12 +307,20 @@ public class FaroSubscriptionDisplayTest {
 			JSONUtil.put(
 				"monthlyValues",
 				JSONUtil.put(
+					_formatLocalDateTime(localDateTime1),
+					JSONUtil.put(
+						"count", 1
+					).put(
+						"countSinceLastAnniversary", 1
+					)
+				).put(
 					_formatLocalDateTime(localDateTime2),
 					JSONUtil.put(
 						"count", 1
 					).put(
 						"countSinceLastAnniversary", 2
-					))
+					)
+				)
 			).put(
 				"total", 2
 			).put(
@@ -629,7 +645,7 @@ public class FaroSubscriptionDisplayTest {
 						"countSinceLastAnniversary", 3
 					)
 				).put(
-					_formatLocalDateTime(localDateTime2.minusMonths(1)),
+					_formatLocalDateTime(localDateTime2),
 					JSONUtil.put(
 						"count", 1
 					).put(
@@ -657,12 +673,12 @@ public class FaroSubscriptionDisplayTest {
 				).put(
 					_formatLocalDateTime(localDateTime1.plusMonths(1)),
 					JSONUtil.put(
-						"count", 1
+						"count", 2
 					).put(
 						"countSinceLastAnniversary", 3
 					)
 				).put(
-					_formatLocalDateTime(localDateTime2.minusMonths(1)),
+					_formatLocalDateTime(localDateTime2),
 					JSONUtil.put(
 						"count", 1
 					).put(
@@ -713,7 +729,7 @@ public class FaroSubscriptionDisplayTest {
 				JSONUtil.put(
 					_formatLocalDateTime(localDateTime2),
 					JSONUtil.put(
-						"count", 11
+						"count", 1
 					).put(
 						"countSinceLastAnniversary", 11
 					))
@@ -730,7 +746,7 @@ public class FaroSubscriptionDisplayTest {
 				JSONUtil.put(
 					_formatLocalDateTime(localDateTime2),
 					JSONUtil.put(
-						"count", 501
+						"count", 1
 					).put(
 						"countSinceLastAnniversary", 501
 					))
@@ -761,7 +777,7 @@ public class FaroSubscriptionDisplayTest {
 		Set<String> expectedKeySet = expectedMonthlyValuesJSONObject.keySet();
 
 		JSONObject actualMonthlyValuesJSONObject =
-			expectedCountsJSONObject.getJSONObject("monthlyValues");
+			actualCountsJSONObject.getJSONObject("monthlyValues");
 
 		Set<String> actualKeySet = actualMonthlyValuesJSONObject.keySet();
 
