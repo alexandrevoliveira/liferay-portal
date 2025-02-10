@@ -68,7 +68,7 @@ public class FragmentEntryCacheModel
 
 	@Override
 	public String toString() {
-		StringBundler sb = new StringBundler(61);
+		StringBundler sb = new StringBundler(63);
 
 		sb.append("{mvccVersion=");
 		sb.append(mvccVersion);
@@ -114,6 +114,8 @@ public class FragmentEntryCacheModel
 		sb.append(icon);
 		sb.append(", previewFileEntryId=");
 		sb.append(previewFileEntryId);
+		sb.append(", marketplace=");
+		sb.append(marketplace);
 		sb.append(", readOnly=");
 		sb.append(readOnly);
 		sb.append(", type=");
@@ -238,6 +240,7 @@ public class FragmentEntryCacheModel
 		}
 
 		fragmentEntryImpl.setPreviewFileEntryId(previewFileEntryId);
+		fragmentEntryImpl.setMarketplace(marketplace);
 		fragmentEntryImpl.setReadOnly(readOnly);
 		fragmentEntryImpl.setType(type);
 
@@ -314,6 +317,8 @@ public class FragmentEntryCacheModel
 		icon = objectInput.readUTF();
 
 		previewFileEntryId = objectInput.readLong();
+
+		marketplace = objectInput.readBoolean();
 
 		readOnly = objectInput.readBoolean();
 
@@ -425,6 +430,8 @@ public class FragmentEntryCacheModel
 
 		objectOutput.writeLong(previewFileEntryId);
 
+		objectOutput.writeBoolean(marketplace);
+
 		objectOutput.writeBoolean(readOnly);
 
 		objectOutput.writeInt(type);
@@ -475,6 +482,7 @@ public class FragmentEntryCacheModel
 	public String configuration;
 	public String icon;
 	public long previewFileEntryId;
+	public boolean marketplace;
 	public boolean readOnly;
 	public int type;
 	public String typeOptions;

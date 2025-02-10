@@ -159,6 +159,8 @@ public class FragmentEntryPersistenceTest {
 
 		newFragmentEntry.setPreviewFileEntryId(RandomTestUtil.nextLong());
 
+		newFragmentEntry.setMarketplace(RandomTestUtil.randomBoolean());
+
 		newFragmentEntry.setReadOnly(RandomTestUtil.randomBoolean());
 
 		newFragmentEntry.setType(RandomTestUtil.nextInt());
@@ -238,6 +240,9 @@ public class FragmentEntryPersistenceTest {
 			existingFragmentEntry.getPreviewFileEntryId(),
 			newFragmentEntry.getPreviewFileEntryId());
 		Assert.assertEquals(
+			existingFragmentEntry.isMarketplace(),
+			newFragmentEntry.isMarketplace());
+		Assert.assertEquals(
 			existingFragmentEntry.isReadOnly(), newFragmentEntry.isReadOnly());
 		Assert.assertEquals(
 			existingFragmentEntry.getType(), newFragmentEntry.getType());
@@ -293,6 +298,7 @@ public class FragmentEntryPersistenceTest {
 		draftFragmentEntry.setIcon(fragmentEntry.getIcon());
 		draftFragmentEntry.setPreviewFileEntryId(
 			fragmentEntry.getPreviewFileEntryId());
+		draftFragmentEntry.setMarketplace(fragmentEntry.getMarketplace());
 		draftFragmentEntry.setReadOnly(fragmentEntry.getReadOnly());
 		draftFragmentEntry.setType(fragmentEntry.getType());
 		draftFragmentEntry.setTypeOptions(fragmentEntry.getTypeOptions());
@@ -356,6 +362,8 @@ public class FragmentEntryPersistenceTest {
 		Assert.assertEquals(
 			fragmentEntry.getPreviewFileEntryId(),
 			draftFragmentEntry.getPreviewFileEntryId());
+		Assert.assertEquals(
+			fragmentEntry.isMarketplace(), draftFragmentEntry.isMarketplace());
 		Assert.assertEquals(
 			fragmentEntry.isReadOnly(), draftFragmentEntry.isReadOnly());
 		Assert.assertEquals(
@@ -430,6 +438,8 @@ public class FragmentEntryPersistenceTest {
 		fragmentEntry2.setIcon(RandomTestUtil.randomString());
 
 		fragmentEntry2.setPreviewFileEntryId(RandomTestUtil.nextLong());
+
+		fragmentEntry2.setMarketplace(RandomTestUtil.randomBoolean());
 
 		fragmentEntry2.setReadOnly(RandomTestUtil.randomBoolean());
 
@@ -779,9 +789,10 @@ public class FragmentEntryPersistenceTest {
 			"userId", true, "userName", true, "createDate", true,
 			"modifiedDate", true, "fragmentCollectionId", true,
 			"fragmentEntryKey", true, "name", true, "cacheable", true, "icon",
-			true, "previewFileEntryId", true, "readOnly", true, "type", true,
-			"lastPublishDate", true, "status", true, "statusByUserId", true,
-			"statusByUserName", true, "statusDate", true);
+			true, "previewFileEntryId", true, "marketplace", true, "readOnly",
+			true, "type", true, "lastPublishDate", true, "status", true,
+			"statusByUserId", true, "statusByUserName", true, "statusDate",
+			true);
 	}
 
 	@Test
@@ -1134,6 +1145,8 @@ public class FragmentEntryPersistenceTest {
 		fragmentEntry.setIcon(RandomTestUtil.randomString());
 
 		fragmentEntry.setPreviewFileEntryId(RandomTestUtil.nextLong());
+
+		fragmentEntry.setMarketplace(RandomTestUtil.randomBoolean());
 
 		fragmentEntry.setReadOnly(RandomTestUtil.randomBoolean());
 

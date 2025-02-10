@@ -60,6 +60,7 @@ public class FragmentEntryVersionWrapper
 		attributes.put("configuration", getConfiguration());
 		attributes.put("icon", getIcon());
 		attributes.put("previewFileEntryId", getPreviewFileEntryId());
+		attributes.put("marketplace", isMarketplace());
 		attributes.put("readOnly", isReadOnly());
 		attributes.put("type", getType());
 		attributes.put("typeOptions", getTypeOptions());
@@ -213,6 +214,12 @@ public class FragmentEntryVersionWrapper
 
 		if (previewFileEntryId != null) {
 			setPreviewFileEntryId(previewFileEntryId);
+		}
+
+		Boolean marketplace = (Boolean)attributes.get("marketplace");
+
+		if (marketplace != null) {
+			setMarketplace(marketplace);
 		}
 
 		Boolean readOnly = (Boolean)attributes.get("readOnly");
@@ -427,6 +434,16 @@ public class FragmentEntryVersionWrapper
 	@Override
 	public Date getLastPublishDate() {
 		return model.getLastPublishDate();
+	}
+
+	/**
+	 * Returns the marketplace of this fragment entry version.
+	 *
+	 * @return the marketplace of this fragment entry version
+	 */
+	@Override
+	public boolean getMarketplace() {
+		return model.getMarketplace();
 	}
 
 	/**
@@ -680,6 +697,16 @@ public class FragmentEntryVersionWrapper
 	}
 
 	/**
+	 * Returns <code>true</code> if this fragment entry version is marketplace.
+	 *
+	 * @return <code>true</code> if this fragment entry version is marketplace; <code>false</code> otherwise
+	 */
+	@Override
+	public boolean isMarketplace() {
+		return model.isMarketplace();
+	}
+
+	/**
 	 * Returns <code>true</code> if this fragment entry version is pending.
 	 *
 	 * @return <code>true</code> if this fragment entry version is pending; <code>false</code> otherwise
@@ -867,6 +894,16 @@ public class FragmentEntryVersionWrapper
 	@Override
 	public void setLastPublishDate(Date lastPublishDate) {
 		model.setLastPublishDate(lastPublishDate);
+	}
+
+	/**
+	 * Sets whether this fragment entry version is marketplace.
+	 *
+	 * @param marketplace the marketplace of this fragment entry version
+	 */
+	@Override
+	public void setMarketplace(boolean marketplace) {
+		model.setMarketplace(marketplace);
 	}
 
 	/**

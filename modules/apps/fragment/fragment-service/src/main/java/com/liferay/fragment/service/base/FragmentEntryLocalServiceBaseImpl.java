@@ -968,6 +968,8 @@ public abstract class FragmentEntryLocalServiceBaseImpl
 		draftFragmentEntry.setIcon(publishedFragmentEntry.getIcon());
 		draftFragmentEntry.setPreviewFileEntryId(
 			publishedFragmentEntry.getPreviewFileEntryId());
+		draftFragmentEntry.setMarketplace(
+			publishedFragmentEntry.getMarketplace());
 		draftFragmentEntry.setReadOnly(publishedFragmentEntry.getReadOnly());
 		draftFragmentEntry.setType(publishedFragmentEntry.getType());
 		draftFragmentEntry.setTypeOptions(

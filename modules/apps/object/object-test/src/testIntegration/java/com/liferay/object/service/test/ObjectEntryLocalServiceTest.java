@@ -9,6 +9,12 @@ import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.asset.kernel.model.AssetEntry;
 import com.liferay.asset.kernel.service.AssetEntryLocalService;
 import com.liferay.asset.kernel.service.persistence.AssetEntryQuery;
+import com.liferay.commerce.currency.model.CommerceCurrency;
+import com.liferay.commerce.currency.test.util.CommerceCurrencyTestUtil;
+import com.liferay.commerce.model.CommerceOrder;
+import com.liferay.commerce.product.model.CommerceChannel;
+import com.liferay.commerce.service.CommerceOrderLocalServiceUtil;
+import com.liferay.commerce.test.util.CommerceTestUtil;
 import com.liferay.counter.kernel.service.CounterLocalService;
 import com.liferay.depot.model.DepotEntry;
 import com.liferay.depot.service.DepotEntryLocalService;
@@ -4016,6 +4022,57 @@ public class ObjectEntryLocalServiceTest {
 	}
 
 	@Test
+	public void testUpdateCommerceOrderSystemObjectDefinitionWithJavaDelegateObjectValidationRule()
+		throws Exception {
+
+		Consumer<Map<String, Object>> consumer = inputObjects -> {
+			Map<String, Object> entryDTO =
+				(Map<String, Object>)inputObjects.get("entryDTO");
+
+			Assert.assertTrue(entryDTO.containsKey("customFieldName"));
+		};
+
+		try (Closeable closeable = _registerTestObjectValidationRuleEngine(
+				consumer, _OBJECT_VALIDATION_RULE_KEY)) {
+
+			ExpandoTable expandoTable = ExpandoTestUtil.addTable(
+				PortalUtil.getClassNameId(CommerceOrder.class),
+				ExpandoTableConstants.DEFAULT_TABLE_NAME);
+
+			ExpandoTestUtil.addColumn(
+				expandoTable, "customFieldName", ExpandoColumnConstants.STRING);
+
+			Group group = GroupTestUtil.addGroup();
+
+			CommerceCurrency commerceCurrency =
+				CommerceCurrencyTestUtil.addCommerceCurrency(
+					group.getCompanyId());
+
+			CommerceChannel commerceChannel =
+				CommerceTestUtil.addCommerceChannel(
+					group.getGroupId(), commerceCurrency.getCode());
+
+			CommerceOrder commerceOrder = CommerceTestUtil.addB2CCommerceOrder(
+				TestPropsValues.getUserId(), commerceChannel.getGroupId(),
+				commerceCurrency);
+
+			ObjectDefinition objectDefinition =
+				_objectDefinitionLocalService.fetchSystemObjectDefinition(
+					TestPropsValues.getCompanyId(), "CommerceOrder");
+
+			ObjectValidationRule objectValidationRule =
+				_addObjectValidationRule(
+					_OBJECT_VALIDATION_RULE_KEY, objectDefinition,
+					StringPool.BLANK);
+
+			CommerceOrderLocalServiceUtil.updateCommerceOrder(commerceOrder);
+
+			_objectValidationRuleLocalService.deleteObjectValidationRule(
+				objectValidationRule);
+		}
+	}
+
+	@Test
 	public void testUpdateObjectEntry() throws Exception {
 		_assertCount(0);
 
@@ -4520,7 +4577,7 @@ public class ObjectEntryLocalServiceTest {
 	}
 
 	@Test
-	public void testUpdateSystemObjectEntryWithJavaDelegateObjectValidationRule()
+	public void testUpdateUserSystemObjectWithJavaDelegateObjectValidationRule()
 		throws Exception {
 
 		Consumer<Map<String, Object>> consumer = inputObjects -> {
@@ -4543,12 +4600,8 @@ public class ObjectEntryLocalServiceTest {
 				"textObjectFieldValue", entryDTO.get("textObjectFieldName"));
 		};
 
-		String key =
-			ObjectValidationRuleConstants.ENGINE_TYPE_JAVA_DELEGATE_PREFIX +
-				RandomTestUtil.randomString();
-
 		try (Closeable closeable = _registerTestObjectValidationRuleEngine(
-				consumer, key)) {
+				consumer, _OBJECT_VALIDATION_RULE_KEY)) {
 
 			ExpandoTable expandoTable = ExpandoTestUtil.addTable(
 				PortalUtil.getClassNameId(User.class),
@@ -4565,10 +4618,6 @@ public class ObjectEntryLocalServiceTest {
 					expandoColumn.getName(), "customFieldValue"
 				).build());
 
-			ObjectDefinition objectDefinition =
-				_objectDefinitionLocalService.fetchSystemObjectDefinition(
-					TestPropsValues.getCompanyId(), "User");
-
 			User user = UserTestUtil.addUser(
 				TestPropsValues.getCompanyId(), TestPropsValues.getUserId(),
 				RandomTestUtil.randomString(
@@ -4577,6 +4626,10 @@ public class ObjectEntryLocalServiceTest {
 				serviceContext.getLocale(), RandomTestUtil.randomString(),
 				RandomTestUtil.randomString(),
 				new long[] {serviceContext.getScopeGroupId()}, serviceContext);
+
+			ObjectDefinition objectDefinition =
+				_objectDefinitionLocalService.fetchSystemObjectDefinition(
+					TestPropsValues.getCompanyId(), "User");
 
 			ObjectField objectField = _addCustomObjectField(
 				new TextObjectFieldBuilder(
@@ -4599,15 +4652,9 @@ public class ObjectEntryLocalServiceTest {
 					serviceContext);
 
 			ObjectValidationRule objectValidationRule =
-				_objectValidationRuleLocalService.addObjectValidationRule(
-					StringPool.BLANK, TestPropsValues.getUserId(),
-					objectDefinition.getObjectDefinitionId(), true, key,
-					LocalizedMapUtil.getLocalizedMap(
-						RandomTestUtil.randomString()),
-					LocalizedMapUtil.getLocalizedMap(
-						RandomTestUtil.randomString()),
-					ObjectValidationRuleConstants.OUTPUT_TYPE_FULL_VALIDATION,
-					"", false, Collections.emptyList());
+				_addObjectValidationRule(
+					_OBJECT_VALIDATION_RULE_KEY, objectDefinition,
+					StringPool.BLANK);
 
 			UserTestUtil.updateUser(user);
 
@@ -4689,6 +4736,19 @@ public class ObjectEntryLocalServiceTest {
 			errorLabelMap,
 			LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
 			outputType, script, false, objectValidationRuleSettings);
+	}
+
+	private ObjectValidationRule _addObjectValidationRule(
+			String engine, ObjectDefinition objectDefinition, String script)
+		throws PortalException {
+
+		return _objectValidationRuleLocalService.addObjectValidationRule(
+			StringPool.BLANK, TestPropsValues.getUserId(),
+			objectDefinition.getObjectDefinitionId(), true, engine,
+			LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
+			LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
+			ObjectValidationRuleConstants.OUTPUT_TYPE_FULL_VALIDATION, script,
+			false, Collections.emptyList());
 	}
 
 	private ObjectEntry _addOrUpdateObjectEntry(
@@ -5631,6 +5691,10 @@ public class ObjectEntryLocalServiceTest {
 		return _objectValidationRuleLocalService.updateObjectValidationRule(
 			objectValidationRule);
 	}
+
+	private static final String _OBJECT_VALIDATION_RULE_KEY =
+		ObjectValidationRuleConstants.ENGINE_TYPE_JAVA_DELEGATE_PREFIX +
+			RandomTestUtil.randomString();
 
 	@Inject
 	private AssetEntryLocalService _assetEntryLocalService;

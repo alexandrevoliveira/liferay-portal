@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import {debounce} from 'frontend-js-web';
 import PropTypes from 'prop-types';
 import React, {useEffect, useMemo} from 'react';
 
@@ -247,12 +248,19 @@ function FragmentContentInteractionsFilter({
 		const isBeingEdited =
 			editable?.itemId === fromControlsId(editableProcessorUniqueId);
 
-		if (editable && !isBeingEdited) {
+		if (editable) {
 			event.stopPropagation();
 
-			hoverItem(editable.itemId, {itemType: ITEM_TYPES.editable});
+			if (!isBeingEdited) {
+				hoverItem(editable.itemId, {itemType: ITEM_TYPES.editable});
+			}
 		}
 	};
+
+	const debouncedSetEditableProcessorUniqueId = debounce(
+		setEditableProcessorUniqueId,
+		100
+	);
 
 	const onClickCapture = (event) => {
 		if (!canUpdateEditables) {
@@ -275,6 +283,13 @@ function FragmentContentInteractionsFilter({
 		event.preventDefault();
 		event.stopPropagation();
 
+		const isBeingEdited =
+			editable.itemId === fromControlsId(editableProcessorUniqueId);
+
+		if (isBeingEdited) {
+			return;
+		}
+
 		if (!isActive(editable.itemId)) {
 			selectItem(editable.itemId, {
 				itemType: ITEM_TYPES.editable,
@@ -295,7 +310,7 @@ function FragmentContentInteractionsFilter({
 			clientY: event.clientY,
 		};
 
-		setEditableProcessorUniqueId(
+		debouncedSetEditableProcessorUniqueId(
 			toControlsId(editable.itemId),
 			editableClickPosition
 		);

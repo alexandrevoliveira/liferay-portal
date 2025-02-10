@@ -79,6 +79,8 @@ public class FragmentEntryTable extends BaseTable<FragmentEntryTable> {
 		createColumn(
 			"previewFileEntryId", Long.class, Types.BIGINT,
 			Column.FLAG_DEFAULT);
+	public final Column<FragmentEntryTable, Boolean> marketplace = createColumn(
+		"marketplace", Boolean.class, Types.BOOLEAN, Column.FLAG_DEFAULT);
 	public final Column<FragmentEntryTable, Boolean> readOnly = createColumn(
 		"readOnly", Boolean.class, Types.BOOLEAN, Column.FLAG_DEFAULT);
 	public final Column<FragmentEntryTable, Integer> type = createColumn(

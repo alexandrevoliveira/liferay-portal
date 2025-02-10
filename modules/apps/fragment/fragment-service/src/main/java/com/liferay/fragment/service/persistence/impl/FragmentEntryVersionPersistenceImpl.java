@@ -16802,6 +16802,7 @@ public class FragmentEntryVersionPersistenceImpl
 		ctMergeColumnNames.add("configuration");
 		ctMergeColumnNames.add("icon");
 		ctMergeColumnNames.add("previewFileEntryId");
+		ctMergeColumnNames.add("marketplace");
 		ctMergeColumnNames.add("readOnly");
 		ctMergeColumnNames.add("type_");
 		ctMergeColumnNames.add("typeOptions");

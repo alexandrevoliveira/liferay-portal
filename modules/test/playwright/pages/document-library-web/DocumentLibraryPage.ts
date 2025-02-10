@@ -58,14 +58,12 @@ export class DocumentLibraryPage {
 		);
 	}
 
-	async assertPrivateFileIcon(frameLocator?: FrameLocator) {
-		const privateFileIcon = await (frameLocator ?? this.page)
-			.getByLabel('Not Visible to Guest Users')
-			.last();
-
-		await privateFileIcon.waitFor();
-
-		await expect(privateFileIcon).toBeVisible();
+	async assertPrivateFileIcon(parent: Page | FrameLocator = this.page) {
+		await expect(async () => {
+			await expect(
+				await parent.getByLabel('Not Visible to Guest Users').last()
+			).toBeVisible();
+		}).toPass();
 	}
 
 	async openInfoPanel(entryTitle: string, tabName: 'Details' | 'Versions') {
@@ -114,14 +112,6 @@ export class DocumentLibraryPage {
 			await checkbox.check();
 		}
 		await this.page.getByRole('button', {name: 'Delete'}).click();
-	}
-
-	async deleteFileEntry(name: string) {
-		await this.goto();
-		await this.changeView('list');
-		await this.page.getByLabel(name).check();
-		await this.page.getByRole('button', {name: 'Delete'}).click();
-		await this.changeView('cards');
 	}
 
 	async deleteDocumentType(name: string) {

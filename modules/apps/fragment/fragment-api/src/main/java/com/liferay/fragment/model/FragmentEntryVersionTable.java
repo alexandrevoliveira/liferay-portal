@@ -92,6 +92,9 @@ public class FragmentEntryVersionTable
 		createColumn(
 			"previewFileEntryId", Long.class, Types.BIGINT,
 			Column.FLAG_DEFAULT);
+	public final Column<FragmentEntryVersionTable, Boolean> marketplace =
+		createColumn(
+			"marketplace", Boolean.class, Types.BOOLEAN, Column.FLAG_DEFAULT);
 	public final Column<FragmentEntryVersionTable, Boolean> readOnly =
 		createColumn(
 			"readOnly", Boolean.class, Types.BOOLEAN, Column.FLAG_DEFAULT);
