@@ -134,7 +134,6 @@ public class BasicFragmentEntryVerticalCardTest {
 
 		Assert.assertEquals(
 			labels.toString(), expectedLabels.length, labels.size());
-
 		Assert.assertTrue(
 			labels.toString(),
 			labels.containsAll(ListUtil.fromArray(expectedLabels)));
