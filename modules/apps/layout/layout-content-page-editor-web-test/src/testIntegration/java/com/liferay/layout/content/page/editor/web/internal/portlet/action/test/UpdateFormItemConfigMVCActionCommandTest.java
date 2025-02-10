@@ -1146,8 +1146,8 @@ public class UpdateFormItemConfigMVCActionCommandTest {
 				layoutStructure.addFormStyledLayoutStructureItem(
 					rootLayoutStructureItem.getItemId(), 0);
 
-		formStyledLayoutStructureItem.setNumberOfSteps(3);
 		formStyledLayoutStructureItem.setFormType("multiple");
+		formStyledLayoutStructureItem.setNumberOfSteps(3);
 
 		LayoutStructureItem formStepContainerStyledLayoutStructureItem =
 			layoutStructure.addFormStepContainerStyledLayoutStructureItem(
