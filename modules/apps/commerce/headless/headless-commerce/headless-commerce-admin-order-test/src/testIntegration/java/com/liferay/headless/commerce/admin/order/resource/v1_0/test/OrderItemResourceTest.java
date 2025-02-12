@@ -110,13 +110,6 @@ public class OrderItemResourceTest extends BaseOrderItemResourceTestCase {
 	@Ignore
 	@Override
 	@Test
-	public void testDeleteOrderItem() throws Exception {
-		super.testDeleteOrderItem();
-	}
-
-	@Ignore
-	@Override
-	@Test
 	public void testDeleteOrderItemByExternalReferenceCode() throws Exception {
 		super.testDeleteOrderItemByExternalReferenceCode();
 	}
@@ -176,11 +169,27 @@ public class OrderItemResourceTest extends BaseOrderItemResourceTestCase {
 		super.testGraphQLDeleteOrderItem();
 	}
 
-	@Ignore
 	@Override
 	@Test
 	public void testPatchOrderItem() throws Exception {
-		super.testPatchOrderItem();
+		OrderItem postOrderItem = orderItemResource.postOrderIdOrderItem(
+			_commerceOrder.getCommerceOrderId(), randomPatchOrderItem());
+
+		OrderItem randomPatchOrderItem = randomPatchOrderItem();
+
+		orderItemResource.patchOrderItem(
+			postOrderItem.getId(), randomPatchOrderItem);
+
+		OrderItem expectedPatchOrderItem = postOrderItem.clone();
+
+		BaseOrderResourceTestCase.BeanTestUtil.copyProperties(
+			randomPatchOrderItem, expectedPatchOrderItem);
+
+		OrderItem getOrderItem = orderItemResource.getOrderItem(
+			postOrderItem.getId());
+
+		assertEquals(expectedPatchOrderItem, getOrderItem);
+		assertValid(getOrderItem);
 	}
 
 	@Ignore

@@ -8,6 +8,7 @@ import {Locator, Page, expect} from '@playwright/test';
 import {HomePage} from '../portal-web/HomePage';
 
 export class ApplicationsMenuPage {
+	private readonly accountGroupsItem: Locator;
 	private readonly accountsItem: Locator;
 	private readonly aiCreatorLink: Locator;
 	private readonly announcementsItem: Locator;
@@ -48,6 +49,7 @@ export class ApplicationsMenuPage {
 	private readonly processBuilderItem: Locator;
 	private readonly productsMenuItem: Locator;
 	private readonly queueMenuItem: Locator;
+	private readonly resultRankingsItem: Locator;
 	private readonly rolesItem: Locator;
 	private readonly samlAdminItem: Locator;
 	private readonly searchItem: Locator;
@@ -61,6 +63,10 @@ export class ApplicationsMenuPage {
 	private readonly virtualInstancesItem: Locator;
 
 	constructor(page: Page) {
+		this.accountGroupsItem = page.getByRole('menuitem', {
+			exact: true,
+			name: 'Account Groups',
+		});
 		this.accountsItem = page.getByRole('menuitem', {
 			exact: true,
 			name: 'Accounts',
@@ -214,6 +220,10 @@ export class ApplicationsMenuPage {
 			exact: true,
 			name: 'Queue',
 		});
+		this.resultRankingsItem = page.getByRole('menuitem', {
+			exact: true,
+			name: 'Result Rankings',
+		});
 		this.rolesItem = page.getByRole('menuitem', {
 			exact: true,
 			name: 'Roles',
@@ -267,6 +277,18 @@ export class ApplicationsMenuPage {
 		if (checkTabVisibility) {
 			await expect(this.applicationsMenuTabButton).toBeVisible();
 		}
+	}
+
+	async goToAccountGroups(forceReload = true) {
+		if (forceReload) {
+			await this.goto();
+		}
+		else {
+			await this.homePage.openApplicationMenu();
+		}
+
+		await this.controlPanelButton.click();
+		await this.accountGroupsItem.click();
 	}
 
 	async goToAccounts(forceReload = true) {
@@ -522,6 +544,11 @@ export class ApplicationsMenuPage {
 	async goToProcessBuilder() {
 		await this.goToApplicationsMenu();
 		await this.processBuilderItem.click();
+	}
+
+	async goToResultRankings() {
+		await this.goToApplicationsMenu();
+		await this.resultRankingsItem.click();
 	}
 
 	async goToRoles() {

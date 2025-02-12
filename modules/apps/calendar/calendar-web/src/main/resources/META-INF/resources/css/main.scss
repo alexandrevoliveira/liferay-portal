@@ -173,6 +173,7 @@
 		}
 
 		.scheduler-event {
+			opacity: 1;
 			z-index: 99;
 
 			&::before {
@@ -240,10 +241,6 @@
 		padding: 2px 4px;
 	}
 
-	.scheduler-event-past {
-		opacity: 0.8;
-	}
-
 	.scheduler-view-agenda-info-container {
 		font-size: 1em;
 
@@ -260,6 +257,12 @@
 
 	.scheduler-view-table-data-col-title-today {
 		color: $primary-d2;
+	}
+
+	.taglib-custom-attributes-list {
+		.control-label {
+			font-weight: 700;
+		}
 	}
 }
 
@@ -471,7 +474,7 @@
 	}
 
 	.scheduler-event-disabled {
-		opacity: 1;
+		opacity: 0.8;
 	}
 }
 
