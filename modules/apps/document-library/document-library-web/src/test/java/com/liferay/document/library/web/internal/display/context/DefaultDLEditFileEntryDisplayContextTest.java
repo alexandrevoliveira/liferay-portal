@@ -14,6 +14,7 @@ import com.liferay.portal.bean.BeanPropertiesImpl;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.kernel.bean.BeanPropertiesUtil;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
@@ -86,7 +87,7 @@ public class DefaultDLEditFileEntryDisplayContextTest {
 		Mockito.when(
 			themeDisplay.getCompanyId()
 		).thenReturn(
-			123456L
+			RandomTestUtil.randomLong()
 		);
 
 		mockHttpServletRequest.setAttribute(

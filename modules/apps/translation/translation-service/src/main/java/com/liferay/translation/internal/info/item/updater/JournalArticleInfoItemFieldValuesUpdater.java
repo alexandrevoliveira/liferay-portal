@@ -29,6 +29,7 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.security.auth.GuestOrUserUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.util.ArrayUtil;
@@ -70,6 +71,17 @@ public class JournalArticleInfoItemFieldValuesUpdater
 			JournalArticle journalArticle,
 			InfoItemFieldValues infoItemFieldValues)
 		throws Exception {
+
+		JournalArticle latestArticle =
+			_journalArticleLocalService.getLatestArticle(
+				journalArticle.getGroupId(), journalArticle.getArticleId(),
+				WorkflowConstants.STATUS_ANY);
+
+		User user = _userLocalService.fetchUser(latestArticle.getUserId());
+
+		if (user == null) {
+			user = _userLocalService.getUser(GuestOrUserUtil.getUserId());
+		}
 
 		Map<Locale, String> importedLocaleTitleMap = new HashMap<>();
 		Map<Locale, String> importedLocaleDescriptionMap = new HashMap<>();
@@ -129,11 +141,6 @@ public class JournalArticleInfoItemFieldValuesUpdater
 			}
 		}
 
-		JournalArticle latestArticle =
-			_journalArticleLocalService.getLatestArticle(
-				journalArticle.getGroupId(), journalArticle.getArticleId(),
-				WorkflowConstants.STATUS_ANY);
-
 		Map<Locale, String> titleMap = latestArticle.getTitleMap();
 		Map<Locale, String> descriptionMap = latestArticle.getDescriptionMap();
 
@@ -159,8 +166,6 @@ public class JournalArticleInfoItemFieldValuesUpdater
 				fields, ddmStructure, importedLocaleContentMap, targetLocale);
 		}
 
-		User user = _userLocalService.getUser(latestArticle.getUserId());
-
 		int[] displayDateArray = _getDateArray(
 			user, latestArticle.getDisplayDate());
 		int[] expirationDateArray = _getDateArray(
@@ -171,7 +176,7 @@ public class JournalArticleInfoItemFieldValuesUpdater
 		ServiceContext serviceContext = _getServiceContext(latestArticle);
 
 		return _journalArticleLocalService.updateArticle(
-			latestArticle.getUserId(), latestArticle.getGroupId(),
+			user.getUserId(), latestArticle.getGroupId(),
 			latestArticle.getFolderId(), latestArticle.getArticleId(),
 			latestArticle.getVersion(), titleMap, descriptionMap,
 			latestArticle.getFriendlyURLMap(),

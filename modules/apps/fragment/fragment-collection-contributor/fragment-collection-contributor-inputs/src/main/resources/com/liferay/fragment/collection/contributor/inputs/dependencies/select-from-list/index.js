@@ -35,18 +35,12 @@ const valueInputElement = document.getElementById(
 	`${fragmentEntryLinkNamespace}-value-input`
 );
 
-if (layoutMode === 'edit') {
-	buttonElement.setAttribute('disabled', true);
-	uiInputElement.setAttribute('disabled', true);
-}
-
 buttonElement.addEventListener('click', toggleDropdown);
 buttonElement.addEventListener('blur', handleResultListBlur);
 uiInputElement.addEventListener('click', toggleDropdown);
 uiInputElement.addEventListener('input', debounce(handleInputChange, 1000));
 uiInputElement.addEventListener('blur', handleInputBlur);
 uiInputElement.addEventListener('keydown', handleInputKeyDown);
-optionListElement.addEventListener('click', handleResultListClick);
 
 window.addEventListener('resize', handleWindowResizeOrScroll, {
 	passive: true,
@@ -58,25 +52,112 @@ window.addEventListener('scroll', handleWindowResizeOrScroll, {
 let lastSearchAbortController = new AbortController();
 let lastSearchQuery = null;
 
-if (input.value) {
-	const selectedOption = (input.attributes.options || []).find(
-		(option) => option.value === input.value
-	);
-
-	if (selectedOption) {
-		lastSearchQuery = selectedOption.label.toLowerCase();
-		valueInputElement.value = selectedOption.value;
-
-		const selectedOptionElement = optionListElement.querySelector(
-			'.active.dropdown-item'
+if (layoutMode === 'edit') {
+	buttonElement.setAttribute('disabled', true);
+	uiInputElement.setAttribute('disabled', true);
+}
+else {
+	if (input.value) {
+		const selectedOption = (input.attributes.options || []).find(
+			(option) => option.value === input.value
 		);
 
-		if (selectedOptionElement) {
-			optionListElement.setAttribute(
-				'aria-activedescendant',
-				selectedOptionElement.id
+		if (selectedOption) {
+			lastSearchQuery = selectedOption.label.toLowerCase();
+			valueInputElement.value = selectedOption.value;
+
+			const selectedOptionElement = optionListElement.querySelector(
+				'.active.dropdown-item'
 			);
+
+			if (selectedOptionElement) {
+				optionListElement.setAttribute(
+					'aria-activedescendant',
+					selectedOptionElement.id
+				);
+			}
 		}
+	}
+
+	if (Liferay.FeatureFlags['LPD-37927']) {
+		import('@liferay/fragment-impl').then(
+			({registerLocalizedInput, registerUnlocalizedInput}) => {
+				const defaultLanguageId = themeDisplay.getDefaultLanguageId();
+
+				if (input.localizable) {
+					const optionValues = Object.fromEntries(
+						Object.values(input.valueI18n).map((value) => [
+							value,
+							input.attributes.options.find(
+								(option) => option.value === value
+							).label,
+						])
+					);
+
+					const {onChange} = registerLocalizedInput({
+						defaultLanguageId,
+						initialValues: input.valueI18n,
+						inputElement: uiInputElement,
+						inputName: input.name,
+						localizationInputsContainer: uiInputElement.parentNode,
+						namespace: fragmentNamespace,
+						optionValues,
+					});
+
+					optionListElement.addEventListener('click', (event) => {
+						handleResultListClick(event, onChange);
+					});
+				}
+				else {
+					registerUnlocalizedInput({
+						defaultLanguageId,
+						inputElement: uiInputElement,
+						onLocaleChange: (languageId) => {
+							if (defaultLanguageId === languageId) {
+								uiInputElement.addEventListener(
+									'click',
+									toggleDropdown
+								);
+								uiInputElement.addEventListener(
+									'keydown',
+									handleInputKeyDown
+								);
+
+								buttonElement.classList.remove('d-none');
+							}
+							else {
+								uiInputElement.removeEventListener(
+									'click',
+									toggleDropdown
+								);
+								uiInputElement.removeEventListener(
+									'keydown',
+									handleInputKeyDown
+								);
+
+								buttonElement.classList.add('d-none');
+							}
+						},
+						readOnlyInputLabel: document.getElementById(
+							`${fragmentNamespace}-select-from-list-read-only`
+						),
+						unlocalizedFieldsState:
+							input.attributes.unlocalizedFieldsState,
+						unlocalizedMessageContainer: document.getElementById(
+							`${fragmentNamespace}-unlocalized-info`
+						),
+					});
+
+					optionListElement.addEventListener(
+						'click',
+						handleResultListClick
+					);
+				}
+			}
+		);
+	}
+	else {
+		optionListElement.addEventListener('click', handleResultListClick);
 	}
 }
 
@@ -94,7 +175,7 @@ const optionList = (input.attributes.options || []).map((option) => ({
 	value: option.value,
 }));
 
-function handleResultListClick(event) {
+function handleResultListClick(event, onChange) {
 	let selectedOptionElement = null;
 
 	if (event.target.matches('.dropdown-item')) {
@@ -107,6 +188,13 @@ function handleResultListClick(event) {
 	if (selectedOptionElement) {
 		setFocusedOption(selectedOptionElement, {scrollToElement: false});
 		setSelectedOption(selectedOptionElement);
+
+		if (onChange) {
+			onChange(
+				selectedOptionElement.dataset.optionValue,
+				selectedOptionElement.dataset.optionLabel
+			);
+		}
 	}
 }
 

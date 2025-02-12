@@ -5,6 +5,7 @@
 
 package com.liferay.object.web.internal.layout.display.page;
 
+import com.liferay.friendly.url.info.item.provider.InfoItemFriendlyURLProvider;
 import com.liferay.info.item.ClassPKInfoItemIdentifier;
 import com.liferay.info.item.ERCInfoItemIdentifier;
 import com.liferay.info.item.InfoItemIdentifier;
@@ -17,6 +18,8 @@ import com.liferay.object.rest.manager.v1_0.ObjectEntryManager;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
 import com.liferay.object.web.internal.util.ObjectEntryUtil;
+import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.portlet.constants.FriendlyURLResolverConstants;
@@ -25,6 +28,7 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
 
 /**
@@ -34,12 +38,14 @@ public class ObjectEntryLayoutDisplayPageProvider
 	extends BaseLayoutDisplayPageProvider<ObjectEntry> {
 
 	public ObjectEntryLayoutDisplayPageProvider(
+		InfoItemFriendlyURLProvider<ObjectEntry> infoItemFriendlyURLProvider,
 		ObjectDefinition objectDefinition,
 		ObjectDefinitionLocalService objectDefinitionLocalService,
 		ObjectEntryLocalService objectEntryLocalService,
 		ObjectEntryManager objectEntryManager,
 		UserLocalService userLocalService) {
 
+		_infoItemFriendlyURLProvider = infoItemFriendlyURLProvider;
 		_objectDefinition = objectDefinition;
 		_objectDefinitionLocalService = objectDefinitionLocalService;
 		_objectEntryLocalService = objectEntryLocalService;
@@ -87,7 +93,7 @@ public class ObjectEntryLayoutDisplayPageProvider
 					objectEntry.getObjectDefinitionId());
 
 			return new ObjectEntryLayoutDisplayPageObjectProvider(
-				objectDefinition, objectEntry);
+				_infoItemFriendlyURLProvider, objectDefinition, objectEntry);
 		}
 
 		ERCInfoItemIdentifier ercInfoItemIdentifier =
@@ -119,7 +125,7 @@ public class ObjectEntryLayoutDisplayPageProvider
 
 			if (objectEntry != null) {
 				return new ObjectEntryLayoutDisplayPageObjectProvider(
-					_objectDefinition,
+					_infoItemFriendlyURLProvider, _objectDefinition,
 					ObjectEntryUtil.toObjectEntry(
 						_objectDefinition.getObjectDefinitionId(),
 						objectEntry));
@@ -137,6 +143,22 @@ public class ObjectEntryLayoutDisplayPageProvider
 	@Override
 	public LayoutDisplayPageObjectProvider<ObjectEntry>
 		getLayoutDisplayPageObjectProvider(long groupId, String urlTitle) {
+
+		String urlTitlePrefix = _objectDefinition.getName() + StringPool.SLASH;
+
+		if (FeatureFlagManagerUtil.isEnabled("LPD-21926") &&
+			StringUtil.startsWith(urlTitle, urlTitlePrefix)) {
+
+			ObjectEntry objectEntry = _objectEntryLocalService.fetchObjectEntry(
+				groupId, _objectDefinition,
+				StringUtil.removeFirst(urlTitle, urlTitlePrefix));
+
+			if (objectEntry != null) {
+				return new ObjectEntryLayoutDisplayPageObjectProvider(
+					_infoItemFriendlyURLProvider, _objectDefinition,
+					objectEntry);
+			}
+		}
 
 		if (!_objectDefinition.isDefaultStorageType()) {
 			return getLayoutDisplayPageObjectProvider(
@@ -156,12 +178,14 @@ public class ObjectEntryLayoutDisplayPageProvider
 		getLayoutDisplayPageObjectProvider(ObjectEntry objectEntry) {
 
 		return new ObjectEntryLayoutDisplayPageObjectProvider(
-			_objectDefinition, objectEntry);
+			_infoItemFriendlyURLProvider, _objectDefinition, objectEntry);
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		ObjectEntryLayoutDisplayPageProvider.class);
 
+	private final InfoItemFriendlyURLProvider<ObjectEntry>
+		_infoItemFriendlyURLProvider;
 	private final ObjectDefinition _objectDefinition;
 	private final ObjectDefinitionLocalService _objectDefinitionLocalService;
 	private final ObjectEntryLocalService _objectEntryLocalService;
