@@ -216,6 +216,8 @@ public class FragmentEntryLinkManagerTest {
 
 		Layout layout = LayoutTestUtil.addTypeContentLayout(_group);
 
+		Layout draftLayout = layout.fetchDraftLayout();
+
 		InfoItemFormProvider<?> infoItemFormProvider =
 			_infoItemServiceRegistry.getFirstInfoItemService(
 				InfoItemFormProvider.class, objectDefinition.getClassName());
@@ -232,7 +234,7 @@ public class FragmentEntryLinkManagerTest {
 				_portal.getClassNameId(objectDefinition.getClassName())),
 			"0", layout.fetchDraftLayout(), _layoutStructureProvider,
 			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
-				layout.getPlid()),
+				draftLayout.getPlid()),
 			allInfoFields.toArray(new InfoField<?>[0]));
 
 		LayoutStructure layoutStructure = (LayoutStructure)jsonObject.get(

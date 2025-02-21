@@ -258,6 +258,7 @@ ResourceImplCheck | [Bug Prevention](bug_prevention_checks.markdown#bug-preventi
 ResourcePermissionCheck | [Bug Prevention](bug_prevention_checks.markdown#bug-prevention-checks) | Performs several checks on `*ResourcePermission` classes. |
 [ResourcePermissionFactoryCheck](check/resource_permission_factory_check.markdown#resourcepermissionfactorycheck) | [Performance](performance_checks.markdown#performance-checks) | Checks usage of `*ResourcePermissionFactory` classes. |
 ReturnVariableDeclarationAsUsedCheck | [Miscellaneous](miscellaneous_checks.markdown#miscellaneous-checks) | Finds cases where a variable declaration should be moved. |
+SealedAndNonsealedModifierCheck | [Performance](performance_checks.markdown#performance-checks) | Finds usage of `sealed` and `non-sealed`. |
 SelfReferenceCheck | [Bug Prevention](bug_prevention_checks.markdown#bug-prevention-checks) | Finds cases of unnecessary reference to its own class. |
 SemiColonCheck | [Styling](styling_checks.markdown#styling-checks) | Finds cases of unnecessary semicolon. |
 [ServiceComponentRuntimeCheck](check/service_component_runtime_check.markdown#servicecomponentruntimecheck) | [Bug Prevention](bug_prevention_checks.markdown#bug-prevention-checks) | Checks `ServiceComponentRuntime` usage in test classes. |
@@ -287,7 +288,6 @@ URLInputStreamCheck | [Bug Prevention](bug_prevention_checks.markdown#bug-preven
 [UnicodePropertiesBuilderCheck](check/builder_check.markdown#buildercheck) | [Miscellaneous](miscellaneous_checks.markdown#miscellaneous-checks) | Checks that `UnicodePropertiesBuilder` is used when possible. |
 [UnnecessaryAssignCheck](check/unnecessary_assign_check.markdown#unnecessaryassigncheck) | [Performance](performance_checks.markdown#performance-checks) | Finds unnecessary assign statements (when it is either reassigned or returned right after). |
 UnnecessaryMethodCallCheck | [Styling](styling_checks.markdown#styling-checks) | Finds unnecessary method calls. |
-[UnnecessaryParenthesesCheck](https://checkstyle.sourceforge.io/checks/coding/unnecessaryparentheses.html) | [Styling](styling_checks.markdown#styling-checks) | Checks if unnecessary parentheses are used in a statement or expression. |
 UnnecessaryTypeCastCheck | [Performance](performance_checks.markdown#performance-checks) | Finds unnecessary Type Casting. |
 [UnnecessaryVariableDeclarationCheck](check/unnecessary_variable_declaration_check.markdown#unnecessaryvariabledeclarationcheck) | [Performance](performance_checks.markdown#performance-checks) | Finds unnecessary variable declarations (when it is either reassigned or returned right after). |
 UnparameterizedClassCheck | [Bug Prevention](bug_prevention_checks.markdown#bug-prevention-checks) | Finds `Class` instantiation without generic type. |

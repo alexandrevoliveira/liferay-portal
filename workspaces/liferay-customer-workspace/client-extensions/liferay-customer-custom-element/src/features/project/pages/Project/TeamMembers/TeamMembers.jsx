@@ -8,7 +8,7 @@ import {useEffect} from 'react';
 import {useOutletContext} from 'react-router-dom';
 import {useAppPropertiesContext} from '~/contexts/AppPropertiesContext';
 import SearchBuilder from '~/lib/SearchBuilder';
-import IncidentContactCard from '~/features/project/components/IncidentContactCard';
+import IncidentContactCard from '~/features/project/containers/IncidentContactCard';
 import i18n from '~/utils/I18n';
 import useCurrentKoroneikiAccount from '~/hooks/useCurrentKoroneikiAccount';
 import {getAccountSubscriptionGroups} from '~/services/liferay/graphql/queries';
@@ -23,14 +23,14 @@ const targetProducts = [
 
 const TeamMembers = () => {
 	const {setHasSideMenu} = useOutletContext();
-	const {data, loading} = useCurrentKoroneikiAccount();
-	const koroneikiAccount = data?.koroneikiAccountByExternalReferenceCode;
-
+	const {data: dataCurrentKoroneikiAccount, loading: loadingCurrentKoroneikiAccount} = useCurrentKoroneikiAccount();
+	const koroneikiAccount = dataCurrentKoroneikiAccount?.koroneikiAccountByExternalReferenceCode;
 	const {featureFlags} = useAppPropertiesContext();
 
-	const {data: dataSubscriptionGroups} = useQuery(
+	const {data: dataSubscriptionGroups, loading: loadingSubscriptionGroups} = useQuery(
 		getAccountSubscriptionGroups,
 		{
+			skip: loadingCurrentKoroneikiAccount,
 			variables: {
 				filter: new SearchBuilder()
 					.eq('accountKey', koroneikiAccount?.accountKey)
@@ -42,18 +42,20 @@ const TeamMembers = () => {
 	);
 
 	const accountSubscriptionGroups =
-		dataSubscriptionGroups?.c.accountSubscriptionGroups?.items;
+		dataSubscriptionGroups?.c?.accountSubscriptionGroups?.items;
 
 	const accountSubscriptionGroupsNames = accountSubscriptionGroups?.map(
-		(group) => group.name
+		(group) => group?.name
 	);
 
 	const hasActiveProduct = accountSubscriptionGroups?.some(
 		(item) =>
-			targetProducts.includes(item.name) &&
-			item.hasActivation &&
-			item.activationStatus === 'Active'
+			targetProducts?.includes(item?.name) &&
+			item?.hasActivation &&
+			item?.activationStatus === 'Active'
 	);
+
+	const loading = loadingCurrentKoroneikiAccount || loadingSubscriptionGroups;
 
 	useEffect(() => {
 		setHasSideMenu(true);

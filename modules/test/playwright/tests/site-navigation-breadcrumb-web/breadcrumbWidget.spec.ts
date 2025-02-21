@@ -6,20 +6,23 @@
 import {expect, mergeTests} from '@playwright/test';
 
 import {apiHelpersTest} from '../../fixtures/apiHelpersTest';
-import {featureFlagsTest} from '../../fixtures/featureFlagsTest';
+import {breadcrumbPagesTest} from '../../fixtures/breadcrumbPagesTest';
+import {breadcrumbWidgetPagesTest} from '../../fixtures/breadcrumbWidgetPagesTest';
 import {isolatedSiteTest} from '../../fixtures/isolatedSiteTest';
 import {loginTest} from '../../fixtures/loginTest';
+import {pageViewModePagesTest} from '../../fixtures/pageViewModePagesTest';
+import {clickAndExpectToBeVisible} from '../../utils/clickAndExpectToBeVisible';
 import getRandomString from '../../utils/getRandomString';
-import getPageDefinition from '../layout-content-page-editor-web/utils/getPageDefinition';
-import getWidgetDefinition from '../layout-content-page-editor-web/utils/getWidgetDefinition';
+import {templatesPageTest} from '../template-web/fixtures/templatesPageTest';
 
 export const test = mergeTests(
 	apiHelpersTest,
-	featureFlagsTest({
-		'LPS-178052': {enabled: true},
-	}),
+	breadcrumbPagesTest,
+	breadcrumbWidgetPagesTest,
 	isolatedSiteTest,
-	loginTest()
+	loginTest(),
+	pageViewModePagesTest,
+	templatesPageTest
 );
 
 test(
@@ -27,23 +30,242 @@ test(
 	{
 		tag: '@LPD-40431',
 	},
-	async ({apiHelpers, page, site}) => {
-		const layout = await apiHelpers.headlessDelivery.createSitePage({
-			pageDefinition: getPageDefinition([
-				getWidgetDefinition({
-					id: getRandomString(),
-					widgetName:
-						'com_liferay_site_navigation_breadcrumb_web_portlet_SiteNavigationBreadcrumbPortlet',
-				}),
-			]),
-			siteId: site.id,
-			title: getRandomString(),
-		});
-
-		await page.goto(`/web/${site.name}/${layout.friendlyUrlPath}`);
+	async ({breadcrumbWidgetPage, page, site}) => {
+		await breadcrumbWidgetPage.addBreadcrumbPortlet(site);
 
 		await expect(
 			page.locator('.active.breadcrumb-text-truncate')
 		).toHaveAttribute('aria-current', 'page');
 	}
 );
+
+test('Select widget template in Breadcrumb widget configuration', async ({
+	breadcrumbWidgetPage,
+	page,
+	site,
+	templatesPage,
+	widgetPagePage,
+}) => {
+	await templatesPage.gotoWidgetTemplates(site.friendlyUrlPath);
+
+	const widgetTemplateName = getRandomString();
+
+	await templatesPage.createWidgetTemplate(
+		widgetTemplateName,
+		'Breadcrumb Template'
+	);
+
+	await breadcrumbWidgetPage.addBreadcrumbPortlet(site);
+
+	await widgetPagePage.clickOnAction('Breadcrumb', 'Configuration');
+
+	const configurationIFrame = page.frameLocator(
+		'iframe[title*="Breadcrumb"]'
+	);
+
+	await clickAndExpectToBeVisible({
+		autoClick: true,
+		target: configurationIFrame.getByRole('option', {
+			exact: true,
+			name: widgetTemplateName,
+		}),
+		trigger: configurationIFrame.getByLabel('Display Template'),
+	});
+
+	await widgetPagePage.saveAndClose('Breadcrumb');
+
+	await widgetPagePage.clickOnAction('Breadcrumb', 'Configuration');
+
+	await configurationIFrame.getByLabel('Display Template').click();
+
+	await expect(
+		configurationIFrame.locator('button[aria-selected="true"]')
+	).toHaveText(widgetTemplateName);
+});
+
+test(
+	'Breadcrumb widget configuration remains unchanged without clicking save',
+	{
+		tag: '@LPS-150908',
+	},
+	async ({breadcrumbWidgetPage, page, site, widgetPagePage}) => {
+		const layout = await breadcrumbWidgetPage.addBreadcrumbPortlet(site);
+
+		await widgetPagePage.clickOnAction('Breadcrumb', 'Configuration');
+
+		const configurationIFrame = page.frameLocator(
+			'iframe[title*="Breadcrumb"]'
+		);
+
+		await clickAndExpectToBeVisible({
+			autoClick: true,
+			target: configurationIFrame.getByRole('option', {
+				exact: true,
+				name: 'Arrows',
+			}),
+			trigger: configurationIFrame.getByLabel('Display Template'),
+		});
+
+		await page.goto(`/web${site.friendlyUrlPath}${layout.friendlyURL}`);
+
+		await widgetPagePage.clickOnAction('Breadcrumb', 'Configuration');
+
+		await configurationIFrame.getByLabel('Display Template').click();
+
+		await expect(
+			configurationIFrame.locator('button[aria-selected="true"]')
+		).toHaveText('Horizontal');
+	}
+);
+
+test('Configure Show Application in Breadcrumb widget', async ({
+	apiHelpers,
+	breadcrumbPage,
+	breadcrumbWidgetPage,
+	page,
+	site,
+	widgetPagePage,
+}) => {
+	const folder = await apiHelpers.headlessDelivery.postDocumentFolder(
+		site.id
+	);
+	const layout = await breadcrumbWidgetPage.addBreadcrumbPortlet(site);
+
+	await widgetPagePage.addPortlet('Documents and Media');
+
+	await page.getByRole('link', {name: folder.name}).click();
+
+	await page.waitForTimeout(2000);
+
+	await breadcrumbPage.assertBreadcrumbEntries(4, [
+		site.name,
+		layout.nameCurrentValue,
+		'Home',
+		folder.name,
+	]);
+
+	await breadcrumbPage.toggleBreadcrumbConfiguration(
+		'Show Application Breadcrumb'
+	);
+
+	await breadcrumbPage.assertBreadcrumbEntries(2, [
+		site.name,
+		layout.nameCurrentValue,
+	]);
+});
+
+test('Configure Show Current Site in Breadcrumb widget', async ({
+	breadcrumbPage,
+	breadcrumbWidgetPage,
+	site,
+}) => {
+	const layout = await breadcrumbWidgetPage.addBreadcrumbPortlet(site);
+
+	await breadcrumbPage.assertBreadcrumbEntries(2, [
+		site.name,
+		layout.nameCurrentValue,
+	]);
+
+	await breadcrumbPage.toggleBreadcrumbConfiguration('Show Current Site');
+
+	await breadcrumbPage.assertBreadcrumbEntries(1, [layout.nameCurrentValue]);
+});
+
+test('Configure Show Page in Breadcrumb widget', async ({
+	breadcrumbPage,
+	breadcrumbWidgetPage,
+	site,
+}) => {
+	const layout = await breadcrumbWidgetPage.addBreadcrumbPortlet(site);
+
+	await breadcrumbPage.assertBreadcrumbEntries(2, [
+		site.name,
+		layout.nameCurrentValue,
+	]);
+
+	await breadcrumbPage.toggleBreadcrumbConfiguration('Show Page');
+
+	await breadcrumbPage.assertBreadcrumbEntries(1, [site.name]);
+});
+
+test('Configure Show Parent Sites in Breadcrumb widget', async ({
+	apiHelpers,
+	breadcrumbPage,
+	breadcrumbWidgetPage,
+	site,
+}) => {
+	const childSite = await apiHelpers.headlessSite.createSite({
+		name: getRandomString(),
+		parentSiteKey: site.name,
+	});
+
+	const layout = await breadcrumbWidgetPage.addBreadcrumbPortlet(childSite);
+
+	await breadcrumbPage.assertBreadcrumbEntries(3, [
+		site.name,
+		childSite.name,
+		layout.nameCurrentValue,
+	]);
+
+	await breadcrumbPage.toggleBreadcrumbConfiguration('Show Parent Sites');
+
+	await breadcrumbPage.assertBreadcrumbEntries(2, [
+		childSite.name,
+		layout.nameCurrentValue,
+	]);
+
+	await apiHelpers.headlessSite.deleteSite(childSite.id);
+});
+
+test('Configure Show Guest Site in Breadcrumb widget', async ({
+	breadcrumbPage,
+	breadcrumbWidgetPage,
+	site,
+}) => {
+	const layout = await breadcrumbWidgetPage.addBreadcrumbPortlet(site);
+
+	await breadcrumbPage.assertBreadcrumbEntries(2, [
+		site.name,
+		layout.nameCurrentValue,
+	]);
+
+	await breadcrumbPage.toggleBreadcrumbConfiguration('Show Guest Site');
+
+	await breadcrumbPage.assertBreadcrumbEntries(3, [
+		'Liferay DXP',
+		site.name,
+		layout.nameCurrentValue,
+	]);
+});
+
+test('Preview pane reloads in Breadcrumb widget configuration', async ({
+	breadcrumbPage,
+	breadcrumbWidgetPage,
+	page,
+	site,
+	widgetPagePage,
+}) => {
+	const layout = await breadcrumbWidgetPage.addBreadcrumbPortlet(site);
+
+	await widgetPagePage.clickOnAction('Breadcrumb', 'Configuration');
+
+	const configurationIFrame = page.frameLocator(
+		'iframe[title*="Breadcrumb"]'
+	);
+
+	await page.waitForTimeout(1000);
+
+	await breadcrumbPage.assertBreadcrumbEntries(
+		2,
+		[site.name, layout.nameCurrentValue],
+		configurationIFrame
+	);
+
+	await configurationIFrame.getByLabel('Show Guest Site').click();
+
+	await breadcrumbPage.assertBreadcrumbEntries(
+		3,
+		['Liferay DXP', site.name, layout.nameCurrentValue],
+		configurationIFrame
+	);
+});

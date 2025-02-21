@@ -16,6 +16,7 @@ import com.liferay.journal.service.JournalArticleLocalService;
 import com.liferay.journal.service.JournalArticleResourceLocalService;
 import com.liferay.journal.service.JournalFolderLocalService;
 import com.liferay.journal.util.JournalHelper;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
@@ -79,9 +80,9 @@ public class JournalArticleTrashHandler extends BaseJournalTrashHandler {
 			"assetTitle", article.getTitle(article.getDefaultLanguageId()));
 
 		return _systemEventLocalService.addSystemEvent(
-			userId, groupId, getSystemEventClassName(), classPK, classUuid,
-			referrerClassName, SystemEventConstants.TYPE_DELETE,
-			extraDataJSONObject.toString());
+			userId, groupId, StringPool.BLANK, getSystemEventClassName(),
+			classPK, classUuid, referrerClassName,
+			SystemEventConstants.TYPE_DELETE, extraDataJSONObject.toString());
 	}
 
 	@Override

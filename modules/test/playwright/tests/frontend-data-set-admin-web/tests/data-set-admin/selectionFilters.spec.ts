@@ -10,6 +10,7 @@ import {featureFlagsTest} from '../../../../fixtures/featureFlagsTest';
 import {loginTest} from '../../../../fixtures/loginTest';
 import {clickAndExpectToBeVisible} from '../../../../utils/clickAndExpectToBeVisible';
 import getRandomString from '../../../../utils/getRandomString';
+import {waitForAlert} from '../../../../utils/waitForAlert';
 import {dataSetManagerApiHelpersTest} from '../../fixtures/dataSetManagerApiHelpersTest';
 import {picklistApiHelpersTest} from '../../fixtures/picklistApiHelpersTest';
 import {API_ENDPOINT_PATH} from '../../utils/constants';
@@ -26,6 +27,7 @@ const PICKLIST_VALUE_NAME = getRandomString();
 const test = mergeTests(
 	dataSetManagerApiHelpersTest,
 	featureFlagsTest({
+		'LPD-37531': {enabled: true},
 		'LPS-178052': {enabled: true},
 	}),
 	filtersPageTest,
@@ -407,6 +409,59 @@ test(
 					name: SELECTION_API_HEADLESS_FILTER_NAME,
 				})
 			).toBeVisible();
+		});
+	}
+);
+
+test(
+	'Can deactivate and activate Selection filters',
+	{tag: '@LPD-39965'},
+	async ({filtersPage, page}) => {
+		await test.step('Create a selection filter from API Headless source', async () => {
+			await filtersPage.createSelectionFilterApiHeadless({
+				filterBy: 'externalReferenceCode',
+				filterMode: 'Include',
+				itemKey: 'id',
+				itemLabel: 'label',
+				name: SELECTION_API_HEADLESS_FILTER_NAME,
+				preselectedValues: [dataSetLabel],
+				restApplication: `${API_ENDPOINT_PATH}`,
+				restEndpoint: '/',
+				restSchema: 'DataSet',
+				selectionType: 'Single',
+				sourceType: 'API REST Application',
+			});
+
+			await filtersPage.saveAddFilterForm();
+
+			await waitForAlert(page);
+		});
+
+		await test.step('Check that the selection filter is in the list and is "Active" by default', async () => {
+			await expect(
+				page.getByRole('cell', {
+					exact: true,
+					name: SELECTION_API_HEADLESS_FILTER_NAME,
+				})
+			).toBeVisible();
+
+			await expect(filtersPage.activeToggle.first()).toBeVisible();
+		});
+
+		await test.step('Deactivate selection filter', async () => {
+			await filtersPage.activeToggle.first().click();
+
+			await waitForAlert(page);
+
+			await expect(filtersPage.inactiveToggle.first()).toBeVisible();
+		});
+
+		await test.step('Activate selection filter', async () => {
+			await filtersPage.inactiveToggle.first().click();
+
+			await waitForAlert(page);
+
+			await expect(filtersPage.activeToggle.first()).toBeVisible();
 		});
 	}
 );

@@ -4,10 +4,13 @@
  */
 
 import {
+	AvailableLocale,
+	EditingLocale,
+	LocalizedValue,
 	MultipleSelection,
 	ReactFieldBase as FieldBase,
 } from 'dynamic-data-mapping-form-field-type';
-import React from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 
 interface MultiSelectOption {
 	label: string;
@@ -15,10 +18,17 @@ interface MultiSelectOption {
 	value: string;
 }
 
+type Values = string[] | LocalizedValue<string[]>;
+
 interface MultiSelectPicklistProps {
-	errorMessage?: string;
+	availableLocales: AvailableLocale[];
+	defaultLanguageId: Liferay.Language.Locale;
+	defaultLocale: EditingLocale;
+	errorMessage: string;
+	fieldName: string;
 	id: string;
 	label: string;
+	localizedObjectField?: boolean;
 	localizedValue?: Liferay.Language.FullyLocalizedValue<string> | {};
 	name: string;
 	onChange: Function;
@@ -27,12 +37,24 @@ interface MultiSelectPicklistProps {
 	readOnly: boolean;
 	required: boolean;
 	tip?: string;
-	value: string[];
+	value: Values;
 }
+
+const normalizeValues = (value: Values | '') => {
+	if (value === '') {
+		return [];
+	}
+	else if (typeof value === 'string') {
+		return JSON.parse(value);
+	}
+
+	return value;
+};
 
 export default function MultiSelectPicklist({
 	errorMessage,
 	label,
+	localizedObjectField,
 	localizedValue = {},
 	name,
 	onChange,
@@ -45,6 +67,30 @@ export default function MultiSelectPicklist({
 	value,
 	...otherProps
 }: MultiSelectPicklistProps) {
+	const normalizedValue = normalizeValues(value);
+
+	const [localValues, setLocalValues] = useState(normalizedValue);
+
+	const onChangeRef = useRef(onChange);
+
+	useEffect(() => {
+		onChangeRef.current = onChange;
+	}, [onChange]);
+
+	useEffect(() => {
+		onChangeRef.current({target: {value: normalizedValue}});
+	}, [normalizedValue]);
+
+	const handleChange = (_: object, value: Values) => {
+		const updatedValues = localizedObjectField
+			? {...(value as LocalizedValue<string[]>)}
+			: [...(value as string[])];
+
+		onChangeRef.current({target: {value: updatedValues}});
+
+		setLocalValues(updatedValues);
+	};
+
 	return (
 		<FieldBase
 			errorMessage={errorMessage}
@@ -57,20 +103,20 @@ export default function MultiSelectPicklist({
 			{...otherProps}
 		>
 			<MultipleSelection
+				{...otherProps}
 				errorMessage={errorMessage}
 				id={id}
 				label={label}
+				localizedObjectField={localizedObjectField}
 				name={name}
-				onChange={onChange}
+				onChange={handleChange}
 				options={options}
 				placeholder={placeholder}
 				readOnly={readOnly}
 				required={required}
 				tip={tip}
-				value={value}
+				value={localValues}
 			/>
-
-			<input name={name} type="hidden" value={value} />
 		</FieldBase>
 	);
 }

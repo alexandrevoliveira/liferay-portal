@@ -33,11 +33,8 @@ import SidePanel from './side_panel/SidePanel';
 import filterCreationActions from './utils/actionItems/filterCreationActions';
 import EVENTS from './utils/eventsDefinitions';
 import getRandomId from './utils/getRandomId';
-import {
-	formatItemChanges,
-	getCurrentItemUpdates,
-	loadData,
-} from './utils/index';
+import {formatItemChanges, getCurrentItemUpdates} from './utils/index';
+import {loadData} from './utils/loadData';
 import {logError} from './utils/logError';
 import ViewsContext from './views/ViewsContext';
 import getViewComponent from './views/getViewComponent';
@@ -231,16 +228,16 @@ const FrontendDataSet = ({
 		const activeSorts =
 			sorts.length > 1 ? sorts.filter((sort) => sort.active) : sorts;
 
-		return loadData(
+		return loadData({
+			additionalAPIURLParameters,
 			apiURL,
 			currentURL,
-			activeFiltersOdataStrings,
+			delta: paginationDelta,
+			odataFiltersStrings: activeFiltersOdataStrings,
+			page: pageNumber,
 			searchParam,
-			paginationDelta,
-			pageNumber,
-			activeSorts,
-			additionalAPIURLParameters
-		);
+			sorts: activeSorts,
+		});
 	}, [
 		additionalAPIURLParameters,
 		apiURL,
@@ -567,9 +564,8 @@ const FrontendDataSet = ({
 				bulkActions={bulkActions}
 				creationMenu={creationMenu}
 				fluid={style === 'fluid'}
-				selectAllItems={() =>
-					selectItems(items.map((item) => item[selectedItemsKey]))
-				}
+				items={items}
+				selectItems={(items) => selectItems(items)}
 				selectedItems={selectedItems}
 				selectedItemsKey={selectedItemsKey}
 				selectedItemsValue={selectedItemsValue}

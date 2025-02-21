@@ -13,6 +13,7 @@ import com.liferay.headless.admin.site.dto.v1_0.FriendlyUrlHistory;
 import com.liferay.headless.admin.site.dto.v1_0.SitePage;
 import com.liferay.headless.admin.site.dto.v1_0.UtilityPage;
 import com.liferay.headless.admin.site.internal.resource.v1_0.util.GroupUtil;
+import com.liferay.headless.admin.site.internal.resource.v1_0.util.LayoutUtil;
 import com.liferay.headless.admin.site.resource.v1_0.FriendlyUrlHistoryResource;
 import com.liferay.layout.friendly.url.LayoutFriendlyURLEntryHelper;
 import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
@@ -146,6 +147,10 @@ public class FriendlyUrlHistoryResourceImpl
 		throws Exception {
 
 		JSONObject jsonObject = _jsonFactory.createJSONObject();
+
+		if (!LayoutUtil.isPublished(layout)) {
+			return jsonObject;
+		}
 
 		long classNameId = _layoutFriendlyURLEntryHelper.getClassNameId(
 			layout.isPrivateLayout());

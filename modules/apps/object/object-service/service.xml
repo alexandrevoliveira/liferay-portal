@@ -207,6 +207,7 @@
 		<column name="objectDefinitionId" type="long" />
 		<column name="objectEntryFolderId" type="long" />
 		<column name="rootObjectEntryId" type="long" />
+		<column name="defaultLanguageId" type="String" />
 		<column name="treePath" type="String" />
 		<column name="lastPublishDate" type="Date" />
 		<column name="status" type="int" />
@@ -1139,6 +1140,7 @@
 		<exception>ObjectDefinitionSystem</exception>
 		<exception>ObjectDefinitionVersion</exception>
 		<exception>ObjectEntryCount</exception>
+		<exception>ObjectEntryDefaultLanguageId</exception>
 		<exception>ObjectEntryFolderName</exception>
 		<exception>ObjectEntryFolderScope</exception>
 		<exception>ObjectEntryValues</exception>

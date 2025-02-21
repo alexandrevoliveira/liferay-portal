@@ -9,19 +9,6 @@ const allInputs = Array.from(
 	fragmentElement.querySelectorAll('.custom-control-input')
 );
 
-if (input.attributes?.readOnly) {
-	allInputs.forEach((input) => {
-		input.addEventListener('click', (event) => event.preventDefault());
-	});
-}
-else if (layoutMode === 'edit') {
-	allInputs.forEach((input) => {
-		input.setAttribute('disabled', true);
-	});
-
-	button.setAttribute('disabled', true);
-}
-
 const updateInputStatus = () => {
 	if (!input.required) {
 		return;
@@ -37,9 +24,89 @@ const updateInputStatus = () => {
 	}
 };
 
-updateInputStatus();
+const preventClick = (event) => event.preventDefault();
 
-fieldSet.addEventListener('change', updateInputStatus);
+if (input.attributes?.readOnly) {
+	allInputs.forEach((input) => {
+		input.addEventListener('click', preventClick);
+	});
+}
+else if (layoutMode === 'edit') {
+	allInputs.forEach((input) => {
+		input.setAttribute('disabled', true);
+	});
+
+	button.setAttribute('disabled', true);
+}
+else {
+	if (Liferay.FeatureFlags['LPD-37927']) {
+		import('@liferay/fragment-impl').then(
+			({
+				registerLocalizedMultiSelect,
+				registerUnlocalizedMultiSelect,
+			}) => {
+				const defaultLanguageId = themeDisplay.getDefaultLanguageId();
+
+				if (input.localizable) {
+					const {onChange} = registerLocalizedMultiSelect({
+						defaultLanguageId,
+						initialValues: input.valueI18n,
+						inputElements: allInputs,
+						namespace: fragmentNamespace,
+					});
+
+					fieldSet.addEventListener('change', (event) => {
+						onChange(event);
+					});
+				}
+				else {
+					const unlocalizedFieldsState =
+						input.attributes.unlocalizedFieldsState;
+
+					registerUnlocalizedMultiSelect({
+						defaultLanguageId,
+						inputElements: allInputs,
+
+						onLocaleChange: (languageId) => {
+							if (
+								defaultLanguageId !== languageId &&
+								unlocalizedFieldsState === 'read-only'
+							) {
+								allInputs.forEach((input) => {
+									input.addEventListener(
+										'click',
+										preventClick
+									);
+								});
+							}
+							else {
+								allInputs.forEach((input) => {
+									input.removeEventListener(
+										'click',
+										preventClick
+									);
+								});
+							}
+						},
+
+						readOnlyInputLabel: document.getElementById(
+							`${fragmentNamespace}-multiselect-list-read-only`
+						),
+						unlocalizedFieldsState,
+						unlocalizedMessageContainer: document.getElementById(
+							`${fragmentNamespace}-unlocalized-info`
+						),
+					});
+				}
+			}
+		);
+	}
+	else {
+		fieldSet.addEventListener('change', updateInputStatus);
+	}
+}
+
+updateInputStatus();
 
 if (numberOfOptions < options.length) {
 	const missionOptions = options.slice(numberOfOptions);

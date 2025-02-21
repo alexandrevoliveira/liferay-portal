@@ -40,6 +40,10 @@ public class SystemEventTable extends BaseTable<SystemEventTable> {
 		"userName", String.class, Types.VARCHAR, Column.FLAG_DEFAULT);
 	public final Column<SystemEventTable, Date> createDate = createColumn(
 		"createDate", Date.class, Types.TIMESTAMP, Column.FLAG_DEFAULT);
+	public final Column<SystemEventTable, String> classExternalReferenceCode =
+		createColumn(
+			"classExternalReferenceCode", String.class, Types.VARCHAR,
+			Column.FLAG_DEFAULT);
 	public final Column<SystemEventTable, Long> classNameId = createColumn(
 		"classNameId", Long.class, Types.BIGINT, Column.FLAG_DEFAULT);
 	public final Column<SystemEventTable, Long> classPK = createColumn(

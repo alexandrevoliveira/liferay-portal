@@ -7,7 +7,6 @@ package com.liferay.portal.vulcan.internal.jaxrs.container.request.filter;
 
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.model.Company;
-import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.search.filter.Filter;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ResourceActionLocalService;
@@ -18,26 +17,22 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.odata.filter.ExpressionConvert;
 import com.liferay.portal.odata.filter.FilterParserProvider;
 import com.liferay.portal.odata.sort.SortParserProvider;
-import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
-import com.liferay.portal.vulcan.batch.engine.resource.VulcanBatchEngineExportTaskResource;
 import com.liferay.portal.vulcan.batch.engine.resource.VulcanBatchEngineExportTaskResourceFactory;
-import com.liferay.portal.vulcan.batch.engine.resource.VulcanBatchEngineImportTaskResource;
 import com.liferay.portal.vulcan.batch.engine.resource.VulcanBatchEngineImportTaskResourceFactory;
 import com.liferay.portal.vulcan.internal.accept.language.AcceptLanguageImpl;
 import com.liferay.portal.vulcan.internal.configuration.util.ConfigurationUtil;
 import com.liferay.portal.vulcan.internal.jaxrs.context.provider.ContextProviderUtil;
+import com.liferay.portal.vulcan.jaxrs.context.ContextDataInjector;
+import com.liferay.portal.vulcan.jaxrs.context.ContextDataInjectorBuilderFactory;
 import com.liferay.portal.vulcan.util.UriInfoUtil;
 
 import java.io.IOException;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 
 import java.net.URI;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
@@ -71,6 +66,7 @@ public class ContextContainerRequestFilter
 
 	public ContextContainerRequestFilter(
 		ConfigurationAdmin configurationAdmin,
+		ContextDataInjectorBuilderFactory contextDataInjectorBuilderFactory,
 		ExpressionConvert<Filter> expressionConvert,
 		FilterParserProvider filterParserProvider,
 		GroupLocalService groupLocalService, Language language, Portal portal,
@@ -84,6 +80,7 @@ public class ContextContainerRequestFilter
 			vulcanBatchEngineImportTaskResourceFactory) {
 
 		_configurationAdmin = configurationAdmin;
+		_contextDataInjectorBuilderFactory = contextDataInjectorBuilderFactory;
 		_expressionConvert = expressionConvert;
 		_filterParserProvider = filterParserProvider;
 		_groupLocalService = groupLocalService;
@@ -282,137 +279,49 @@ public class ContextContainerRequestFilter
 		_filterExcludedOperationIds(
 			containerRequestContext, httpServletRequest, message);
 
-		_setInstanceFields(
-			instance.getClass(), httpServletRequest, message, instance);
-	}
+		ContextDataInjector contextDataInjector =
+			_contextDataInjectorBuilderFactory.builder(
+			).acceptLanguage(
+				new AcceptLanguageImpl(httpServletRequest, _language, _portal)
+			).company(
+				_portal.getCompany(httpServletRequest)
+			).expressionConvert(
+				_expressionConvert
+			).filterParserProvider(
+				_filterParserProvider
+			).groupLocalService(
+				_groupLocalService
+			).httpServletRequest(
+				httpServletRequest
+			).httpServletResponse(
+				(HttpServletResponse)message.getContextualProperty(
+					"HTTP.RESPONSE")
+			).resourceActionLocalService(
+				_resourceActionLocalService
+			).resourcePermissionLocalService(
+				_resourcePermissionLocalService
+			).roleLocalService(
+				_roleLocalService
+			).scopeChecker(
+				_scopeChecker
+			).sortParserProvider(
+				_sortParserProvider
+			).uriInfo(
+				_getVulcanUriInfo(httpServletRequest, message)
+			).user(
+				_portal.getUser(httpServletRequest)
+			).vulcanBatchEngineExportTaskResource(
+				_vulcanBatchEngineExportTaskResourceFactory.create()
+			).vulcanBatchEngineImportTaskResource(
+				_vulcanBatchEngineImportTaskResourceFactory.create()
+			).build();
 
-	private void _setInstanceFields(
-			Class<?> clazz, HttpServletRequest httpServletRequest,
-			Message message, Object instance)
-		throws Exception {
-
-		if (clazz == Object.class) {
-			return;
-		}
-
-		for (Field field : clazz.getDeclaredFields()) {
-			if (Modifier.isFinal(field.getModifiers()) ||
-				Modifier.isStatic(field.getModifiers())) {
-
-				continue;
-			}
-
-			Class<?> fieldClass = field.getType();
-
-			if (fieldClass.equals(Object.class) &&
-				Objects.equals(field.getName(), "contextScopeChecker")) {
-
-				field.setAccessible(true);
-
-				field.set(instance, _scopeChecker);
-
-				continue;
-			}
-
-			if (fieldClass.isAssignableFrom(AcceptLanguage.class)) {
-				field.setAccessible(true);
-
-				field.set(
-					instance,
-					new AcceptLanguageImpl(
-						httpServletRequest, _language, _portal));
-			}
-			else if (fieldClass.isAssignableFrom(Company.class)) {
-				field.setAccessible(true);
-
-				field.set(instance, _portal.getCompany(httpServletRequest));
-			}
-			else if (fieldClass.isAssignableFrom(ExpressionConvert.class)) {
-				field.setAccessible(true);
-
-				field.set(instance, _expressionConvert);
-			}
-			else if (fieldClass.isAssignableFrom(FilterParserProvider.class)) {
-				field.setAccessible(true);
-
-				field.set(instance, _filterParserProvider);
-			}
-			else if (fieldClass.isAssignableFrom(GroupLocalService.class)) {
-				field.setAccessible(true);
-
-				field.set(instance, _groupLocalService);
-			}
-			else if (fieldClass.isAssignableFrom(HttpServletRequest.class)) {
-				field.setAccessible(true);
-
-				field.set(instance, httpServletRequest);
-			}
-			else if (fieldClass.isAssignableFrom(HttpServletResponse.class)) {
-				field.setAccessible(true);
-
-				field.set(
-					instance, message.getContextualProperty("HTTP.RESPONSE"));
-			}
-			else if (fieldClass.isAssignableFrom(
-						ResourceActionLocalService.class)) {
-
-				field.setAccessible(true);
-
-				field.set(instance, _resourceActionLocalService);
-			}
-			else if (fieldClass.isAssignableFrom(
-						ResourcePermissionLocalService.class)) {
-
-				field.setAccessible(true);
-
-				field.set(instance, _resourcePermissionLocalService);
-			}
-			else if (fieldClass.isAssignableFrom(RoleLocalService.class)) {
-				field.setAccessible(true);
-
-				field.set(instance, _roleLocalService);
-			}
-			else if (fieldClass.isAssignableFrom(SortParserProvider.class)) {
-				field.setAccessible(true);
-
-				field.set(instance, _sortParserProvider);
-			}
-			else if (fieldClass.isAssignableFrom(UriInfo.class)) {
-				field.setAccessible(true);
-
-				field.set(
-					instance, _getVulcanUriInfo(httpServletRequest, message));
-			}
-			else if (fieldClass.isAssignableFrom(User.class)) {
-				field.setAccessible(true);
-
-				field.set(instance, _portal.getUser(httpServletRequest));
-			}
-			else if (fieldClass.isAssignableFrom(
-						VulcanBatchEngineExportTaskResource.class)) {
-
-				field.setAccessible(true);
-
-				field.set(
-					instance,
-					_vulcanBatchEngineExportTaskResourceFactory.create());
-			}
-			else if (fieldClass.isAssignableFrom(
-						VulcanBatchEngineImportTaskResource.class)) {
-
-				field.setAccessible(true);
-
-				field.set(
-					instance,
-					_vulcanBatchEngineImportTaskResourceFactory.create());
-			}
-		}
-
-		_setInstanceFields(
-			clazz.getSuperclass(), httpServletRequest, message, instance);
+		contextDataInjector.inject(instance);
 	}
 
 	private final ConfigurationAdmin _configurationAdmin;
+	private final ContextDataInjectorBuilderFactory
+		_contextDataInjectorBuilderFactory;
 	private final ExpressionConvert<Filter> _expressionConvert;
 	private final FilterParserProvider _filterParserProvider;
 	private final GroupLocalService _groupLocalService;

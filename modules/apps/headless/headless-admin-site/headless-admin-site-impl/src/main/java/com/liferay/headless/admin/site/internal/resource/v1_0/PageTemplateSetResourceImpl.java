@@ -91,15 +91,16 @@ public class PageTemplateSetResourceImpl
 			transform(
 				_layoutPageTemplateCollectionService.
 					getLayoutPageTemplateCollections(
-						groupId,
+						groupId, search,
 						LayoutPageTemplateCollectionTypeConstants.BASIC,
 						pagination.getStartPosition(),
-						pagination.getEndPosition()),
+						pagination.getEndPosition(), null),
 				this::_toPageTemplateSet),
 			pagination,
 			_layoutPageTemplateCollectionService.
 				getLayoutPageTemplateCollectionsCount(
-					groupId, LayoutPageTemplateCollectionTypeConstants.BASIC));
+					groupId, search,
+					LayoutPageTemplateCollectionTypeConstants.BASIC));
 	}
 
 	@Override
@@ -161,7 +162,8 @@ public class PageTemplateSetResourceImpl
 				pageTemplateSet.getExternalReferenceCode(), groupId,
 				LayoutPageTemplateConstants.
 					PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-				pageTemplateSet.getName(), pageTemplateSet.getDescription(),
+				pageTemplateSet.getKey(), pageTemplateSet.getName(),
+				pageTemplateSet.getDescription(),
 				LayoutPageTemplateCollectionTypeConstants.BASIC,
 				_getServiceContext(groupId, pageTemplateSet));
 	}

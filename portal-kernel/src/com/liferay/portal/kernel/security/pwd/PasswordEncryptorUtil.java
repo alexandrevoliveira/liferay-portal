@@ -81,10 +81,18 @@ public class PasswordEncryptorUtil {
 	}
 
 	public static String getEncryptedPasswordAlgorithmSettings(
-		String encryptedPassword) {
+			String encryptedPassword)
+		throws PwdEncryptorException {
+
+		String encryptedPasswordAlgorithm = _getEncryptedPasswordAlgorithm(
+			encryptedPassword);
+
+		if (Validator.isNull(encryptedPasswordAlgorithm)) {
+			return null;
+		}
 
 		PasswordEncryptor passwordEncryptor = _getPasswordEncryptor(
-			_getEncryptedPasswordAlgorithm(encryptedPassword));
+			encryptedPasswordAlgorithm);
 
 		return passwordEncryptor.getEncryptedPasswordAlgorithmSettings(
 			encryptedPassword);
@@ -96,7 +104,7 @@ public class PasswordEncryptorUtil {
 		throws PwdEncryptorException {
 
 		if (Validator.isNull(plainTextPassword)) {
-			throw new PwdEncryptorException(
+			throw new PwdEncryptorException.PwdMustNotBeNull(
 				"Unable to _encrypt blank password");
 		}
 
@@ -172,7 +180,8 @@ public class PasswordEncryptorUtil {
 	}
 
 	private static String _getEncryptedPasswordAlgorithm(
-		String encryptedPassword) {
+			String encryptedPassword)
+		throws PwdEncryptorException {
 
 		String legacyAlgorithm = GetterUtil.getString(
 			PropsUtil.get(PropsKeys.PASSWORDS_ENCRYPTION_ALGORITHM_LEGACY));
@@ -203,7 +212,14 @@ public class PasswordEncryptorUtil {
 				return legacyAlgorithm;
 			}
 
-			return _PASSWORDS_ENCRYPTION_ALGORITHM;
+			if (_log.isWarnEnabled()) {
+				_log.warn(
+					"Property \"" +
+						PropsKeys.PASSWORDS_ENCRYPTION_ALGORITHM_LEGACY +
+							"\" is not set");
+			}
+
+			throw new PwdEncryptorException.MustSetLegacyAlgorithmProperty();
 		}
 		else if (Validator.isNotNull(encryptedPassword) &&
 				 (encryptedPassword.charAt(0) == CharPool.OPEN_CURLY_BRACE)) {

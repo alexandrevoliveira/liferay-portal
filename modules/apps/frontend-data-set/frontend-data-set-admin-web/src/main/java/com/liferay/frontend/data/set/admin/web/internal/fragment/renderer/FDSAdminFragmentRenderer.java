@@ -340,8 +340,9 @@ public class FDSAdminFragmentRenderer implements FragmentRenderer {
 				_getSortedRelatedObjectEntries(
 					dataSetObjectDefinition, dataSetObjectEntry,
 					"creationActionsOrder",
-					(ObjectEntry objectEntry) -> Objects.equals(
-						_getType(objectEntry), "creation"),
+					(ObjectEntry objectEntry) ->
+						Objects.equals(_getType(objectEntry), "creation") &&
+						_isActive(objectEntry),
 					"dataSetToDataSetActions"),
 				(ObjectEntry objectEntry) -> {
 					Map<String, Object> properties =
@@ -550,7 +551,8 @@ public class FDSAdminFragmentRenderer implements FragmentRenderer {
 		return JSONUtil.toJSONArray(
 			_getSortedRelatedObjectEntries(
 				dataSetObjectDefinition, dataSetObjectEntry, "filtersOrder",
-				(Predicate)null, "dataSetToDataSetClientExtensionFilters",
+				(ObjectEntry objectEntry) -> _isActive(objectEntry),
+				"dataSetToDataSetClientExtensionFilters",
 				"dataSetToDataSetDateFilters",
 				"dataSetToDataSetSelectionFilters"),
 			(ObjectEntry objectEntry) -> {
@@ -769,8 +771,9 @@ public class FDSAdminFragmentRenderer implements FragmentRenderer {
 		return JSONUtil.toJSONArray(
 			_getSortedRelatedObjectEntries(
 				dataSetObjectDefinition, dataSetObjectEntry, "itemActionsOrder",
-				(ObjectEntry objectEntry) -> Objects.equals(
-					_getType(objectEntry), "item"),
+				(ObjectEntry objectEntry) ->
+					Objects.equals(_getType(objectEntry), "item") &&
+					_isActive(objectEntry),
 				"dataSetToDataSetActions"),
 			(ObjectEntry objectEntry) -> {
 				Map<String, Object> properties = objectEntry.getProperties();
@@ -1024,7 +1027,8 @@ public class FDSAdminFragmentRenderer implements FragmentRenderer {
 		return JSONUtil.toJSONArray(
 			_getSortedRelatedObjectEntries(
 				dataSetObjectDefinition, dataSetObjectEntry, "sortsOrder",
-				(Predicate)null, "dataSetToDataSetSorts"),
+				(ObjectEntry objectEntry) -> _isActive(objectEntry),
+				"dataSetToDataSetSorts"),
 			(ObjectEntry objectEntry) -> {
 				Map<String, Object> properties = objectEntry.getProperties();
 
@@ -1095,6 +1099,16 @@ public class FDSAdminFragmentRenderer implements FragmentRenderer {
 		}
 
 		return apiURL;
+	}
+
+	private Boolean _isActive(ObjectEntry objectEntry) {
+		if (!FeatureFlagManagerUtil.isEnabled("LPD-37531")) {
+			return true;
+		}
+
+		Map<String, Object> properties = objectEntry.getProperties();
+
+		return (Boolean)properties.get("active");
 	}
 
 	private String _resolveParameters(

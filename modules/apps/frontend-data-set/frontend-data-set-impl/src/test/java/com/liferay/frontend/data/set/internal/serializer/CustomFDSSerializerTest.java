@@ -5,6 +5,9 @@
 
 package com.liferay.frontend.data.set.internal.serializer;
 
+import com.liferay.client.extension.type.FDSFilterCET;
+import com.liferay.client.extension.type.manager.CETManager;
+import com.liferay.frontend.data.set.constants.FDSEntityFieldTypes;
 import com.liferay.frontend.data.set.internal.url.FDSAPIURLResolverRegistryImpl;
 import com.liferay.frontend.data.set.model.FDSActionDropdownItem;
 import com.liferay.frontend.data.set.url.FDSAPIURLResolver;
@@ -16,11 +19,14 @@ import com.liferay.osgi.service.tracker.collections.map.ServiceTrackerCustomizer
 import com.liferay.osgi.service.tracker.collections.map.ServiceTrackerMap;
 import com.liferay.osgi.service.tracker.collections.map.ServiceTrackerMapFactory;
 import com.liferay.petra.function.transform.TransformUtil;
+import com.liferay.portal.json.JSONFactoryImpl;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.module.util.SystemBundleUtil;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.MapUtil;
@@ -30,14 +36,17 @@ import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
 import java.net.URLDecoder;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -48,6 +57,9 @@ import org.mockito.Mockito;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
+
+import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 
 /**
  * @author Daniel Sanz
@@ -63,15 +75,6 @@ public class CustomFDSSerializerTest {
 	public void setUp() {
 		_bundleContext = SystemBundleUtil.getBundleContext();
 
-		_serviceTrackerMap = ServiceTrackerMapFactory.openSingleValueMap(
-			_bundleContext, FDSAPIURLResolver.class, "fds.rest.application.key",
-			ServiceTrackerCustomizerFactory.<FDSAPIURLResolver>serviceWrapper(
-				_bundleContext));
-
-		ReflectionTestUtil.setFieldValue(
-			_fdsAPIURLResolverRegistry, "_serviceTrackerMap",
-			_serviceTrackerMap);
-
 		ThemeDisplay themeDisplay = Mockito.mock(ThemeDisplay.class);
 
 		Mockito.when(
@@ -80,12 +83,13 @@ public class CustomFDSSerializerTest {
 			themeDisplay
 		);
 
-		_resetFDSSerializer();
-	}
+		Mockito.when(
+			themeDisplay.getCompanyId()
+		).thenReturn(
+			0L
+		);
 
-	@After
-	public void tearDown() {
-		_serviceTrackerMap.close();
+		_resetFDSSerializer();
 	}
 
 	@Test
@@ -93,7 +97,22 @@ public class CustomFDSSerializerTest {
 
 		// Interpolation
 
-		_mockSerializeAPIURL("fdsName", "/app", "/endpoint/{foo}", "schema");
+		ServiceTrackerMap
+			<String,
+			 ServiceTrackerCustomizerFactory.ServiceWrapper<FDSAPIURLResolver>>
+				serviceTrackerMap = ServiceTrackerMapFactory.openSingleValueMap(
+					_bundleContext, FDSAPIURLResolver.class,
+					"fds.rest.application.key",
+					ServiceTrackerCustomizerFactory.
+						<FDSAPIURLResolver>serviceWrapper(_bundleContext));
+
+		FDSAPIURLResolverRegistry fdsAPIURLResolverRegistry =
+			new FDSAPIURLResolverRegistryImpl(serviceTrackerMap);
+
+		_resetFDSSerializer(fdsAPIURLResolverRegistry);
+
+		_mockSerializeAPIURL(
+			"fdsName", null, "/app", "/endpoint/{foo}", "schema");
 
 		ServiceRegistration<FDSAPIURLResolver> serviceRegistration =
 			_registerFDSAPIURLResolver(
@@ -106,12 +125,14 @@ public class CustomFDSSerializerTest {
 
 		serviceRegistration.unregister();
 
-		_resetFDSSerializer();
+		_resetFDSSerializer(fdsAPIURLResolverRegistry);
 
 		// REST application: /app
 
-		_mockSerializeAPIURL("fdsName1", "/app", "/endpoint/{foo}", "schema");
-		_mockSerializeAPIURL("fdsName2", "/app", "/endpoint/{foo}", "schema");
+		_mockSerializeAPIURL(
+			"fdsName1", null, "/app", "/endpoint/{foo}", "schema");
+		_mockSerializeAPIURL(
+			"fdsName2", null, "/app", "/endpoint/{foo}", "schema");
 
 		serviceRegistration = _registerFDSAPIURLResolver(
 			"/app", "schema", new String[] {"{foo}"}, new String[] {"bar"});
@@ -127,12 +148,14 @@ public class CustomFDSSerializerTest {
 
 		serviceRegistration.unregister();
 
-		_resetFDSSerializer();
+		_resetFDSSerializer(fdsAPIURLResolverRegistry);
 
 		// REST application: /app1 and /app2
 
-		_mockSerializeAPIURL("fdsName1", "/app1", "/endpoint/{foo}", "schema");
-		_mockSerializeAPIURL("fdsName2", "/app2", "/endpoint/{foo}", "schema");
+		_mockSerializeAPIURL(
+			"fdsName1", null, "/app1", "/endpoint/{foo}", "schema");
+		_mockSerializeAPIURL(
+			"fdsName2", null, "/app2", "/endpoint/{foo}", "schema");
 
 		serviceRegistration = _registerFDSAPIURLResolver(
 			"/app1", "schema", new String[] {"{foo}"}, new String[] {"bar"});
@@ -148,7 +171,7 @@ public class CustomFDSSerializerTest {
 
 		serviceRegistration.unregister();
 
-		_resetFDSSerializer();
+		_resetFDSSerializer(fdsAPIURLResolverRegistry);
 
 		// Nested fields: creator.name
 
@@ -161,7 +184,7 @@ public class CustomFDSSerializerTest {
 			_customFDSSerializer.serializeAPIURL(
 				"fdsName", _httpServletRequest));
 
-		_resetFDSSerializer();
+		_resetFDSSerializer(fdsAPIURLResolverRegistry);
 
 		// Nested fields: creator.name and status.id
 
@@ -182,7 +205,7 @@ public class CustomFDSSerializerTest {
 		Assert.assertTrue(nestedFields.contains("status"));
 		Assert.assertTrue(nestedFields.split(",").length == 2);
 
-		_resetFDSSerializer();
+		_resetFDSSerializer(fdsAPIURLResolverRegistry);
 
 		// Nested fields depth
 
@@ -208,6 +231,8 @@ public class CustomFDSSerializerTest {
 		String nestedFieldsDepth = parameterMap.get("nestedFieldsDepth");
 
 		Assert.assertTrue(nestedFieldsDepth.equals("2"));
+
+		serviceTrackerMap.close();
 	}
 
 	@Test
@@ -254,6 +279,372 @@ public class CustomFDSSerializerTest {
 
 		_testSerializeCreationMenu("fdsName1", titles);
 		_testSerializeCreationMenu("fdsName2", titles);
+	}
+
+	@Test
+	public void testSerializeFilters() throws Exception {
+
+		// Client extension filter
+
+		CETManager cetManager = Mockito.mock(CETManager.class);
+
+		String cetExternalReferenceCode = RandomTestUtil.randomString();
+
+		Mockito.when(
+			cetManager.getCET(
+				Mockito.anyLong(), Mockito.eq(cetExternalReferenceCode))
+		).thenAnswer(
+			invocation -> new FDSFilterCET() {
+
+				@Override
+				public String getBaseURL() {
+					return "";
+				}
+
+				@Override
+				public long getCompanyId() {
+					return invocation.getArgument(0, long.class);
+				}
+
+				@Override
+				public Date getCreateDate() {
+					return null;
+				}
+
+				@Override
+				public String getDescription() {
+					return "";
+				}
+
+				@Override
+				public String getEditJSP() {
+					return "";
+				}
+
+				@Override
+				public String getExternalReferenceCode() {
+					return cetExternalReferenceCode;
+				}
+
+				@Override
+				public Date getModifiedDate() {
+					return null;
+				}
+
+				@Override
+				public String getName() {
+					return "";
+				}
+
+				@Override
+				public String getName(Locale locale) {
+					return "";
+				}
+
+				@Override
+				public Properties getProperties() {
+					return null;
+				}
+
+				@Override
+				public String getSourceCodeURL() {
+					return "";
+				}
+
+				@Override
+				public int getStatus() {
+					return 0;
+				}
+
+				@Override
+				public String getType() {
+					return "";
+				}
+
+				@Override
+				public String getTypeSettings() {
+					return "";
+				}
+
+				@Override
+				public String getURL() {
+					return "/o/" + cetExternalReferenceCode + "/index.js";
+				}
+
+				@Override
+				public boolean hasProperties() {
+					return false;
+				}
+
+				@Override
+				public boolean isReadOnly() {
+					return false;
+				}
+
+			}
+		);
+
+		_customFDSSerializer.cetManager = cetManager;
+
+		_mockSerializeFilters(
+			"fdsName",
+			HashMapBuilder.<String, Object>put(
+				"clientExtensionEntryERC", cetExternalReferenceCode
+			).put(
+				"fieldName", "channelId"
+			).put(
+				"label", "By Channel CX"
+			).build());
+
+		JSONAssert.assertEquals(
+			JSONUtil.putAll(
+				JSONUtil.put(
+					"clientExtensionFilterURL",
+					"/o/" + cetExternalReferenceCode + "/index.js"
+				).put(
+					"entityFieldType", "string"
+				).put(
+					"id", "channelId"
+				).put(
+					"label", "By Channel CX"
+				).put(
+					"type", "clientExtension"
+				)
+			).toString(),
+			_customFDSSerializer.serializeFilters(
+				"fdsName", _httpServletRequest
+			).toString(),
+			JSONCompareMode.LENIENT);
+
+		_resetFDSSerializer();
+
+		// Date range filter
+
+		_mockSerializeFilters(
+			"fdsName",
+			HashMapBuilder.put(
+				"fieldName", (Object)"createDate"
+			).put(
+				"from", (Object)"2000-12-31T00:00:00.000Z"
+			).put(
+				"label", (Object)"By Creation Date"
+			).put(
+				"to", "2025-10-03T00:00:00.000Z"
+			).put(
+				"type", (Object)FDSEntityFieldTypes.DATE
+			).build());
+
+		JSONAssert.assertEquals(
+			JSONUtil.putAll(
+				JSONUtil.put(
+					"active", true
+				).put(
+					"entityFieldType", "date"
+				).put(
+					"id", "createDate"
+				).put(
+					"label", "By Creation Date"
+				).put(
+					"preloadedData",
+					JSONUtil.put(
+						"from",
+						JSONUtil.put(
+							"day", 31
+						).put(
+							"month", 12
+						).put(
+							"year", 2000
+						)
+					).put(
+						"to",
+						JSONUtil.put(
+							"day", 3
+						).put(
+							"month", 10
+						).put(
+							"year", 2025
+						)
+					)
+				).put(
+					"type", "dateRange"
+				)
+			).toString(),
+			_customFDSSerializer.serializeFilters(
+				"fdsName", _httpServletRequest
+			).toString(),
+			JSONCompareMode.LENIENT);
+
+		_resetFDSSerializer();
+
+		// Different filters
+
+		_mockSerializeFilters(
+			"fdsName1",
+			HashMapBuilder.put(
+				"fieldName", (Object)"createDate"
+			).put(
+				"from", (Object)"2000-12-31T00:00:00.000Z"
+			).put(
+				"label", (Object)"By Creation Date"
+			).put(
+				"type", (Object)FDSEntityFieldTypes.DATE
+			).build());
+		_mockSerializeFilters(
+			"fdsName2",
+			HashMapBuilder.put(
+				"fieldName", (Object)"modifiedDate"
+			).put(
+				"label", (Object)"By Modification Date"
+			).put(
+				"to", (Object)"2025-10-03T00:00:00.000Z"
+			).put(
+				"type", (Object)FDSEntityFieldTypes.DATE
+			).build());
+
+		JSONAssert.assertEquals(
+			JSONUtil.putAll(
+				JSONUtil.put(
+					"active", true
+				).put(
+					"entityFieldType", "date"
+				).put(
+					"id", "createDate"
+				).put(
+					"label", "By Creation Date"
+				).put(
+					"preloadedData",
+					JSONUtil.put(
+						"from",
+						JSONUtil.put(
+							"day", 31
+						).put(
+							"month", 12
+						).put(
+							"year", 2000
+						))
+				).put(
+					"type", "dateRange"
+				)
+			).toString(),
+			_customFDSSerializer.serializeFilters(
+				"fdsName1", _httpServletRequest
+			).toString(),
+			JSONCompareMode.LENIENT);
+		JSONAssert.assertEquals(
+			JSONUtil.putAll(
+				JSONUtil.put(
+					"active", true
+				).put(
+					"entityFieldType", "date"
+				).put(
+					"id", "modifiedDate"
+				).put(
+					"label", "By Modification Date"
+				).put(
+					"preloadedData",
+					JSONUtil.put(
+						"to",
+						JSONUtil.put(
+							"day", 3
+						).put(
+							"month", 10
+						).put(
+							"year", 2025
+						))
+				).put(
+					"type", "dateRange"
+				)
+			).toString(),
+			_customFDSSerializer.serializeFilters(
+				"fdsName2", _httpServletRequest
+			).toString(),
+			JSONCompareMode.LENIENT);
+
+		_resetFDSSerializer();
+
+		// No filter
+
+		_mockSerializeFilters("fdsName", null);
+
+		JSONAssert.assertEquals(
+			"[]",
+			_customFDSSerializer.serializeFilters(
+				"fdsName", _httpServletRequest
+			).toString(),
+			JSONCompareMode.STRICT);
+
+		_resetFDSSerializer();
+
+		// Selection filter
+
+		_mockSerializeFilters(
+			"fdsName",
+			HashMapBuilder.put(
+				"fieldName", (Object)"channelId"
+			).put(
+				"include", (Object)true
+			).put(
+				"itemKey", (Object)"channelId"
+			).put(
+				"itemLabel", (Object)"name"
+			).put(
+				"label", (Object)"By Channel"
+			).put(
+				"multiple", (Object)true
+			).put(
+				"preselectedValues",
+				(Object)"[{\"label\":\"site 1\",\"value\":\"20192\"}]"
+			).put(
+				"restApplication", (Object)"/analytics-settings-rest/v1.0"
+			).put(
+				"restEndpoint", (Object)"/v1.0/channels"
+			).put(
+				"restSchema", (Object)"Channel"
+			).put(
+				"source", (Object)"/o/analytics-settings-rest/v1.0/channels"
+			).put(
+				"sourceType", (Object)"API_REST_APPLICATION"
+			).build());
+
+		JSONAssert.assertEquals(
+			JSONUtil.putAll(
+				JSONUtil.put(
+					"apiURL", "/o/analytics-settings-rest/v1.0/channels"
+				).put(
+					"autocompleteEnabled", true
+				).put(
+					"entityFieldType", "string"
+				).put(
+					"id", "channelId"
+				).put(
+					"itemKey", "channelId"
+				).put(
+					"itemLabel", "name"
+				).put(
+					"label", "By Channel"
+				).put(
+					"multiple", true
+				).put(
+					"preloadedData",
+					JSONUtil.put(
+						"exclude", false
+					).put(
+						"selectedItems",
+						JSONUtil.putAll(
+							JSONUtil.put(
+								"label", "site 1"
+							).put(
+								"value", "20192"
+							))
+					)
+				).put(
+					"type", "selection"
+				)
+			).toString(),
+			_customFDSSerializer.serializeFilters(
+				"fdsName", _httpServletRequest
+			).toString(),
+			JSONCompareMode.LENIENT);
 	}
 
 	@Test
@@ -370,14 +761,6 @@ public class CustomFDSSerializerTest {
 	}
 
 	private void _mockSerializeAPIURL(
-		String fdsName, String restApplication, String restEndpoint,
-		String restSchema) {
-
-		_mockSerializeAPIURL(
-			fdsName, null, restApplication, restEndpoint, restSchema);
-	}
-
-	private void _mockSerializeAPIURL(
 		String fdsName, String[] fieldNames, String restApplication,
 		String restEndpoint, String restSchema) {
 
@@ -454,6 +837,35 @@ public class CustomFDSSerializerTest {
 		).thenCallRealMethod();
 	}
 
+	private void _mockSerializeFilters(
+		String fdsName, Map<String, Object> properties) {
+
+		Mockito.when(
+			_customFDSSerializer.serializeFilters(fdsName, _httpServletRequest)
+		).thenCallRealMethod();
+
+		List<ObjectEntry> objectEntries = new ArrayList<>();
+
+		if (properties != null) {
+			ObjectEntry objectEntry = new ObjectEntry();
+
+			objectEntry.setProperties(properties);
+
+			objectEntries.add(objectEntry);
+		}
+
+		Mockito.when(
+			_customFDSSerializer.getSortedRelatedObjectEntries(
+				Mockito.eq(fdsName), Mockito.eq(_httpServletRequest),
+				Mockito.any(), Mockito.eq("filtersOrder"),
+				Mockito.eq("dataSetToDataSetClientExtensionFilters"),
+				Mockito.eq("dataSetToDataSetDateFilters"),
+				Mockito.eq("dataSetToDataSetSelectionFilters"))
+		).thenReturn(
+			objectEntries
+		);
+	}
+
 	private void _mockSerializeItemsActions(String fdsName, String[] labels) {
 		List<ObjectEntry> objectEntries = TransformUtil.transformToList(
 			labels,
@@ -514,8 +926,16 @@ public class CustomFDSSerializerTest {
 		_customFDSSerializer = Mockito.mock(CustomFDSSerializer.class);
 
 		ReflectionTestUtil.setFieldValue(
-			_customFDSSerializer, "fdsAPIURLResolverRegistry",
-			_fdsAPIURLResolverRegistry);
+			_customFDSSerializer, "_jsonFactory", new JSONFactoryImpl());
+	}
+
+	private void _resetFDSSerializer(
+		FDSAPIURLResolverRegistry fdsAPIURLResolverRegistry) {
+
+		_resetFDSSerializer();
+
+		_customFDSSerializer.fdsAPIURLResolverRegistry =
+			fdsAPIURLResolverRegistry;
 	}
 
 	private void _testSerializeCreationMenu(String fdsName, String[] titles) {
@@ -550,13 +970,7 @@ public class CustomFDSSerializerTest {
 
 	private static BundleContext _bundleContext;
 	private static CustomFDSSerializer _customFDSSerializer;
-	private static final FDSAPIURLResolverRegistry _fdsAPIURLResolverRegistry =
-		new FDSAPIURLResolverRegistryImpl();
 	private static final HttpServletRequest _httpServletRequest = Mockito.mock(
 		HttpServletRequest.class);
-	private static ServiceTrackerMap
-		<String,
-		 ServiceTrackerCustomizerFactory.ServiceWrapper<FDSAPIURLResolver>>
-			_serviceTrackerMap;
 
 }

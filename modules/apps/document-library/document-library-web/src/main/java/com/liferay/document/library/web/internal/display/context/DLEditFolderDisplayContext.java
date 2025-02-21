@@ -16,6 +16,7 @@ import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.bean.BeanParamUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -216,6 +217,39 @@ public class DLEditFolderDisplayContext {
 		return _workflowDefinitions;
 	}
 
+	public boolean hasAdvancedUpdateDLFolderPermission()
+		throws PortalException {
+
+		if (!FeatureFlagManagerUtil.isEnabled(
+				_themeDisplay.getCompanyId(), "LPD-42452")) {
+
+			return hasUpdateDLFolderPermission();
+		}
+
+		if (_advancedUpdateDLFolderPermission != null) {
+			return _advancedUpdateDLFolderPermission;
+		}
+
+		_advancedUpdateDLFolderPermission = DLFolderPermission.contains(
+			_themeDisplay.getPermissionChecker(),
+			_themeDisplay.getScopeGroupId(), getFolderId(),
+			ActionKeys.ADVANCED_UPDATE);
+
+		return _advancedUpdateDLFolderPermission;
+	}
+
+	public boolean hasUpdateDLFolderPermission() throws PortalException {
+		if (_updateDLFolderPermission != null) {
+			return _updateDLFolderPermission;
+		}
+
+		_updateDLFolderPermission = DLFolderPermission.contains(
+			_themeDisplay.getPermissionChecker(),
+			_themeDisplay.getScopeGroupId(), getFolderId(), ActionKeys.UPDATE);
+
+		return _updateDLFolderPermission;
+	}
+
 	public boolean isFileEntryTypeSelected(DLFileEntryType dlFileEntryType) {
 		DLFolder dlFolder = _getDLFolder();
 
@@ -363,10 +397,16 @@ public class DLEditFolderDisplayContext {
 				DLFileEntry.class.getName());
 
 		if ((workflowHandler != null) &&
-			DLFolderPermission.contains(
+			((DLFolderPermission.contains(
 				_themeDisplay.getPermissionChecker(),
 				_themeDisplay.getScopeGroupId(), getFolderId(),
-				ActionKeys.UPDATE) &&
+				ActionKeys.ADVANCED_UPDATE) &&
+			  FeatureFlagManagerUtil.isEnabled(
+				  _themeDisplay.getCompanyId(), "LPD-42452")) ||
+			 DLFolderPermission.contains(
+				 _themeDisplay.getPermissionChecker(),
+				 _themeDisplay.getScopeGroupId(), getFolderId(),
+				 ActionKeys.UPDATE)) &&
 			!scopeGroup.isLayoutSetPrototype()) {
 
 			_workflowEnabled = true;
@@ -416,6 +456,7 @@ public class DLEditFolderDisplayContext {
 	private static final Log _log = LogFactoryUtil.getLog(
 		DLEditFolderDisplayContext.class);
 
+	private Boolean _advancedUpdateDLFolderPermission;
 	private List<DLFileEntryType> _dlFileEntryTypes;
 	private Folder _folder;
 	private Long _folderId;
@@ -425,6 +466,7 @@ public class DLEditFolderDisplayContext {
 	private String _redirect;
 	private Long _repositoryId;
 	private final ThemeDisplay _themeDisplay;
+	private Boolean _updateDLFolderPermission;
 	private List<WorkflowDefinition> _workflowDefinitions;
 	private Boolean _workflowEnabled;
 

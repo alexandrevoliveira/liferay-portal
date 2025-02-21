@@ -16,6 +16,7 @@ import com.liferay.object.odata.filter.expression.field.predicate.provider.Field
 import com.liferay.object.related.models.ObjectRelatedModelsPredicateProvider;
 import com.liferay.object.related.models.ObjectRelatedModelsPredicateProviderRegistry;
 import com.liferay.object.relationship.util.ObjectRelationshipUtil;
+import com.liferay.object.rest.internal.odata.entity.ReferenceStringEntityField;
 import com.liferay.object.rest.internal.util.BinaryExpressionConverterUtil;
 import com.liferay.object.rest.odata.entity.v1_0.provider.EntityModelProvider;
 import com.liferay.object.service.ObjectFieldLocalService;
@@ -159,6 +160,21 @@ public class PredicateExpressionVisitorImpl
 						add(complexPropertyExpression.getName());
 					}
 				});
+		}
+
+		if (propertyExpression instanceof PrimitivePropertyExpression) {
+			PrimitivePropertyExpression primitivePropertyExpression =
+				(PrimitivePropertyExpression)propertyExpression;
+
+			Object value = _visitPrimitivePropertyExpression(
+				_getEntityField(
+					complexPropertyExpression.getName() + StringPool.SLASH +
+						primitivePropertyExpression.getName(),
+					_objectDefinition),
+				primitivePropertyExpression);
+
+			return complexPropertyExpression.getName() + StringPool.SLASH +
+				value;
 		}
 
 		return complexPropertyExpression.toString();
@@ -318,7 +334,10 @@ public class PredicateExpressionVisitorImpl
 	public Object visitPrimitivePropertyExpression(
 		PrimitivePropertyExpression primitivePropertyExpression) {
 
-		return primitivePropertyExpression.getName();
+		return _visitPrimitivePropertyExpression(
+			_getEntityField(
+				primitivePropertyExpression.getName(), _objectDefinition),
+			primitivePropertyExpression);
 	}
 
 	@Override
@@ -415,7 +434,8 @@ public class PredicateExpressionVisitorImpl
 	private Column<?, Object> _getColumn(
 		Object fieldName, ObjectDefinition objectDefinition) {
 
-		EntityField entityField = _getEntityField(fieldName, objectDefinition);
+		EntityField entityField = _getEntityField(
+			(String)fieldName, objectDefinition);
 
 		return (Column<?, Object>)_objectFieldLocalService.getColumn(
 			objectDefinition.getObjectDefinitionId(),
@@ -423,12 +443,23 @@ public class PredicateExpressionVisitorImpl
 	}
 
 	private EntityField _getEntityField(
-		Object fieldName, ObjectDefinition objectDefinition) {
+		String fieldName, ObjectDefinition objectDefinition) {
 
 		Map<String, EntityField> entityFieldsMap = _getEntityFieldsMap(
 			objectDefinition);
 
-		return entityFieldsMap.get(GetterUtil.getString(fieldName));
+		int index = fieldName.indexOf(StringPool.SLASH);
+
+		if (index == -1) {
+			return entityFieldsMap.get(fieldName);
+		}
+
+		return _getEntityField(
+			fieldName.substring(index + 1),
+			ObjectRelationshipUtil.getRelatedObjectDefinition(
+				objectDefinition,
+				_fetchObjectRelationship(
+					objectDefinition, fieldName.substring(0, index))));
 	}
 
 	private Map<String, EntityField> _getEntityFieldsMap(
@@ -645,7 +676,8 @@ public class PredicateExpressionVisitorImpl
 	private Object _getValue(
 		Object left, ObjectDefinition objectDefinition, Object right) {
 
-		EntityField entityField = _getEntityField(left, objectDefinition);
+		EntityField entityField = _getEntityField(
+			(String)left, objectDefinition);
 
 		EntityField.Type entityType = entityField.getType();
 
@@ -696,7 +728,7 @@ public class PredicateExpressionVisitorImpl
 
 		try {
 			ObjectField objectField = _objectFieldLocalService.getObjectField(
-				_objectDefinition.getObjectDefinitionId(),
+				objectDefinition.getObjectDefinitionId(),
 				entityFieldFilterableName);
 
 			ObjectFieldBusinessType objectFieldBusinessType =
@@ -759,6 +791,22 @@ public class PredicateExpressionVisitorImpl
 			return _handleComplexPropertyExpression(
 				complexPropertyExpression.getPropertyExpression(),
 				relationshipsNames);
+		}
+		else if (propertyExpression instanceof PrimitivePropertyExpression) {
+			PrimitivePropertyExpression primitivePropertyExpression =
+				(PrimitivePropertyExpression)propertyExpression;
+
+			String relationshipsNamesString = StringUtil.merge(
+				relationshipsNames, StringPool.SLASH);
+
+			Object value = _visitPrimitivePropertyExpression(
+				_getEntityField(
+					relationshipsNamesString + StringPool.SLASH +
+						primitivePropertyExpression.getName(),
+					_objectDefinition),
+				primitivePropertyExpression);
+
+			return relationshipsNamesString + StringPool.SLASH + value;
 		}
 
 		relationshipsNames.add(propertyExpression.toString());
@@ -833,6 +881,20 @@ public class PredicateExpressionVisitorImpl
 				_objectFieldLocalService,
 				_objectRelatedModelsPredicateProviderRegistry,
 				_serviceTrackerMap));
+	}
+
+	private Object _visitPrimitivePropertyExpression(
+		EntityField entityField,
+		PrimitivePropertyExpression primitivePropertyExpression) {
+
+		if (entityField instanceof ReferenceStringEntityField) {
+			ReferenceStringEntityField referenceStringEntityField =
+				(ReferenceStringEntityField)entityField;
+
+			return referenceStringEntityField.getReferenceFieldName();
+		}
+
+		return primitivePropertyExpression.getName();
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(

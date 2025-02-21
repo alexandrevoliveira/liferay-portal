@@ -15,7 +15,6 @@ import com.liferay.headless.admin.site.client.dto.v1_0.DisplayPageTemplateFolder
 import com.liferay.headless.admin.site.client.dto.v1_0.FriendlyUrlHistory;
 import com.liferay.headless.admin.site.client.dto.v1_0.ItemExternalReference;
 import com.liferay.headless.admin.site.client.pagination.Page;
-import com.liferay.headless.admin.site.client.pagination.Pagination;
 import com.liferay.headless.admin.site.client.problem.Problem;
 import com.liferay.headless.admin.site.client.resource.v1_0.DisplayPageTemplateResource;
 import com.liferay.headless.admin.site.resource.v1_0.test.util.LayoutPageTemplateEntryTestUtil;
@@ -29,6 +28,7 @@ import com.liferay.layout.page.template.model.LayoutPageTemplateCollection;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.layout.page.template.service.LayoutPageTemplateCollectionLocalService;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
+import com.liferay.layout.test.util.ContentLayoutTestUtil;
 import com.liferay.petra.function.UnsafeRunnable;
 import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONFactory;
@@ -55,6 +55,7 @@ import com.liferay.portal.util.PropsValues;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -145,6 +146,27 @@ public class DisplayPageTemplateResourceTest
 		_testGetSiteSiteByExternalReferenceCodeDisplayPageTemplate(
 			displayPageTemplate);
 
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			_layoutPageTemplateEntryLocalService.
+				getLayoutPageTemplateEntryByExternalReferenceCode(
+					displayPageTemplate.getExternalReferenceCode(),
+					testGroup.getGroupId());
+
+		Layout layout = _layoutLocalService.getLayout(
+			layoutPageTemplateEntry.getPlid());
+
+		Assert.assertFalse(_isPublished(layout));
+
+		_testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateWithNestedFields(
+			displayPageTemplate);
+
+		ContentLayoutTestUtil.publishLayout(layout.fetchDraftLayout(), layout);
+
+		Assert.assertTrue(_isPublished(layout));
+
+		_testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateWithNestedFields(
+			displayPageTemplate);
+
 		_assertProblemException(
 			"NOT_FOUND",
 			() ->
@@ -157,7 +179,6 @@ public class DisplayPageTemplateResourceTest
 
 		_testGetSiteSiteByExternalReferenceCodeDisplayPageTemplate(
 			displayPageTemplate);
-
 		_testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateWithNestedFields(
 			displayPageTemplate);
 	}
@@ -526,10 +547,14 @@ public class DisplayPageTemplateResourceTest
 					displayPageTemplate.getExternalReferenceCode(),
 					testGroup.getGroupId());
 
+		Map<Locale, String> friendlyURLMap = new HashMap<>();
+
 		Layout layout = _layoutLocalService.getLayout(
 			layoutPageTemplateEntry.getPlid());
 
-		Map<Locale, String> friendlyURLMap = layout.getFriendlyURLMap();
+		if (_isPublished(layout)) {
+			friendlyURLMap = layout.getFriendlyURLMap();
+		}
 
 		Assert.assertEquals(
 			jsonObject.toString(), friendlyURLMap.size(), jsonObject.length());
@@ -634,7 +659,7 @@ public class DisplayPageTemplateResourceTest
 					null, TestPropsValues.getUserId(), groupId,
 					LayoutPageTemplateConstants.
 						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-					RandomTestUtil.randomString(),
+					null, RandomTestUtil.randomString(),
 					RandomTestUtil.randomString(),
 					LayoutPageTemplateCollectionTypeConstants.DISPLAY_PAGE,
 					ServiceContextTestUtil.getServiceContext(
@@ -685,6 +710,18 @@ public class DisplayPageTemplateResourceTest
 		};
 	}
 
+	private boolean _isPublished(Layout layout) {
+		Layout draftLayout = layout.fetchDraftLayout();
+
+		if (GetterUtil.getBoolean(
+				draftLayout.getTypeSettingsProperty("published"))) {
+
+			return true;
+		}
+
+		return false;
+	}
+
 	private void _testGetSiteSiteByExternalReferenceCodeDisplayPageTemplate(
 			DisplayPageTemplate displayPageTemplate)
 		throws Exception {
@@ -706,7 +743,7 @@ public class DisplayPageTemplateResourceTest
 			displayPageTemplateResource.
 				getSiteSiteByExternalReferenceCodeDisplayPageTemplatesPage(
 					testGroup.getExternalReferenceCode(), null, null, null,
-					Pagination.of(1, 10), null);
+					null, null);
 
 		long totalCount = page.getTotalCount();
 
@@ -715,6 +752,17 @@ public class DisplayPageTemplateResourceTest
 				testGroup.getExternalReferenceCode(),
 				randomDisplayPageTemplate());
 
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			_layoutPageTemplateEntryLocalService.
+				getLayoutPageTemplateEntryByExternalReferenceCode(
+					displayPageTemplate.getExternalReferenceCode(),
+					testGroup.getGroupId());
+
+		Layout layout = _layoutLocalService.getLayout(
+			layoutPageTemplateEntry.getPlid());
+
+		Assert.assertFalse(_isPublished(layout));
+
 		DisplayPageTemplateResource displayPageTemplateResource =
 			_getDisplayPageTemplateResource();
 
@@ -722,7 +770,24 @@ public class DisplayPageTemplateResourceTest
 			displayPageTemplateResource.
 				getSiteSiteByExternalReferenceCodeDisplayPageTemplatesPage(
 					testGroup.getExternalReferenceCode(), null, null, null,
-					Pagination.of(1, 10), null);
+					null, null);
+
+		Assert.assertEquals(totalCount + 1, page.getTotalCount());
+
+		_assertNestedFields(
+			_getDisplayPageTemplate(
+				(List<DisplayPageTemplate>)page.getItems(),
+				displayPageTemplate.getExternalReferenceCode()));
+
+		ContentLayoutTestUtil.publishLayout(layout.fetchDraftLayout(), layout);
+
+		Assert.assertTrue(_isPublished(layout));
+
+		page =
+			displayPageTemplateResource.
+				getSiteSiteByExternalReferenceCodeDisplayPageTemplatesPage(
+					testGroup.getExternalReferenceCode(), null, null, null,
+					null, null);
 
 		Assert.assertEquals(totalCount + 1, page.getTotalCount());
 
@@ -808,7 +873,7 @@ public class DisplayPageTemplateResourceTest
 					null, TestPropsValues.getUserId(), testGroup.getGroupId(),
 					LayoutPageTemplateConstants.
 						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-					RandomTestUtil.randomString(),
+					null, RandomTestUtil.randomString(),
 					RandomTestUtil.randomString(),
 					LayoutPageTemplateCollectionTypeConstants.DISPLAY_PAGE,
 					ServiceContextTestUtil.getServiceContext(
@@ -863,7 +928,7 @@ public class DisplayPageTemplateResourceTest
 					null, TestPropsValues.getUserId(), testGroup.getGroupId(),
 					LayoutPageTemplateConstants.
 						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-					RandomTestUtil.randomString(),
+					null, RandomTestUtil.randomString(),
 					RandomTestUtil.randomString(),
 					LayoutPageTemplateCollectionTypeConstants.DISPLAY_PAGE,
 					ServiceContextTestUtil.getServiceContext(

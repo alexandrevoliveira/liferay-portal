@@ -1,0 +1,28 @@
+{
+	"fieldSets": [
+		{
+			"fields": [
+				{
+					"dataType": "string",
+					"defaultValue": "",
+					"label": "Badge Page URL",
+					"name": "badgePageUrl",
+					"type": "text",
+					"typeOptions": {
+						"placeholder": ""
+					}
+				},
+				{
+					"dataType": "string",
+					"defaultValue": "",
+					"label": "Education Page URL",
+					"name": "educationPageUrl",
+					"type": "text",
+					"typeOptions": {
+						"placeholder": ""
+					}
+				}
+			]
+		}
+	]
+}

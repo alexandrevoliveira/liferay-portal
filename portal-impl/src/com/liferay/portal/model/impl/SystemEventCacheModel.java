@@ -68,7 +68,7 @@ public class SystemEventCacheModel
 
 	@Override
 	public String toString() {
-		StringBundler sb = new StringBundler(33);
+		StringBundler sb = new StringBundler(35);
 
 		sb.append("{mvccVersion=");
 		sb.append(mvccVersion);
@@ -86,6 +86,8 @@ public class SystemEventCacheModel
 		sb.append(userName);
 		sb.append(", createDate=");
 		sb.append(createDate);
+		sb.append(", classExternalReferenceCode=");
+		sb.append(classExternalReferenceCode);
 		sb.append(", classNameId=");
 		sb.append(classNameId);
 		sb.append(", classPK=");
@@ -132,6 +134,14 @@ public class SystemEventCacheModel
 			systemEventImpl.setCreateDate(new Date(createDate));
 		}
 
+		if (classExternalReferenceCode == null) {
+			systemEventImpl.setClassExternalReferenceCode("");
+		}
+		else {
+			systemEventImpl.setClassExternalReferenceCode(
+				classExternalReferenceCode);
+		}
+
 		systemEventImpl.setClassNameId(classNameId);
 		systemEventImpl.setClassPK(classPK);
 
@@ -176,6 +186,7 @@ public class SystemEventCacheModel
 		userId = objectInput.readLong();
 		userName = objectInput.readUTF();
 		createDate = objectInput.readLong();
+		classExternalReferenceCode = objectInput.readUTF();
 
 		classNameId = objectInput.readLong();
 
@@ -215,6 +226,13 @@ public class SystemEventCacheModel
 
 		objectOutput.writeLong(createDate);
 
+		if (classExternalReferenceCode == null) {
+			objectOutput.writeUTF("");
+		}
+		else {
+			objectOutput.writeUTF(classExternalReferenceCode);
+		}
+
 		objectOutput.writeLong(classNameId);
 
 		objectOutput.writeLong(classPK);
@@ -250,6 +268,7 @@ public class SystemEventCacheModel
 	public long userId;
 	public String userName;
 	public long createDate;
+	public String classExternalReferenceCode;
 	public long classNameId;
 	public long classPK;
 	public String classUuid;

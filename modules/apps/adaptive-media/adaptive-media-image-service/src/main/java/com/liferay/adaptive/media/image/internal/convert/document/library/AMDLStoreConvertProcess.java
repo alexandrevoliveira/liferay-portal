@@ -8,19 +8,19 @@ package com.liferay.adaptive.media.image.internal.convert.document.library;
 import com.liferay.adaptive.media.image.internal.storage.AMStoreUtil;
 import com.liferay.adaptive.media.image.model.AMImageEntry;
 import com.liferay.adaptive.media.image.service.AMImageEntryLocalService;
-import com.liferay.document.library.kernel.service.DLAppService;
+import com.liferay.document.library.kernel.service.DLAppLocalService;
 import com.liferay.document.library.kernel.store.Store;
 import com.liferay.portal.convert.documentlibrary.DLStoreConvertProcess;
 import com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.DynamicQuery;
 import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.log.Log;
+import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.CompanyConstants;
+import com.liferay.portal.kernel.repository.model.FileVersion;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.util.MaintenanceUtil;
-
-import java.io.IOException;
-import java.io.InputStream;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -57,35 +57,41 @@ public class AMDLStoreConvertProcess implements DLStoreConvertProcess {
 
 		actionableDynamicQuery.setPerformActionMethod(
 			(AMImageEntry amImageEntry) -> {
+				FileVersion fileVersion = null;
+
+				try {
+					fileVersion = _dlAppLocalService.getFileVersion(
+						amImageEntry.getFileVersionId());
+				}
+				catch (PortalException portalException) {
+					_log.error(
+						"Unable to migrate file version " +
+							amImageEntry.getFileVersionId(),
+						portalException);
+				}
+
+				if (fileVersion == null) {
+					return;
+				}
+
 				String fileVersionPath = AMStoreUtil.getFileVersionPath(
-					_dlAppService.getFileVersion(
-						amImageEntry.getFileVersionId()),
-					amImageEntry.getConfigurationUuid());
+					fileVersion, amImageEntry.getConfigurationUuid());
 
 				for (String versionLabel :
 						sourceStore.getFileVersions(
 							amImageEntry.getCompanyId(),
 							CompanyConstants.SYSTEM, fileVersionPath)) {
 
-					try (InputStream inputStream = sourceStore.getFileAsStream(
+					try {
+						transferFile(
+							sourceStore, targetStore,
 							amImageEntry.getCompanyId(),
 							CompanyConstants.SYSTEM, fileVersionPath,
-							versionLabel)) {
-
-						targetStore.addFile(
-							amImageEntry.getCompanyId(),
-							CompanyConstants.SYSTEM, fileVersionPath,
-							versionLabel, inputStream);
-
-						if (delete) {
-							sourceStore.deleteFile(
-								amImageEntry.getCompanyId(),
-								CompanyConstants.SYSTEM, fileVersionPath,
-								versionLabel);
-						}
+							versionLabel, delete);
 					}
-					catch (IOException ioException) {
-						throw new PortalException(ioException);
+					catch (Exception exception) {
+						_log.error(
+							"Unable to migrate " + fileVersionPath, exception);
 					}
 				}
 			});
@@ -120,6 +126,9 @@ public class AMDLStoreConvertProcess implements DLStoreConvertProcess {
 			});
 	}
 
+	private static final Log _log = LogFactoryUtil.getLog(
+		AMDLStoreConvertProcess.class);
+
 	@Reference
 	private AMImageEntryLocalService _amImageEntryLocalService;
 
@@ -127,6 +136,6 @@ public class AMDLStoreConvertProcess implements DLStoreConvertProcess {
 	private CompanyLocalService _companyLocalService;
 
 	@Reference
-	private DLAppService _dlAppService;
+	private DLAppLocalService _dlAppLocalService;
 
 }

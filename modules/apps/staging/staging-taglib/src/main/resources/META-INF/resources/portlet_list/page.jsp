@@ -7,6 +7,10 @@
 
 <%@ include file="/portlet_list/init.jsp" %>
 
+<%
+StagingGroupHelper stagingGroupHelper = StagingGroupHelperUtil.getStagingGroupHelper();
+%>
+
 <liferay-util:buffer
 	var="html"
 >
@@ -25,13 +29,7 @@
 
 		PortletDataHandler portletDataHandler = portlet.getPortletDataHandlerInstance();
 
-		if (!portletDataHandler.isEnabled(company.getCompanyId())) {
-			continue;
-		}
-
-		StagingGroupHelper stagingGroupHelper = StagingGroupHelperUtil.getStagingGroupHelper();
-
-		if (portletDataHandler.isCompany() != stagingGroupHelper.isCompanyGroup(group)) {
+		if (!portletDataHandler.isEnabled(company.getCompanyId()) || (portletDataHandler.isCompany() != stagingGroupHelper.isCompanyGroup(group))) {
 			continue;
 		}
 
@@ -114,8 +112,8 @@
 					<span <%= !disableInputs ? StringPool.BLANK : "class=\"hide\"" %>>
 						<clay:button
 							cssClass="content-link modify-link pr-1"
+							data-porftlettitle="<%= portletTitle %>"
 							data-portletid="<%= portletId %>"
-							data-portlettitle="<%= portletTitle %>"
 							displayType="link"
 							id='<%= liferayPortletResponse.getNamespace() + "contentLink_" + portlet.getPortletId() %>'
 							label="change"
@@ -243,7 +241,7 @@ html = html.trim();
 	<%= html %>
 </ul>
 
-<c:if test="<%= type.equals(Constants.EXPORT) %>">
+<c:if test="<%= type.equals(Constants.EXPORT) && !stagingGroupHelper.isCompanyGroup(group) %>">
 	<aui:fieldset cssClass="content-options" label="for-each-of-the-selected-content-types,-export-their">
 		<span class="selected-labels" id="<portlet:namespace />selectedContentOptions"></span>
 

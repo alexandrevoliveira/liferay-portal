@@ -17,6 +17,7 @@ import com.liferay.headless.admin.site.client.resource.v1_0.SitePageResource;
 import com.liferay.headless.admin.site.resource.v1_0.test.util.LayoutPageTemplateEntryTestUtil;
 import com.liferay.headless.admin.site.resource.v1_0.test.util.LayoutUtilityPageEntryTestUtil;
 import com.liferay.headless.admin.site.resource.v1_0.test.util.PageSpecificationsTestUtil;
+import com.liferay.layout.test.util.ContentLayoutTestUtil;
 import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.petra.function.UnsafeRunnable;
 import com.liferay.petra.string.StringPool;
@@ -51,6 +52,7 @@ import com.liferay.portal.vulcan.util.LocalizedMapUtil;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -148,8 +150,19 @@ public class SitePageResourceTest extends BaseSitePageResourceTestCase {
 			ServiceContextTestUtil.getServiceContext(
 				testGroup.getGroupId(), TestPropsValues.getUserId());
 
-		_testGetSiteSiteByExternalReferenceCodeSitePage(
-			_addLayout(LayoutConstants.TYPE_CONTENT, null, serviceContext));
+		Layout layout = _addLayout(
+			LayoutConstants.TYPE_CONTENT, null, serviceContext);
+
+		Assert.assertFalse(layout.isPublished());
+
+		_testGetSiteSiteByExternalReferenceCodeSitePage(layout);
+
+		ContentLayoutTestUtil.publishLayout(layout.fetchDraftLayout(), layout);
+
+		Assert.assertTrue(layout.isPublished());
+
+		_testGetSiteSiteByExternalReferenceCodeSitePage(layout);
+
 		_testGetSiteSiteByExternalReferenceCodeSitePage(
 			_addLayout(
 				LayoutConstants.TYPE_PORTLET,
@@ -443,7 +456,11 @@ public class SitePageResourceTest extends BaseSitePageResourceTestCase {
 		Layout layout = _layoutLocalService.getLayoutByExternalReferenceCode(
 			sitePage.getExternalReferenceCode(), testGroup.getGroupId());
 
-		Map<Locale, String> friendlyURLMap = layout.getFriendlyURLMap();
+		Map<Locale, String> friendlyURLMap = new HashMap<>();
+
+		if (layout.isPublished()) {
+			friendlyURLMap = layout.getFriendlyURLMap();
+		}
 
 		Assert.assertEquals(
 			jsonObject.toString(), friendlyURLMap.size(), jsonObject.length());

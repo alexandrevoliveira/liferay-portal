@@ -25,6 +25,7 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.cache.MultiVMPool;
 import com.liferay.portal.kernel.dao.orm.EntityCache;
+import com.liferay.portal.kernel.exception.NoSuchUserException;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
@@ -34,20 +35,25 @@ import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.HtmlUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.util.URLCodec;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.repository.liferayrepository.model.LiferayFileEntry;
 import com.liferay.portal.repository.liferayrepository.model.LiferayFileVersion;
+import com.liferay.portal.test.log.LogCapture;
+import com.liferay.portal.test.log.LogEntry;
+import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.upgrade.registry.UpgradeStepRegistrator;
 import com.liferay.portal.upgrade.test.util.UpgradeTestUtil;
 
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -64,14 +70,19 @@ public class DDMFieldAttributeUpgradeProcessTest {
 	public static final AggregateTestRule aggregateTestRule =
 		new LiferayIntegrationTestRule();
 
-	@Before
-	public void setUp() throws Exception {
-		_addDLFileEntry();
-		_addJournalArticle();
-	}
-
 	@Test
 	public void testUpgradeProcess() throws Exception {
+		_addDLFileEntry(StringUtil.randomId());
+		_addJournalArticle(
+			StringBundler.concat(
+				"<img src=\"",
+				DLURLHelperUtil.getPreviewURL(
+					new LiferayFileEntry(_dlFileEntry),
+					new LiferayFileVersion(_dlFileEntry.getFileVersion()), null,
+					null),
+				"\"/><img src=\"/documents/d/orphan/document\"/><p>",
+				RandomTestUtil.randomString(100), "</p>"));
+
 		_assertDDMFieldAttribute(
 			ddmFieldAttribute -> {
 				Assert.assertTrue(
@@ -82,7 +93,24 @@ public class DDMFieldAttributeUpgradeProcessTest {
 						ddmFieldAttribute.getSmallAttributeValue()));
 			});
 
-		_runUpgrade();
+		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				_CLASS_NAME, LoggerTestUtil.WARN)) {
+
+			_runUpgrade();
+
+			List<LogEntry> logEntries = logCapture.getLogEntries();
+
+			Assert.assertEquals(logEntries.toString(), 1, logEntries.size());
+
+			LogEntry logEntry = logEntries.get(0);
+
+			Assert.assertEquals(LoggerTestUtil.WARN, logEntry.getPriority());
+
+			Throwable throwable = logEntry.getThrowable();
+
+			Assert.assertEquals(
+				NoSuchUserException.class, throwable.getClass());
+		}
 
 		_assertDDMFieldAttribute(
 			ddmFieldAttribute -> {
@@ -105,11 +133,33 @@ public class DDMFieldAttributeUpgradeProcessTest {
 			"data-fileentryid=\"" + _dlFileEntry.getFileEntryId() + "\"");
 	}
 
-	private void _addDLFileEntry() throws Exception {
+	@Test
+	public void testUpgradeProcessWithLegacyEscapedImageURL() throws Exception {
+		_addDLFileEntry("large file name.png");
+		_addJournalArticle(
+			StringBundler.concat(
+				"<img src=\"/documents/", _dlFileEntry.getGroupId(),
+				StringPool.SLASH, _dlFileEntry.getFolderId(), StringPool.SLASH,
+				URLCodec.encodeURL(
+					HtmlUtil.unescape(_dlFileEntry.getFileName())),
+				"\"/>"));
+
+		_runUpgrade();
+
+		JournalArticle journalArticle =
+			_journalArticleLocalService.getJournalArticle(
+				_journalArticle.getId());
+
+		_assertContains(
+			journalArticle.getContent(),
+			"data-fileentryid=\"" + _dlFileEntry.getFileEntryId() + "\"");
+	}
+
+	private void _addDLFileEntry(String sourceFileName) throws Exception {
 		_dlFileEntry = _dlFileEntryLocalService.addFileEntry(
 			null, TestPropsValues.getUserId(), TestPropsValues.getGroupId(),
 			TestPropsValues.getGroupId(),
-			DLFolderConstants.DEFAULT_PARENT_FOLDER_ID, StringUtil.randomId(),
+			DLFolderConstants.DEFAULT_PARENT_FOLDER_ID, sourceFileName,
 			ContentTypes.IMAGE_PNG, StringUtil.randomString(),
 			StringUtil.randomString(), StringPool.BLANK, StringPool.BLANK,
 			DLFileEntryTypeConstants.FILE_ENTRY_TYPE_ID_BASIC_DOCUMENT, null,
@@ -119,7 +169,7 @@ public class DDMFieldAttributeUpgradeProcessTest {
 				TestPropsValues.getGroupId()));
 	}
 
-	private void _addJournalArticle() throws Exception {
+	private void _addJournalArticle(String content) throws Exception {
 		boolean portletImportInProcess =
 			ExportImportThreadLocal.isPortletImportInProcess();
 
@@ -131,17 +181,7 @@ public class DDMFieldAttributeUpgradeProcessTest {
 					"content",
 					Collections.singletonList(
 						HashMapBuilder.put(
-							LocaleUtil.US,
-							StringBundler.concat(
-								"<img src=\"",
-								DLURLHelperUtil.getPreviewURL(
-									new LiferayFileEntry(_dlFileEntry),
-									new LiferayFileVersion(
-										_dlFileEntry.getFileVersion()),
-									null, null),
-								"\"/><img src=\"/documents/d/orphan/document\"",
-								"/><p>", RandomTestUtil.randomString(100),
-								"</p>")
+							LocaleUtil.US, content
 						).build()),
 					LanguageUtil.getLanguageId(LocaleUtil.US)),
 				"BASIC-WEB-CONTENT", "BASIC-WEB-CONTENT");

@@ -82,6 +82,10 @@ export default function _JournalPortlet({
 			}
 		};
 
+		actionInput.value = articleId
+			? '/journal/update_data_engine_default_values'
+			: '/journal/add_data_engine_default_values';
+
 		resetInput('displayDate');
 		resetInput('displayDateAmPm');
 		resetInput('displayDateDay');
@@ -275,10 +279,6 @@ export default function _JournalPortlet({
 				.forEach((field) => {
 					field.required = false;
 				});
-
-			actionInput.value = articleId
-				? '/journal/update_data_engine_default_values'
-				: '/journal/add_data_engine_default_values';
 		}
 		else {
 			articleId = document.getElementById(`${namespace}articleId`).value;
@@ -600,21 +600,23 @@ function attachFormChangeListener(
 		}
 	});
 
-	mutationObserver.observe(form, {
-		attributeFilter: ['value'],
-		attributeOldValue: true,
-		attributes: true,
-		childList: true,
-		subtree: true,
-	});
-
 	const handleFormChange = (event) => {
 		if (accentChangeEvent(event)) {
 			handleChange();
 		}
 	};
 
-	form.addEventListener('change', handleFormChange);
+	Liferay.componentReady(`${namespace}SelectAssetDisplayPage`).then(() => {
+		mutationObserver.observe(form, {
+			attributeFilter: ['value'],
+			attributeOldValue: true,
+			attributes: true,
+			childList: true,
+			subtree: true,
+		});
+
+		form.addEventListener('change', handleFormChange);
+	});
 
 	return {
 		detach() {

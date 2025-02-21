@@ -10,17 +10,17 @@ import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.portlet.LiferayWindowState;
+import com.liferay.portal.kernel.portlet.PortletURLFactoryUtil;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.portlet.url.builder.ResourceURLBuilder;
 import com.liferay.portal.kernel.util.Constants;
-import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.PortletKeys;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.taglib.util.IncludeTag;
 
-import javax.portlet.PortletResponse;
+import javax.portlet.PortletRequest;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.jsp.PageContext;
@@ -52,6 +52,10 @@ public class LogoSelectorTag extends IncludeTag {
 		}
 
 		return _label;
+	}
+
+	public String getPortletNamespace() {
+		return _portletNamespace;
 	}
 
 	public boolean isDisabled() {
@@ -93,6 +97,10 @@ public class LogoSelectorTag extends IncludeTag {
 		setServletContext(ServletContextUtil.getServletContext());
 	}
 
+	public void setPortletNamespace(String portletNamespace) {
+		_portletNamespace = portletNamespace;
+	}
+
 	public void setPreserveRatio(boolean preserveRatio) {
 		_preserveRatio = preserveRatio;
 	}
@@ -107,6 +115,7 @@ public class LogoSelectorTag extends IncludeTag {
 		_description = null;
 		_disabled = false;
 		_label = null;
+		_portletNamespace = null;
 		_preserveRatio = false;
 	}
 
@@ -129,6 +138,9 @@ public class LogoSelectorTag extends IncludeTag {
 		httpServletRequest.setAttribute(
 			"liferay-frontend:logo-selector:logoURL",
 			_getLogoURL(httpServletRequest));
+		httpServletRequest.setAttribute(
+			"liferay-frontend:logo-selector:portletNamespace",
+			_portletNamespace);
 
 		String randomKey = PortalUtil.generateRandomKey(
 			httpServletRequest, "taglib_ui_logo_selector");
@@ -151,13 +163,10 @@ public class LogoSelectorTag extends IncludeTag {
 		long fileEntryId = ParamUtil.getLong(httpServletRequest, "fileEntryId");
 
 		if (fileEntryId > 0) {
-			PortletResponse portletResponse =
-				(PortletResponse)httpServletRequest.getAttribute(
-					JavaConstants.JAVAX_PORTLET_RESPONSE);
-
 			return ResourceURLBuilder.createResourceURL(
-				PortalUtil.getLiferayPortletResponse(portletResponse),
-				PortletKeys.IMAGE_UPLOADER
+				PortletURLFactoryUtil.create(
+					httpServletRequest, PortletKeys.IMAGE_UPLOADER,
+					PortletRequest.RESOURCE_PHASE)
 			).setMVCResourceCommandName(
 				"/image_uploader/upload_image"
 			).setCMD(
@@ -171,13 +180,10 @@ public class LogoSelectorTag extends IncludeTag {
 	private String _getSelectLogoURL(
 		HttpServletRequest httpServletRequest, String randomNamespace) {
 
-		PortletResponse portletResponse =
-			(PortletResponse)httpServletRequest.getAttribute(
-				JavaConstants.JAVAX_PORTLET_RESPONSE);
-
-		return PortletURLBuilder.createRenderURL(
-			PortalUtil.getLiferayPortletResponse(portletResponse),
-			PortletKeys.IMAGE_UPLOADER
+		return PortletURLBuilder.create(
+			PortletURLFactoryUtil.create(
+				httpServletRequest, PortletKeys.IMAGE_UPLOADER,
+				PortletRequest.RENDER_PHASE)
 		).setMVCRenderCommandName(
 			"/image_uploader/upload_image"
 		).setParameter(
@@ -206,6 +212,7 @@ public class LogoSelectorTag extends IncludeTag {
 	private String _description;
 	private boolean _disabled;
 	private String _label;
+	private String _portletNamespace;
 	private boolean _preserveRatio;
 
 }

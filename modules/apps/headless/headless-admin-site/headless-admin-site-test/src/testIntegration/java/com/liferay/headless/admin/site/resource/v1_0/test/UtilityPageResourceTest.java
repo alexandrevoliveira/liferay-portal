@@ -9,7 +9,6 @@ import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.headless.admin.site.client.dto.v1_0.FriendlyUrlHistory;
 import com.liferay.headless.admin.site.client.dto.v1_0.UtilityPage;
 import com.liferay.headless.admin.site.client.pagination.Page;
-import com.liferay.headless.admin.site.client.pagination.Pagination;
 import com.liferay.headless.admin.site.client.problem.Problem;
 import com.liferay.headless.admin.site.client.resource.v1_0.UtilityPageResource;
 import com.liferay.headless.admin.site.resource.v1_0.test.util.LayoutUtilityPageEntryTestUtil;
@@ -39,6 +38,7 @@ import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.portal.util.PropsValues;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -104,9 +104,13 @@ public class UtilityPageResourceTest extends BaseUtilityPageResourceTestCase {
 	public void testGetSiteSiteByExternalReferenceCodeUtilityPage()
 		throws Exception {
 
+		UtilityPage utilityPage = randomUtilityPage();
+
+		utilityPage.setMarkedAsDefault(false);
+
 		UtilityPage postUtilityPage =
 			testPostSiteSiteByExternalReferenceCodeUtilityPage_addUtilityPage(
-				randomUtilityPage());
+				utilityPage);
 
 		UtilityPage getUtilityPage =
 			utilityPageResource.getSiteSiteByExternalReferenceCodeUtilityPage(
@@ -124,7 +128,27 @@ public class UtilityPageResourceTest extends BaseUtilityPageResourceTestCase {
 						testGroup.getExternalReferenceCode(),
 						RandomTestUtil.randomString()));
 
+		LayoutUtilityPageEntry layoutUtilityPageEntry =
+			_layoutUtilityPageEntryLocalService.
+				getLayoutUtilityPageEntryByExternalReferenceCode(
+					postUtilityPage.getExternalReferenceCode(),
+					testGroup.getGroupId());
+
+		Layout layout = _layoutLocalService.getLayout(
+			layoutUtilityPageEntry.getPlid());
+
+		Assert.assertFalse(layout.isPublished());
+
 		UtilityPageResource utilityPageResource = _getUtilityPageResource();
+
+		_assertNestedFields(
+			utilityPageResource.getSiteSiteByExternalReferenceCodeUtilityPage(
+				testGroup.getExternalReferenceCode(),
+				postUtilityPage.getExternalReferenceCode()));
+
+		ContentLayoutTestUtil.publishLayout(layout.fetchDraftLayout(), layout);
+
+		Assert.assertTrue(layout.isPublished());
 
 		_assertNestedFields(
 			utilityPageResource.getSiteSiteByExternalReferenceCodeUtilityPage(
@@ -409,7 +433,11 @@ public class UtilityPageResourceTest extends BaseUtilityPageResourceTestCase {
 		Layout layout = _layoutLocalService.getLayout(
 			layoutUtilityPageEntry.getPlid());
 
-		Map<Locale, String> friendlyURLMap = layout.getFriendlyURLMap();
+		Map<Locale, String> friendlyURLMap = new HashMap<>();
+
+		if (layout.isPublished()) {
+			friendlyURLMap = layout.getFriendlyURLMap();
+		}
 
 		Assert.assertEquals(
 			jsonObject.toString(), friendlyURLMap.size(), jsonObject.length());
@@ -494,13 +522,27 @@ public class UtilityPageResourceTest extends BaseUtilityPageResourceTestCase {
 			utilityPageResource.
 				getSiteSiteByExternalReferenceCodeUtilityPagesPage(
 					testGroup.getExternalReferenceCode(), null, null, null,
-					Pagination.of(1, 10), null);
+					null, null);
 
 		long totalCount = page.getTotalCount();
 
-		UtilityPage utilityPage =
-			testGetSiteSiteByExternalReferenceCodeUtilityPagesPage_addUtilityPage(
-				testGroup.getExternalReferenceCode(), randomUtilityPage());
+		UtilityPage utilityPage = randomUtilityPage();
+
+		utilityPage.setMarkedAsDefault(false);
+
+		testGetSiteSiteByExternalReferenceCodeUtilityPagesPage_addUtilityPage(
+			testGroup.getExternalReferenceCode(), utilityPage);
+
+		LayoutUtilityPageEntry layoutUtilityPageEntry =
+			_layoutUtilityPageEntryLocalService.
+				getLayoutUtilityPageEntryByExternalReferenceCode(
+					utilityPage.getExternalReferenceCode(),
+					testGroup.getGroupId());
+
+		Layout layout = _layoutLocalService.getLayout(
+			layoutUtilityPageEntry.getPlid());
+
+		Assert.assertFalse(layout.isPublished());
 
 		UtilityPageResource utilityPageResource = _getUtilityPageResource();
 
@@ -508,7 +550,24 @@ public class UtilityPageResourceTest extends BaseUtilityPageResourceTestCase {
 			utilityPageResource.
 				getSiteSiteByExternalReferenceCodeUtilityPagesPage(
 					testGroup.getExternalReferenceCode(), null, null, null,
-					Pagination.of(1, 10), null);
+					null, null);
+
+		Assert.assertEquals(totalCount + 1, page.getTotalCount());
+
+		_assertNestedFields(
+			_getUtilityPage(
+				utilityPage.getExternalReferenceCode(),
+				(List<UtilityPage>)page.getItems()));
+
+		ContentLayoutTestUtil.publishLayout(layout.fetchDraftLayout(), layout);
+
+		Assert.assertTrue(layout.isPublished());
+
+		page =
+			utilityPageResource.
+				getSiteSiteByExternalReferenceCodeUtilityPagesPage(
+					testGroup.getExternalReferenceCode(), null, null, null,
+					null, null);
 
 		Assert.assertEquals(totalCount + 1, page.getTotalCount());
 

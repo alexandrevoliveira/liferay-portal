@@ -13,90 +13,130 @@ import {deleteItems} from './utils/deleteItems';
 
 export const test = mergeTests(loginTest(), formsPagesTest);
 
-test.afterEach(async ({formsPage, page}) => {
+test.afterEach(async ({formsPage}) => {
 	await formsPage.goTo();
 
-	await deleteItems(formsPage, page);
+	await deleteItems(formsPage);
 });
 
 test.describe('Manage fields through Form Preview page', () => {
-	test.describe('Can configure a HTML autocomplete attribute in Date, Numeric and Text field types', () => {
-		test('LPD-12824 HTML autocomplete attribute is rendered and has the configured value limited to 20 non-special characters', async ({
-			formBuilderPage,
-			formBuilderSidePanelPage,
-		}) => {
-			const testData: {
-				expectedValue: string;
-				fieldTitle: FormFieldTypeTitle;
-				inputValue: string;
-			}[] = [
-				{
-					expectedValue: 'bday',
-					fieldTitle: 'Date',
-					inputValue: '+)(*&^%$#@ bday$__%  ',
-				},
-				{
-					expectedValue: 'one-time-code',
-					fieldTitle: 'Numeric',
-					inputValue: '****[][one-time-code&&#()',
-				},
-				{
-					expectedValue: 'transaction-currency',
-					fieldTitle: 'Text',
-					inputValue: 'transaction-currencyextracharacters',
-				},
-			];
+	test('assert that it is possible to delete the predefined value of a text field', async ({
+		formBuilderPage,
+		formBuilderSidePanelPage,
+	}) => {
+		await formBuilderPage.goToNew();
 
-			await formBuilderPage.goToNew();
+		await formBuilderPage.fillFormTitle('Form' + getRandomInt());
 
-			await expect(formBuilderPage.newFormHeading).toBeVisible();
+		await formBuilderSidePanelPage.addFieldByDoubleClick('Text');
 
-			await formBuilderPage.fillFormTitle('Form' + getRandomInt());
+		await formBuilderSidePanelPage.advancedTab.click();
 
-			for (const data of testData) {
-				await formBuilderSidePanelPage.addFieldByDoubleClick(
-					data.fieldTitle
-				);
+		await formBuilderSidePanelPage.predefinedValueField.fill(
+			'predefined value for text field.'
+		);
 
-				await formBuilderSidePanelPage.clickAdvancedTab();
+		const newTabPagePromise = new Promise<Page>((resolve) =>
+			formBuilderPage.page.once('popup', resolve)
+		);
 
-				await expect(
-					formBuilderSidePanelPage.htmlAutocompleteAttributeField
-				).toBeVisible();
+		await formBuilderPage.previewButton.click();
 
-				await formBuilderSidePanelPage.htmlAutocompleteAttributeField.fill(
-					data.inputValue
-				);
+		const newTabPage = await newTabPagePromise;
 
-				await formBuilderSidePanelPage.clickBackButton();
-			}
+		await newTabPage.waitForLoadState('domcontentloaded');
 
-			const newTabPagePromise = new Promise<Page>((resolve) =>
-				formBuilderPage.page.once('popup', resolve)
+		await newTabPage.getByLabel('Text').click();
+
+		await newTabPage.keyboard.press('Control+A');
+
+		await newTabPage.keyboard.press('Backspace');
+
+		// Wait a little bit before doing the assertion since useSyncValue hook takes a few miliseconds to set the value on the text field
+		// Otherwise the test would always pass, even with the bug still present
+
+		await newTabPage.waitForTimeout(1000);
+
+		await expect(newTabPage.getByLabel('Text')).toHaveValue('');
+
+		await newTabPage.close();
+	});
+
+	test('LPD-12824 HTML autocomplete attribute is rendered and has the configured value limited to 20 non-special characters in Date, Numeric and Text field types', async ({
+		formBuilderPage,
+		formBuilderSidePanelPage,
+	}) => {
+		const testData: {
+			expectedValue: string;
+			fieldTitle: FormFieldTypeTitle;
+			inputValue: string;
+		}[] = [
+			{
+				expectedValue: 'bday',
+				fieldTitle: 'Date',
+				inputValue: '+)(*&^%$#@ bday$__%  ',
+			},
+			{
+				expectedValue: 'one-time-code',
+				fieldTitle: 'Numeric',
+				inputValue: '****[][one-time-code&&#()',
+			},
+			{
+				expectedValue: 'transaction-currency',
+				fieldTitle: 'Text',
+				inputValue: 'transaction-currencyextracharacters',
+			},
+		];
+
+		await formBuilderPage.goToNew();
+
+		await expect(formBuilderPage.newFormHeading).toBeVisible();
+
+		await formBuilderPage.fillFormTitle('Form' + getRandomInt());
+
+		for (const data of testData) {
+			await formBuilderSidePanelPage.addFieldByDoubleClick(
+				data.fieldTitle
 			);
 
-			await formBuilderPage.previewButton.click();
+			await formBuilderSidePanelPage.clickAdvancedTab();
 
-			const newTabPage = await newTabPagePromise;
+			await expect(
+				formBuilderSidePanelPage.htmlAutocompleteAttributeField
+			).toBeVisible();
 
-			await newTabPage.waitForLoadState('domcontentloaded');
+			await formBuilderSidePanelPage.htmlAutocompleteAttributeField.fill(
+				data.inputValue
+			);
 
-			for (const data of testData) {
-				if (data.fieldTitle === 'Date') {
-					await expect(
-						newTabPage.getByPlaceholder('__/__/____')
-					).toHaveAttribute('autocomplete', data.expectedValue);
+			await formBuilderSidePanelPage.clickBackButton();
+		}
 
-					continue;
-				}
+		const newTabPagePromise = new Promise<Page>((resolve) =>
+			formBuilderPage.page.once('popup', resolve)
+		);
 
+		await formBuilderPage.previewButton.click();
+
+		const newTabPage = await newTabPagePromise;
+
+		await newTabPage.waitForLoadState('domcontentloaded');
+
+		for (const data of testData) {
+			if (data.fieldTitle === 'Date') {
 				await expect(
-					newTabPage.getByLabel(data.fieldTitle)
+					newTabPage.getByPlaceholder('__/__/____')
 				).toHaveAttribute('autocomplete', data.expectedValue);
+
+				continue;
 			}
 
-			await newTabPage.close();
-		});
+			await expect(
+				newTabPage.getByLabel(data.fieldTitle)
+			).toHaveAttribute('autocomplete', data.expectedValue);
+		}
+
+		await newTabPage.close();
 	});
 
 	test('make sure the aria-labelledby reference is present in the captcha form view', async ({

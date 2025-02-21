@@ -16,7 +16,7 @@ import {rolesHighPriorityContacts} from '~/features/project/utils/getHighPriorit
 
 import i18n from '~/utils/I18n';
 import StatusTag from '~/components/StatusTag';
-import Table from '~/components/Table';
+import ActionTable from '~/components/ActionTable';
 import {useAppPropertiesContext} from '~/contexts/AppPropertiesContext';
 import {useCustomerPortal} from '~/features/project/context';
 import {STATUS_TAG_TYPES} from '~/features/project/utils/constants/statusTag';
@@ -88,8 +88,8 @@ const TeamMembersTable = ({
 
 	const {data: myUserAccountData, loading: myUserAccountLoading} =
 		useMyUserAccountByAccountExternalReferenceCode(
-			koroneikiAccountLoading,
-			koroneikiAccount?.accountKey
+			koroneikiAccount?.accountKey,
+			koroneikiAccountLoading
 		);
 
 	const loggedUserAccount = myUserAccountData?.myUserAccount;
@@ -130,10 +130,10 @@ const TeamMembersTable = ({
 	}, [koroneikiAccount, supportSeatsCount, isUnlimitedSupportSeats]);
 
 	const userAccounts =
-		userAccountsData?.accountUserAccountsByExternalReferenceCode.items;
+		userAccountsData?.accountUserAccountsByExternalReferenceCode?.items;
 
 	const totalUserAccounts =
-		userAccountsData?.accountUserAccountsByExternalReferenceCode.totalCount;
+		userAccountsData?.accountUserAccountsByExternalReferenceCode?.totalCount;
 
 	const {paginationConfig, teamMembersByStatusPaginated} =
 		usePagination(userAccounts);
@@ -185,7 +185,7 @@ const TeamMembersTable = ({
 		useAccountRolesByAccountExternalReferenceCode(
 			koroneikiAccount,
 			koroneikiAccountLoading,
-			!loggedUserAccount?.selectedAccountSummary.hasAdministratorRole
+			!loggedUserAccount?.selectedAccountSummary?.hasAdministratorRole
 		);
 
 	const availableAccountRoles = getRolesFiltered(
@@ -245,7 +245,7 @@ const TeamMembersTable = ({
 
 	const getCurrentRoleBriefs = useCallback(
 		(accountBrief) =>
-			getFilteredRoleBriefsByName(accountBrief.roleBriefs, 'User'),
+			getFilteredRoleBriefsByName(accountBrief?.roleBriefs, 'User'),
 		[]
 	);
 
@@ -253,12 +253,12 @@ const TeamMembersTable = ({
 		const isIncidentContactRole = (role) => {
 			const incidentRoles = ['Security', 'Data', 'Critical'];
 
-			return incidentRoles.some((keyword) => role.name.includes(keyword));
+			return incidentRoles.some((keyword) => role?.name?.includes(keyword));
 		};
 
-		const roles = getCurrentRoleBriefs(userAccount.selectedAccountSummary);
+		const roles = getCurrentRoleBriefs(userAccount?.selectedAccountSummary);
 
-		if (!roles.length) {
+		if (!roles?.length) {
 			return ['User'];
 		}
 
@@ -281,7 +281,7 @@ const TeamMembersTable = ({
 
 	const handleEdit = () => {
 		const currentAccountRoles =
-			currentUserEditing.selectedAccountSummary.roleBriefs;
+			currentUserEditing?.selectedAccountSummary?.roleBriefs;
 
 		update(
 			currentUserEditing,
@@ -320,7 +320,7 @@ const TeamMembersTable = ({
 			selectedAccountRoleItem?.label
 		);
 		const currentAccountRoles =
-			currentUserEditing.selectedAccountSummary.roleBriefs;
+			currentUserEditing?.selectedAccountSummary?.roleBriefs;
 
 		if (noSupportSeatsAvailable) {
 			for (const role of currentAccountRoles) {
@@ -422,7 +422,7 @@ const TeamMembersTable = ({
 				count={totalUserAccounts}
 				hasAdministratorRole={
 					loggedUserAccount?.selectedAccountSummary
-						.hasAdministratorRole
+						?.hasAdministratorRole
 				}
 				koroneikiAccount={koroneikiAccount}
 				loading={loading}
@@ -440,11 +440,11 @@ const TeamMembersTable = ({
 
 				{!!teamMembersByStatusPaginated &&
 					(totalUserAccounts || loading || searching) && (
-						<Table
+						<ActionTable
 							className="border-0"
 							columns={getColumns(
 								loggedUserAccount?.selectedAccountSummary
-									.hasAdministratorRole,
+									?.hasAdministratorRole,
 								articleAccountSupportURL
 							)}
 							hasPagination
@@ -510,8 +510,8 @@ const TeamMembersTable = ({
 											}
 											hasAccountSupportSeatRole={
 												userAccount
-													.selectedAccountSummary
-													.hasSupportSeatRole
+													?.selectedAccountSummary
+													?.hasSupportSeatRole
 											}
 											onClick={(
 												selectedAccountRoleItem
@@ -537,8 +537,8 @@ const TeamMembersTable = ({
 										/>
 									),
 									supportSeat: userAccount
-										.selectedAccountSummary
-										.hasSupportSeatRole &&
+										?.selectedAccountSummary
+										?.hasSupportSeatRole &&
 										!userAccount.isLiferayStaff && (
 											<ClayIcon
 												className="text-brand-primary-darken-2"

@@ -7,7 +7,6 @@ import {Page} from '@playwright/test';
 import path from 'path';
 
 import {ApplicationsMenuPage} from '../../../pages/product-navigation-applications-menu/ApplicationsMenuPage';
-import getRandomString from '../../../utils/getRandomString';
 import {ExportImportPage} from './ExportImportPage';
 
 export class CompanyExportImportPage {
@@ -23,7 +22,8 @@ export class CompanyExportImportPage {
 
 	async export(
 		itemLabel: string,
-		includePermissions: boolean = false
+		includePermissions: boolean = false,
+		taskName?: string
 	): Promise<string> {
 		await this.applicationsMenuPage.goToExport();
 
@@ -31,9 +31,9 @@ export class CompanyExportImportPage {
 
 		await this.page.getByLabel(itemLabel).click();
 
-		const exportName = 'MyExport-' + getRandomString();
-
-		await this.exportImportPage.title.fill(exportName);
+		taskName
+			? await this.exportImportPage.title.fill(taskName)
+			: (taskName = 'Export');
 
 		if (includePermissions) {
 			await this.exportImportPage.exportPermissionsButton.click();
@@ -42,12 +42,23 @@ export class CompanyExportImportPage {
 		await this.exportImportPage.exportButton.click();
 
 		await this.page
-			.getByText(exportName)
-			.locator('../../..')
+			.locator('//h2[span[normalize-space()="' + taskName + '"]]')
+			.first()
+			.locator('../..')
 			.getByText('Successful')
 			.waitFor();
 
-		return await this.exportImportPage.downloadExportProcess(exportName);
+		return await this.exportImportPage.downloadExportProcess(taskName);
+	}
+
+	async goToImportOptions(filePath: string) {
+		await this.applicationsMenuPage.goToImport();
+
+		await this.exportImportPage.newImportButton.click();
+
+		await this.page.locator('input[type="file"]').setInputFiles(filePath);
+
+		await this.exportImportPage.continueButton.click();
 	}
 
 	async import(

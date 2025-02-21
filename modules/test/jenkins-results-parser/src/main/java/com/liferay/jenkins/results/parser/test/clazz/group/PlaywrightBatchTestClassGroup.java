@@ -310,26 +310,40 @@ public class PlaywrightBatchTestClassGroup extends BatchTestClassGroup {
 						playwrightSegmentTestClassGroup.addAxisTestClassGroup(
 							axisTestClassGroup);
 
-						StringBuilder sb = new StringBuilder();
+						synchronized (_loadedProjectNames) {
+							if (!_loadedProjectNames.contains(projectName) ||
+								(axisCount > 1)) {
 
-						sb.append("npx playwright test --project=");
-						sb.append(projectName);
-						sb.append(" --shard=");
-						sb.append(axisIndex + 1);
-						sb.append("/");
-						sb.append(axisCount);
-						sb.append(" --list");
+								_loadedProjectNames.add(projectName);
 
-						String result = _callNPMCommand(
-							getPlaywrightBaseDir(), sb.toString());
+								StringBuilder sb = new StringBuilder();
 
-						for (TestClass testClass : testClasses) {
-							if (result.contains(testClass.getName())) {
-								axisTestClassGroup.addTestClass(testClass);
+								sb.append("npx playwright test --project=");
+								sb.append(projectName);
+								sb.append(" --shard=");
+								sb.append(axisIndex + 1);
+								sb.append("/");
+								sb.append(axisCount);
+								sb.append(" --list");
+
+								String result = _callNPMCommand(
+									getPlaywrightBaseDir(), sb.toString());
+
+								for (TestClass testClass : testClasses) {
+									if (result.contains(testClass.getName())) {
+										axisTestClassGroup.addTestClass(
+											testClass);
+									}
+								}
 							}
-						}
+							else {
+								for (TestClass testClass : testClasses) {
+									axisTestClassGroup.addTestClass(testClass);
+								}
+							}
 
-						addAxisTestClassGroup(axisTestClassGroup);
+							addAxisTestClassGroup(axisTestClassGroup);
+						}
 					}
 				}
 
@@ -721,6 +735,8 @@ public class PlaywrightBatchTestClassGroup extends BatchTestClassGroup {
 		}
 	}
 
+	private static final Set<String> _loadedProjectNames =
+		Collections.synchronizedSet(new HashSet<>());
 	private static final Pattern _playwrightFileNamePattern = Pattern.compile(
 		"tests/(?<filePath>(?<projectName>[^/]+)/.*.spec.ts)");
 	private static JSONObject _playwrightJSONObject;

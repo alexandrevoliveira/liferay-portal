@@ -15,6 +15,7 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.mass.delete.MassDeleteCacheThreadLocal;
 import com.liferay.portal.kernel.model.AuditedModel;
 import com.liferay.portal.kernel.model.ClassedModel;
+import com.liferay.portal.kernel.model.ExternalReferenceCodeModel;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.GroupedModel;
 import com.liferay.portal.kernel.model.StagedModel;
@@ -104,7 +105,10 @@ public class SystemEventAdvice extends ChainableMethodAdvice {
 
 		Group group = GroupLocalServiceUtil.fetchGroup(groupId);
 
+		String classExternalReferenceCode = getClassExternalReferenceCode(
+			classedModel);
 		String className = getClassName(classedModel);
+		long classPK = getClassPK(classedModel);
 
 		String referrerClassName = null;
 
@@ -114,8 +118,6 @@ public class SystemEventAdvice extends ChainableMethodAdvice {
 			referrerClassName = typedModel.getClassName();
 		}
 
-		long classPK = getClassPK(classedModel);
-
 		SystemEventHierarchyEntry systemEventHierarchyEntry =
 			SystemEventHierarchyEntryThreadLocal.peek();
 
@@ -124,14 +126,15 @@ public class SystemEventAdvice extends ChainableMethodAdvice {
 
 			if (group != null) {
 				SystemEventLocalServiceUtil.addSystemEvent(
-					0, groupId, systemEventHierarchyEntry.getClassName(),
-					classPK, systemEventHierarchyEntry.getUuid(),
-					referrerClassName, systemEvent.type(),
+					0, groupId, classExternalReferenceCode,
+					systemEventHierarchyEntry.getClassName(), classPK,
+					systemEventHierarchyEntry.getUuid(), referrerClassName,
+					systemEvent.type(),
 					systemEventHierarchyEntry.getExtraData());
 			}
 			else {
 				SystemEventLocalServiceUtil.addSystemEvent(
-					getCompanyId(classedModel),
+					getCompanyId(classedModel), classExternalReferenceCode,
 					systemEventHierarchyEntry.getClassName(), classPK,
 					systemEventHierarchyEntry.getUuid(), referrerClassName,
 					systemEvent.type(),
@@ -140,14 +143,15 @@ public class SystemEventAdvice extends ChainableMethodAdvice {
 		}
 		else if (group != null) {
 			SystemEventLocalServiceUtil.addSystemEvent(
-				0, groupId, className, classPK, getUuid(classedModel),
-				referrerClassName, systemEvent.type(), StringPool.BLANK);
+				0, groupId, classExternalReferenceCode, className, classPK,
+				getUuid(classedModel), referrerClassName, systemEvent.type(),
+				StringPool.BLANK);
 		}
 		else {
 			SystemEventLocalServiceUtil.addSystemEvent(
-				getCompanyId(classedModel), className, classPK,
-				getUuid(classedModel), referrerClassName, systemEvent.type(),
-				StringPool.BLANK);
+				getCompanyId(classedModel), classExternalReferenceCode,
+				className, classPK, getUuid(classedModel), referrerClassName,
+				systemEvent.type(), StringPool.BLANK);
 		}
 	}
 
@@ -177,6 +181,20 @@ public class SystemEventAdvice extends ChainableMethodAdvice {
 
 		SystemEventHierarchyEntryThreadLocal.pop(
 			getClassName(classedModel), classPK);
+	}
+
+	protected String getClassExternalReferenceCode(ClassedModel classedModel) {
+		String externalReferenceCode = null;
+
+		if (classedModel instanceof ExternalReferenceCodeModel) {
+			ExternalReferenceCodeModel externalReferenceCodeModel =
+				(ExternalReferenceCodeModel)classedModel;
+
+			externalReferenceCode =
+				externalReferenceCodeModel.getExternalReferenceCode();
+		}
+
+		return externalReferenceCode;
 	}
 
 	protected String getClassName(ClassedModel classedModel) {

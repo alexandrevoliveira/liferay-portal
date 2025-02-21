@@ -190,6 +190,8 @@ function Filters({
 	const [availableFields, setAvailableFields] = useState(fields);
 	const [fieldNames, setFieldNames] = useState<string[]>([]);
 	const [filters, setFilters] = useState<IFilter[]>([]);
+	const [toggleActiveDisabled, setToogleActiveDisabled] =
+		useState<boolean>(false);
 
 	useEffect(() => {
 		const getFilters = async () => {
@@ -362,19 +364,6 @@ function Filters({
 		}
 	};
 
-	const onEdit = ({item}: {item: IFilter}) => {
-		if (
-			item.filterType === EFilterType.CLIENT_EXTENSION &&
-			!filterClientExtensionRenderers.length
-		) {
-			noFilterClientExtensionsAvailableModal();
-		}
-		else {
-			setActiveMode(FILTER_MODE.EDITION);
-			setActiveFilter(item);
-		}
-	};
-
 	const onDelete = async ({item}: {item: IFilter}) => {
 		openModal({
 			bodyHTML: Liferay.Language.get(
@@ -419,6 +408,64 @@ function Filters({
 			status: 'danger',
 			title: Liferay.Language.get('delete-filter'),
 		});
+	};
+
+	const onEdit = ({item}: {item: IFilter}) => {
+		if (
+			item.filterType === EFilterType.CLIENT_EXTENSION &&
+			!filterClientExtensionRenderers.length
+		) {
+			noFilterClientExtensionsAvailableModal();
+		}
+		else {
+			setActiveMode(FILTER_MODE.EDITION);
+			setActiveFilter(item);
+		}
+	};
+
+	const updateActive = async (item: IFilter) => {
+		setToogleActiveDisabled(true);
+
+		const type: any =
+			item.filterType === 'DATE_RANGE'
+				? 'DATE_FILTERS'
+				: `${item.filterType}_FILTERS`;
+
+		const response = await fetch(
+			`${API_URL[type]}/by-external-reference-code/${item.externalReferenceCode}`,
+			{
+				body: JSON.stringify({active: !item.active}),
+				headers: DEFAULT_FETCH_HEADERS,
+				method: 'PATCH',
+			}
+		);
+
+		if (!response.ok) {
+			openDefaultFailureToast();
+
+			return;
+		}
+
+		const dataSetFilter: IFilter = await response.json();
+
+		if (dataSetFilter?.id) {
+			const updatedFilters = filters.map((filter) => {
+				if (filter.id === dataSetFilter.id) {
+					filter = {...filter, ...dataSetFilter};
+				}
+
+				return filter;
+			});
+
+			setFilters(updatedFilters);
+
+			openDefaultSuccessToast();
+		}
+		else {
+			openDefaultFailureToast();
+		}
+
+		setToogleActiveDisabled(false);
 	};
 
 	const getBreadcrumbItems = () => {
@@ -550,6 +597,8 @@ function Filters({
 						editFilter={onEdit}
 						filterTypes={FILTER_TYPES}
 						filters={filters}
+						toogleActiveDisabled={toggleActiveDisabled}
+						updateActive={updateActive}
 						updateFiltersOrder={updateFiltersOrder}
 					/>
 				</ClayLayout.ContainerFluid>

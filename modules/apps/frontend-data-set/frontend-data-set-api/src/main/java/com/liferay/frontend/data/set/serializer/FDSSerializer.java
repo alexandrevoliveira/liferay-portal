@@ -5,8 +5,10 @@
 
 package com.liferay.frontend.data.set.serializer;
 
+import com.liferay.frontend.data.set.filter.FDSFilter;
 import com.liferay.frontend.data.set.model.FDSActionDropdownItem;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.CreationMenu;
+import com.liferay.portal.kernel.json.JSONArray;
 
 import java.util.List;
 
@@ -28,6 +30,13 @@ public interface FDSSerializer {
 		String fdsName, HttpServletRequest httpServletRequest);
 
 	public CreationMenu serializeCreationMenu(
+		String fdsName, HttpServletRequest httpServletRequest);
+
+	public JSONArray serializeFilters(
+		List<FDSFilter> fdsFilters, String fdsName,
+		HttpServletRequest httpServletRequest);
+
+	public JSONArray serializeFilters(
 		String fdsName, HttpServletRequest httpServletRequest);
 
 	public List<FDSActionDropdownItem> serializeItemsActions(

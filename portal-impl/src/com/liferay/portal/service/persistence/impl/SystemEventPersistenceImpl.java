@@ -3121,6 +3121,7 @@ public class SystemEventPersistenceImpl
 		ctStrictColumnNames.add("userId");
 		ctStrictColumnNames.add("userName");
 		ctStrictColumnNames.add("createDate");
+		ctMergeColumnNames.add("classExternalReferenceCode");
 		ctStrictColumnNames.add("classNameId");
 		ctStrictColumnNames.add("classPK");
 		ctMergeColumnNames.add("classUuid");

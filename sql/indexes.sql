@@ -233,12 +233,12 @@ create index IX_9F80D54 on LayoutFriendlyURL (uuid_[$COLUMN_LENGTH:75$]);
 create index IX_557A639F on LayoutPrototype (companyId, active_);
 create index IX_CEF72136 on LayoutPrototype (uuid_[$COLUMN_LENGTH:75$]);
 
-create index IX_9EC9F954 on LayoutRevision (layoutSetBranchId, head, status);
-create index IX_538BFC54 on LayoutRevision (layoutSetBranchId, plid, head, layoutBranchId);
+create index IX_A9AC086E on LayoutRevision (layoutSetBranchId, head);
+create index IX_F21D36F9 on LayoutRevision (layoutSetBranchId, plid, head);
 create index IX_84668240 on LayoutRevision (layoutSetBranchId, plid, layoutBranchId);
 create index IX_F93E5CC3 on LayoutRevision (layoutSetBranchId, plid, parentLayoutRevisionId);
 create index IX_70DA9ECB on LayoutRevision (layoutSetBranchId, plid, status);
-create index IX_7FFAE700 on LayoutRevision (layoutSetBranchId, status);
+create index IX_3681C8D4 on LayoutRevision (layoutSetBranchId, status, head);
 create index IX_27F4B32A on LayoutRevision (plid, head);
 create index IX_8EC3D2BC on LayoutRevision (plid, status);
 create index IX_421223B1 on LayoutRevision (status);
@@ -421,7 +421,7 @@ create unique index IX_1AAF62D7 on Team (uuid_[$COLUMN_LENGTH:75$], groupId, ctC
 
 create index IX_DAD135B4 on Ticket (classNameId, classPK, companyId, type_);
 create index IX_1E8DFB2E on Ticket (classNameId, classPK, type_);
-create index IX_B2468446 on Ticket (key_[$COLUMN_LENGTH:255$]);
+create unique index IX_B2468446 on Ticket (key_[$COLUMN_LENGTH:255$]);
 
 create unique index IX_A33BD191 on UserGroup (companyId, ctCollectionId, externalReferenceCode[$COLUMN_LENGTH:75$]);
 create unique index IX_3F4FC96B on UserGroup (companyId, name[$COLUMN_LENGTH:255$], ctCollectionId);
@@ -469,7 +469,6 @@ create unique index IX_77D89D58 on User_ (companyId, ctCollectionId, emailAddres
 create unique index IX_6FF64E11 on User_ (companyId, ctCollectionId, externalReferenceCode[$COLUMN_LENGTH:75$]);
 create unique index IX_6B7C3D77 on User_ (companyId, ctCollectionId, screenName[$COLUMN_LENGTH:75$]);
 create index IX_1D731F03 on User_ (companyId, facebookId);
-create index IX_B6E3AE1 on User_ (companyId, googleUserId[$COLUMN_LENGTH:75$]);
 create index IX_EE8ABD19 on User_ (companyId, modifiedDate);
 create index IX_F6039434 on User_ (companyId, status);
 create index IX_FD06BAAD on User_ (companyId, type_, status);

@@ -60,6 +60,7 @@ import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
 import com.liferay.portal.vulcan.batch.engine.VulcanBatchEngineTaskItemDelegate;
 import com.liferay.portal.vulcan.batch.engine.resource.VulcanBatchEngineExportTaskResource;
 import com.liferay.portal.vulcan.batch.engine.resource.VulcanBatchEngineImportTaskResource;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegate;
 import com.liferay.portal.vulcan.fields.NestedFieldsSupplier;
 import com.liferay.portal.vulcan.multipart.MultipartBody;
 import com.liferay.portal.vulcan.pagination.Page;
@@ -69,6 +70,7 @@ import com.liferay.portal.vulcan.permission.Permission;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
 import com.liferay.portal.vulcan.util.ActionUtil;
 import com.liferay.portal.vulcan.util.LocalDateTimeUtil;
+import com.liferay.portal.vulcan.util.UriInfoUtil;
 
 import java.io.Serializable;
 
@@ -112,6 +114,7 @@ public abstract class Base${schemaName}ResourceImpl
 		javaDataType = freeMarkerTool.getJavaDataType(configYAML, openAPIYAML, schemaName)!""
 		javaMethodSignatures = freeMarkerTool.getResourceJavaMethodSignatures(configYAML, openAPIYAML, schemaName)
 		generateBatch = freeMarkerTool.generateBatch(configYAML, javaDataType, javaMethodSignatures, schemaName)
+		generateCRUD = freeMarkerTool.generateCRUD(configYAML, javaMethodSignatures, schemaName)
 		properties = freeMarkerTool.getDTOProperties(configYAML, openAPIYAML, schema, allSchemas)
 	/>
 
@@ -119,7 +122,10 @@ public abstract class Base${schemaName}ResourceImpl
 		, EntityModelResource, VulcanBatchEngineTaskItemDelegate<${javaDataType}>
 	</#if>
 
-	{
+	<#if generateCRUD>
+		, VulcanCRUDItemDelegate<${javaDataType}>
+	</#if>
+{
 
 	<#assign
 		generateGetPermissionCheckerMethods = false
@@ -143,6 +149,8 @@ public abstract class Base${schemaName}ResourceImpl
 
 		<#if stringUtil.equals(javaMethodSignature.methodName, "delete" + schemaName)>
 			<#assign deleteBatchJavaMethodSignature = javaMethodSignature />
+		<#elseif stringUtil.equals(javaMethodSignature.methodName, "get" + schemaName)>
+			<#assign getByIdJavaMethodSignature = javaMethodSignature />
 		<#elseif stringUtil.equals(javaMethodSignature.methodName, "get" + schemaName + "ByExternalReferenceCode") || stringUtil.equals(javaMethodSignature.methodName, "get" + parentSchemaName + schemaName + "ByExternalReferenceCode")>
 			<#assign getByERCBatchJavaMethodSignature = javaMethodSignature />
 		<#elseif stringUtil.equals(javaMethodSignature.methodName, "get" + parentSchemaName + schemaNames + "Page")>
@@ -1256,6 +1264,23 @@ public abstract class Base${schemaName}ResourceImpl
 		</#list>
 	</#if>
 
+	<#if generateCRUD>
+		@Override
+		public ${schemaName} getItem(Long id) throws Exception {
+			return ${getByIdJavaMethodSignature.methodName}(
+			<#list getByIdJavaMethodSignature.javaMethodParameters as javaMethodParameter>
+				<#if freeMarkerTool.isIdParameter(javaMethodParameter, schemaName)>
+					id
+				<#else>
+					null
+				</#if>
+
+				<#sep>, </#sep>
+			</#list>
+			);
+		}
+	</#if>
+
 	<#if generateGetPermissionCheckerMethods>
 		protected String getPermissionCheckerActionsResourceName(Object id) throws Exception {
 			return getPermissionCheckerResourceName(id);
@@ -1386,7 +1411,11 @@ public abstract class Base${schemaName}ResourceImpl
 	}
 
 	public void setContextUriInfo(UriInfo contextUriInfo) {
-		this.contextUriInfo = contextUriInfo;
+		<#if freeMarkerTool.isVersionCompatible(configYAML, 7)>
+			this.contextUriInfo = UriInfoUtil.getVulcanUriInfo(getApplicationPath(), contextUriInfo);
+		<#else>
+			this.contextUriInfo = contextUriInfo;
+		</#if>
 	}
 
 	public void setContextUser(com.liferay.portal.kernel.model.User contextUser) {
@@ -1420,6 +1449,16 @@ public abstract class Base${schemaName}ResourceImpl
 	public void setSortParserProvider(SortParserProvider sortParserProvider) {
 		this.sortParserProvider = sortParserProvider;
 	}
+
+	<#if freeMarkerTool.isVersionCompatible(configYAML, 7)>
+		protected String getApplicationPath() {
+			<#if configYAML.application??>
+				return "${stringUtil.removeFirst(configYAML.application.baseURI, "/")}";
+			<#else>
+				return null;
+			</#if>
+		}
+	</#if>
 
 	<#if generateBatch>
 		<#if freeMarkerTool.isVersionCompatible(configYAML, 2)>

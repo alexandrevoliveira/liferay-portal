@@ -26,6 +26,7 @@ import com.liferay.layout.friendly.url.LayoutFriendlyURLEntryHelper;
 import com.liferay.layout.set.model.adapter.StagedLayoutSet;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.db.partition.util.DBPartitionUtil;
 import com.liferay.portal.events.StartupHelperUtil;
 import com.liferay.portal.kernel.backgroundtask.BackgroundTaskThreadLocal;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
@@ -117,6 +118,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -234,6 +236,8 @@ public class CompanyLocalServiceTest {
 	public void testAddAndDeleteCompanyWithCompanyGroupStaging()
 		throws Exception {
 
+		Assume.assumeFalse(DBPartition.isPartitionEnabled());
+
 		Company company = addCompany();
 
 		Group companyGroup = null;
@@ -263,6 +267,8 @@ public class CompanyLocalServiceTest {
 
 	@Test
 	public void testAddAndDeleteCompanyWithDLFileEntryTypes() throws Exception {
+		Assume.assumeFalse(DBPartition.isPartitionEnabled());
+
 		Company company = addCompany();
 
 		long companyId = company.getCompanyId();
@@ -332,6 +338,8 @@ public class CompanyLocalServiceTest {
 	public void testAddAndDeleteCompanyWithLayoutSetPrototype()
 		throws Throwable {
 
+		Assume.assumeFalse(DBPartition.isPartitionEnabled());
+
 		Company company = addCompany();
 
 		long companyId = company.getCompanyId();
@@ -374,6 +382,8 @@ public class CompanyLocalServiceTest {
 	@Test
 	public void testAddAndDeleteCompanyWithLayoutSetPrototypeLinkedUserGroup()
 		throws Throwable {
+
+		Assume.assumeFalse(DBPartition.isPartitionEnabled());
 
 		Company company = addCompany();
 
@@ -424,6 +434,8 @@ public class CompanyLocalServiceTest {
 
 	@Test
 	public void testAddAndDeleteCompanyWithParentGroup() throws Exception {
+		Assume.assumeFalse(DBPartition.isPartitionEnabled());
+
 		Company company = addCompany();
 
 		long companyId = company.getCompanyId();
@@ -469,6 +481,10 @@ public class CompanyLocalServiceTest {
 
 			String webId1 = RandomTestUtil.randomString() + "test.com";
 
+			if (!originalCompanyPredictableCompanyIdsEnabled) {
+				_counterLocalService.reset(Company.class.getName());
+			}
+
 			company1 = _companyLocalService.addCompany(
 				null, webId1, webId1, "test.com", 0, true, true, null, null,
 				null, null, null, null);
@@ -489,9 +505,7 @@ public class CompanyLocalServiceTest {
 					counterFinder, "_counterRegisterMap");
 
 			counterRegisterMap.remove(
-				ReflectionTestUtil.invoke(
-					counterFinder, "_encodeKey", new Class<?>[] {String.class},
-					Company.class.getName()));
+				DBPartitionUtil.getPartitionKey(Company.class.getName()));
 
 			String webId2 = RandomTestUtil.randomString() + "test.com";
 
@@ -526,6 +540,8 @@ public class CompanyLocalServiceTest {
 	@Test
 	public void testAddAndDeleteCompanyWithStagedOrganizationSite()
 		throws Exception {
+
+		Assume.assumeFalse(DBPartition.isPartitionEnabled());
 
 		Company company = addCompany();
 
@@ -562,6 +578,8 @@ public class CompanyLocalServiceTest {
 
 	@Test
 	public void testAddAndDeleteCompanyWithUserGroup() throws Exception {
+		Assume.assumeFalse(DBPartition.isPartitionEnabled());
+
 		Company company = addCompany();
 
 		long companyId = company.getCompanyId();
@@ -599,6 +617,8 @@ public class CompanyLocalServiceTest {
 	@Test
 	public void testAddAndDeleteCompanyWithUserGroupAndUserGroupRole()
 		throws Exception {
+
+		Assume.assumeFalse(DBPartition.isPartitionEnabled());
 
 		Company company = addCompany();
 
@@ -805,6 +825,8 @@ public class CompanyLocalServiceTest {
 	public void testDeleteCompanyDeletesUserGroupRoleBeforeRole()
 		throws Exception {
 
+		Assume.assumeFalse(DBPartition.isPartitionEnabled());
+
 		List<String> list = _registerModelListeners();
 
 		Company company = addCompany();
@@ -879,9 +901,7 @@ public class CompanyLocalServiceTest {
 
 	@Test
 	public void testExtractDBPartitionCompany() {
-		if (DBPartition.isPartitionEnabled()) {
-			return;
-		}
+		Assume.assumeFalse(DBPartition.isPartitionEnabled());
 
 		try {
 			_companyLocalService.extractDBPartitionCompany(1L);

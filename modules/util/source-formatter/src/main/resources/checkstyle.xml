@@ -191,11 +191,6 @@
 			<property name="format" value="^[A-Z][_a-zA-Z0-9]*" />
 			<message key="name.invalidPattern" value="Class, interface, enum or annotation &quot;{0}&quot; must match pattern &quot;{1}&quot;" />
 		</module>
-		<module name="UnnecessaryParenthesesCheck">
-			<property name="category" value="Styling" />
-			<property name="description" value="Checks if unnecessary parentheses are used in a statement or expression." />
-			<property name="documentationLocation" value="coding/unnecessaryparentheses.html" />
-		</module>
 		<module name="WhitespaceAfterCheck">
 			<property name="category" value="Styling" />
 			<property name="description" value="Checks that a token is followed by whitespace, with the exception that it does not check for whitespace after the semicolon of an empty for iterator." />
@@ -794,6 +789,11 @@
 			<property name="enabled" value="false" />
 			<message key="empty.line.missing.after.variable.definition" value="There should be an empty line after variable definition on line &quot;{0}&quot;" />
 			<message key="variable.declaration.move" value="Move the variable declaration for &quot;{0}&quot; on line &quot;{1}&quot;" />
+		</module>
+		<module name="com.liferay.source.formatter.checkstyle.check.SealedAndNonsealedModifierCheck">
+			<property name="category" value="Performance" />
+			<property name="description" value="Finds usage of `sealed` and `non-sealed`." />
+			<message key="modifier.avoid" value="Do not use modifier &quot;sealed&quot; and &quot;non-sealed&quot;" />
 		</module>
 		<module name="com.liferay.source.formatter.checkstyle.check.SelfReferenceCheck">
 			<property name="category" value="Bug Prevention" />

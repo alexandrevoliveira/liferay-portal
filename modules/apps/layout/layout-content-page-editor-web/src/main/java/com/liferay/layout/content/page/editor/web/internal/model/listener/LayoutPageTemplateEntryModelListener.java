@@ -137,7 +137,7 @@ public class LayoutPageTemplateEntryModelListener
 			return Collections.emptyList();
 		}
 
-		_formItemManager.removeLayoutStructureItemsJSONArray(
+		_formItemManager.removeLayoutStructureItems(
 			formStyledLayoutStructureItem, layoutStructure, null);
 
 		formStyledLayoutStructureItem.setClassNameId(0);
@@ -209,11 +209,15 @@ public class LayoutPageTemplateEntryModelListener
 				UpdateLayoutStatusThreadLocal.
 					setUpdateLayoutStatusWithSafeCloseable(false)) {
 
-			return _formItemManager.addFragmentEntryLinks(
-				_jsonFactory.createJSONObject(), formStyledLayoutStructureItem,
-				true, layout, layoutStructure,
+			List<FragmentEntryLink> addedFragmentEntryLinks = new ArrayList<>();
+
+			_formItemManager.addFragmentEntryLinksLayoutStructureItems(
+				addedFragmentEntryLinks, _jsonFactory.createJSONObject(),
+				formStyledLayoutStructureItem, true, layout, layoutStructure,
 				LocaleUtil.getMostRelevantLocale(), segmentsExperienceId,
 				serviceContext, null);
+
+			return addedFragmentEntryLinks;
 		}
 		catch (PortalException portalException) {
 			if (_log.isDebugEnabled()) {

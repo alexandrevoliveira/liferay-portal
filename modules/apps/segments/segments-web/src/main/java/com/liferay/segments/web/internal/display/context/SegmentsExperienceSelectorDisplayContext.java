@@ -215,13 +215,20 @@ public class SegmentsExperienceSelectorDisplayContext {
 		}
 
 		if (segmentsExperience != null) {
+			SegmentsExperience parentSegmentsExperience =
+				_getParentSegmentsExperience(segmentsExperience);
+
+			if (parentSegmentsExperience != null) {
+				segmentsExperience = parentSegmentsExperience;
+			}
+
 			JSONObject segmentsExperienceSelectedJSONObject =
 				_getSegmentsExperienceJSONObject(
 					segmentsExperience.getSegmentsExperienceId());
 
 			segmentsExperienceSelectedJSONObject.put(
 				"segmentsExperienceName",
-				_getSelectedSegmentsExperienceName(segmentsExperience));
+				segmentsExperience.getName(_themeDisplay.getLocale()));
 
 			return segmentsExperienceSelectedJSONObject;
 		}
@@ -251,26 +258,6 @@ public class SegmentsExperienceSelectorDisplayContext {
 		_segmentsExperiencesJSONArray = segmentsExperiencesJSONArray;
 
 		return _segmentsExperiencesJSONArray;
-	}
-
-	private String _getSelectedSegmentsExperienceName(
-		SegmentsExperience segmentsExperience) {
-
-		SegmentsExperience parentSegmentsExperience =
-			_getParentSegmentsExperience(segmentsExperience);
-
-		if ((segmentsExperience != null) &&
-			(parentSegmentsExperience != null)) {
-
-			segmentsExperience = parentSegmentsExperience;
-		}
-
-		if (segmentsExperience != null) {
-			return segmentsExperience.getName(_themeDisplay.getLocale());
-		}
-
-		return SegmentsEntryConstants.getDefaultSegmentsEntryName(
-			_themeDisplay.getLocale());
 	}
 
 	private boolean _isActive(

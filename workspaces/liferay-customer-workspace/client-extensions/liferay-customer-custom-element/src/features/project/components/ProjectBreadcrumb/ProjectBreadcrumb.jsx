@@ -3,21 +3,39 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import {NetworkStatus} from '@apollo/client';
 import classNames from 'classnames';
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {IconBreadcrumbs} from '~/assets';
 import i18n from '~/utils/I18n';
 import Skeleton from '~/components/Skeleton';
 import useCurrentKoroneikiAccount from '~/hooks/useCurrentKoroneikiAccount';
 import useKoroneikiAccounts from '~/hooks/useKoroneikiAccounts';
-import PopoverIcon from '../ActivationStatus/DXPCloud/components/PopoverIcon';
+import PopoverIcon from '../../containers/ActivationStatus/DXPCloud/components/PopoverIcon';
 import Dropdown from './components/Dropdown';
+import SearchBuilder from '~/lib/SearchBuilder';
 
 import './ProjectBreadcrumb.css';
 
 const ProjectBreadcrumb = () => {
+	const [filter, setFilter] = useState('');
 	const [initialTotalCount, setInitialTotalCount] = useState(0);
 	const [projectStatus, setProjectStatus] = useState('');
+
+	const getFilter = useCallback(
+		(searchTerm) => {
+			let searchBuilder = new SearchBuilder();
+
+			if (searchTerm) {
+				searchBuilder.contains('name', searchTerm);
+				searchBuilder.or();
+				searchBuilder.contains('code', searchTerm);
+			}
+
+			return searchBuilder.build();
+		},
+		[]
+	);
 
 	const {
 		data: currentKoroneikiAccountData,
@@ -27,19 +45,21 @@ const ProjectBreadcrumb = () => {
 	const selectedKoroneikiAccount =
 		currentKoroneikiAccountData?.koroneikiAccountByExternalReferenceCode;
 
-	const {
-		data,
-		fetchMore,
-		fetching,
-		loading,
-		onSearch,
-		searching,
-	} = useKoroneikiAccounts({
-		selectedFilterCategory: {
-			filter: (searchBuilder) => searchBuilder,
-			pageSize: 5,
-		},
+	const {data, fetchMore, networkStatus, refetch} = useKoroneikiAccounts({
+		filter,
+		pageSize: 5,
 	});
+
+	const handleSearch = useCallback(
+		(searchTerm) => {
+			setFilter(getFilter(searchTerm));
+		},
+		[getFilter]
+	);
+
+	useEffect(() => {
+		refetch({filter});
+	}, [filter, refetch]);
 
 	useEffect(() => {
 		if (data?.c.koroneikiAccounts.totalCount > initialTotalCount) {
@@ -53,7 +73,7 @@ const ProjectBreadcrumb = () => {
 		selectedKoroneikiAccount?.status,
 	]);
 
-	if (currentKoroneikiAccountLoading || loading) {
+	if (currentKoroneikiAccountLoading || networkStatus === NetworkStatus.loading) {
 		return <Skeleton height={30} width={264} />;
 	}
 
@@ -65,7 +85,7 @@ const ProjectBreadcrumb = () => {
 
 			<div className="cp-breadcrumbs-dropdown">
 				<Dropdown
-					fetching={fetching}
+					fetching={networkStatus === NetworkStatus.fetchMore}
 					initialTotalCount={initialTotalCount}
 					koroneikiAccounts={data?.c.koroneikiAccounts}
 					onIntersecting={() =>
@@ -75,8 +95,8 @@ const ProjectBreadcrumb = () => {
 							},
 						})
 					}
-					onSearch={onSearch}
-					searching={searching}
+					onSearch={handleSearch}
+					searching={networkStatus === NetworkStatus.refetch}
 					selectedKoroneikiAccount={selectedKoroneikiAccount}
 				/>
 

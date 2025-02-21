@@ -326,22 +326,6 @@ public class ObjectFieldLocalServiceTest {
 					).build())));
 		AssertUtils.assertFailure(
 			ObjectFieldLocalizedException.class,
-			"Localized object fields must not be required",
-			() -> ObjectDefinitionTestUtil.addCustomObjectDefinition(
-				Arrays.asList(
-					new TextObjectFieldBuilder(
-					).labelMap(
-						LocalizedMapUtil.getLocalizedMap(
-							RandomTestUtil.randomString())
-					).name(
-						"a" + RandomTestUtil.randomString()
-					).localized(
-						true
-					).required(
-						true
-					).build())));
-		AssertUtils.assertFailure(
-			ObjectFieldLocalizedException.class,
 			StringBundler.concat(
 				"Only Attachment,Boolean,Date,DateTime,Decimal,Integer,",
 				"LongInteger,LongText,MultiselectPicklist,Picklist,",
@@ -1510,7 +1494,7 @@ public class ObjectFieldLocalServiceTest {
 
 		ObjectEntry objectEntry = _objectEntryLocalService.addObjectEntry(
 			TestPropsValues.getUserId(), 0,
-			customObjectDefinition.getObjectDefinitionId(),
+			customObjectDefinition.getObjectDefinitionId(), null,
 			HashMapBuilder.<String, Serializable>put(
 				"upload",
 				() -> {
@@ -2496,7 +2480,7 @@ public class ObjectFieldLocalServiceTest {
 
 		ObjectEntry objectEntry = _objectEntryLocalService.addObjectEntry(
 			TestPropsValues.getUserId(), 0, objectField.getObjectDefinitionId(),
-			values, ServiceContextTestUtil.getServiceContext());
+			null, values, ServiceContextTestUtil.getServiceContext());
 
 		values = objectEntry.getValues();
 

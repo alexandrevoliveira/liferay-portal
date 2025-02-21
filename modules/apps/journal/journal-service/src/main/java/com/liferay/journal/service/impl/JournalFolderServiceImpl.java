@@ -7,6 +7,7 @@ package com.liferay.journal.service.impl;
 
 import com.liferay.dynamic.data.mapping.model.DDMStructure;
 import com.liferay.dynamic.data.mapping.model.DDMStructureLink;
+import com.liferay.dynamic.data.mapping.service.DDMStructureLinkLocalService;
 import com.liferay.dynamic.data.mapping.service.DDMStructureLinkService;
 import com.liferay.dynamic.data.mapping.service.DDMStructureService;
 import com.liferay.dynamic.data.mapping.util.comparator.StructureLinkStructureModifiedDateComparator;
@@ -21,6 +22,8 @@ import com.liferay.portal.aop.AopService;
 import com.liferay.portal.kernel.dao.db.DBManagerUtil;
 import com.liferay.portal.kernel.dao.orm.QueryDefinition;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
+import com.liferay.portal.kernel.security.auth.PrincipalException;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
@@ -537,13 +540,16 @@ public class JournalFolderServiceImpl extends JournalFolderServiceBaseImpl {
 			ServiceContext serviceContext)
 		throws PortalException {
 
-		_journalFolderModelResourcePermission.check(
-			getPermissionChecker(),
-			journalFolderLocalService.getFolder(folderId), ActionKeys.UPDATE);
+		JournalFolder folder = getFolder(folderId);
 
-		return journalFolderLocalService.updateFolder(
-			getUserId(), groupId, folderId, parentFolderId, name, description,
-			mergeWithParentFolder, serviceContext);
+		return updateFolder(
+			groupId, folderId, parentFolderId, name, description,
+			TransformUtil.transformToLongArray(
+				_ddmStructureLinkLocalService.getStructureLinks(
+					_classNameLocalService.getClassNameId(JournalFolder.class),
+					folderId),
+				ddmStructureLink -> ddmStructureLink.getStructureId()),
+			folder.getRestrictionType(), mergeWithParentFolder, serviceContext);
 	}
 
 	@Override
@@ -553,14 +559,57 @@ public class JournalFolderServiceImpl extends JournalFolderServiceBaseImpl {
 			boolean mergeWithParentFolder, ServiceContext serviceContext)
 		throws PortalException {
 
-		ModelResourcePermissionUtil.check(
-			_journalFolderModelResourcePermission, getPermissionChecker(),
-			groupId, folderId, ActionKeys.UPDATE);
+		PermissionChecker permissionChecker = getPermissionChecker();
 
-		return journalFolderLocalService.updateFolder(
-			getUserId(), groupId, folderId, parentFolderId, name, description,
-			ddmStructureIds, restrictionType, mergeWithParentFolder,
-			serviceContext);
+		if (ModelResourcePermissionUtil.contains(
+				_journalFolderModelResourcePermission, permissionChecker,
+				groupId, folderId, ActionKeys.ADVANCED_UPDATE) ||
+			ModelResourcePermissionUtil.contains(
+				_journalFolderModelResourcePermission, permissionChecker,
+				groupId, folderId, ActionKeys.UPDATE)) {
+
+			if (FeatureFlagManagerUtil.isEnabled(
+					serviceContext.getCompanyId(), "LPD-42452")) {
+
+				JournalFolder folder = getFolder(folderId);
+
+				if (!ModelResourcePermissionUtil.contains(
+						_journalFolderModelResourcePermission,
+						permissionChecker, groupId, folderId,
+						ActionKeys.ADVANCED_UPDATE)) {
+
+					ddmStructureIds = TransformUtil.transformToLongArray(
+						_ddmStructureLinkLocalService.getStructureLinks(
+							_classNameLocalService.getClassNameId(
+								JournalFolder.class),
+							folderId),
+						ddmStructureLink -> ddmStructureLink.getStructureId());
+
+					restrictionType = folder.getRestrictionType();
+
+					serviceContext.setAttribute(
+						"updateWorkflowDefinitionLinks", Boolean.FALSE);
+				}
+
+				if (!ModelResourcePermissionUtil.contains(
+						_journalFolderModelResourcePermission,
+						permissionChecker, groupId, folderId,
+						ActionKeys.UPDATE)) {
+
+					name = folder.getName();
+					description = folder.getDescription();
+				}
+			}
+
+			return journalFolderLocalService.updateFolder(
+				getUserId(), groupId, folderId, parentFolderId, name,
+				description, ddmStructureIds, restrictionType,
+				mergeWithParentFolder, serviceContext);
+		}
+
+		throw new PrincipalException.MustHavePermission(
+			permissionChecker, JournalFolder.class.getName(), folderId,
+			ActionKeys.ADVANCED_UPDATE, ActionKeys.UPDATE);
 	}
 
 	private List<DDMStructure> _filterStructures(
@@ -611,6 +660,9 @@ public class JournalFolderServiceImpl extends JournalFolderServiceBaseImpl {
 
 	@Reference
 	private ClassNameLocalService _classNameLocalService;
+
+	@Reference
+	private DDMStructureLinkLocalService _ddmStructureLinkLocalService;
 
 	@Reference
 	private DDMStructureLinkService _ddmStructureLinkService;

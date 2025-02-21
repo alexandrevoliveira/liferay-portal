@@ -184,6 +184,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Stack;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -4162,6 +4163,129 @@ public class ObjectEntryResourceTest {
 	}
 
 	@Test
+	public void testFilterByObjectRelationshipERCObjectFieldNameInOneToManyRelationship()
+		throws Exception {
+
+		_objectEntry1 = ObjectEntryTestUtil.addObjectEntry(
+			_objectDefinition1, _OBJECT_FIELD_NAME_1, _OBJECT_FIELD_VALUE_1);
+		_objectEntry2 = ObjectEntryTestUtil.addObjectEntry(
+			_objectDefinition2, _OBJECT_FIELD_NAME_2, _OBJECT_FIELD_VALUE_2);
+
+		_objectRelationship1 = _addObjectRelationshipAndRelateObjectEntries(
+			ObjectRelationshipConstants.TYPE_ONE_TO_MANY);
+
+		String objectRelationshipERCObjectFieldName =
+			ObjectFieldSettingUtil.getValue(
+				ObjectFieldSettingConstants.
+					NAME_OBJECT_RELATIONSHIP_ERC_OBJECT_FIELD_NAME,
+				_objectFieldLocalService.getObjectField(
+					_objectRelationship1.getObjectFieldId2()));
+
+		Assert.assertEquals(
+			StringBundler.concat(
+				"r_", _objectRelationship1.getName(), "_",
+				StringUtil.replaceLast(
+					_objectDefinition1.getPKObjectFieldName(), "Id", "ERC")),
+			objectRelationshipERCObjectFieldName);
+
+		JSONObject jsonObject = HTTPTestUtil.invokeToJSONObject(
+			null, _objectDefinition2.getRESTContextPath(), Http.Method.GET);
+
+		JSONArray itemsJSONArray = jsonObject.getJSONArray("items");
+
+		Assert.assertEquals(1, itemsJSONArray.length());
+
+		JSONObject itemJSONObject = itemsJSONArray.getJSONObject(0);
+
+		Assert.assertEquals(
+			itemJSONObject.getString(objectRelationshipERCObjectFieldName),
+			_objectEntry1.getExternalReferenceCode());
+
+		// Comparison operators
+
+		_assertFilterString(
+			_OBJECT_FIELD_NAME_1, _OBJECT_FIELD_VALUE_1,
+			_escape(
+				String.format(
+					"%s/%s eq '%s'", _objectRelationship1.getName(),
+					objectRelationshipERCObjectFieldName,
+					_objectEntry1.getExternalReferenceCode())),
+			_objectDefinition1);
+		_assertFilterString(
+			_OBJECT_FIELD_NAME_1, _OBJECT_FIELD_VALUE_1,
+			_escape(
+				String.format(
+					"%s/%s ge '%s'", _objectRelationship1.getName(),
+					objectRelationshipERCObjectFieldName,
+					_objectEntry1.getExternalReferenceCode())),
+			_objectDefinition1);
+
+		String substring = _objectEntry1.getExternalReferenceCode(
+		).substring(
+			0, 3
+		);
+
+		_assertFilterString(
+			_OBJECT_FIELD_NAME_1, _OBJECT_FIELD_VALUE_1,
+			_escape(
+				String.format(
+					"%s/%s gt '%s'", _objectRelationship1.getName(),
+					objectRelationshipERCObjectFieldName, substring + "0000")),
+			_objectDefinition1);
+
+		_assertFilterString(
+			_OBJECT_FIELD_NAME_1, _OBJECT_FIELD_VALUE_1,
+			_escape(
+				String.format(
+					"%s/%s le '%s'", _objectRelationship1.getName(),
+					objectRelationshipERCObjectFieldName,
+					_objectEntry1.getExternalReferenceCode())),
+			_objectDefinition1);
+		_assertFilterString(
+			_OBJECT_FIELD_NAME_1, _OBJECT_FIELD_VALUE_1,
+			_escape(
+				String.format(
+					"%s/%s lt '%s'", _objectRelationship1.getName(),
+					objectRelationshipERCObjectFieldName, substring + "ZZZZ")),
+			_objectDefinition1);
+		_assertFilterString(
+			_OBJECT_FIELD_NAME_1, _OBJECT_FIELD_VALUE_1,
+			_escape(
+				String.format(
+					"%s/%s ne '%s'", _objectRelationship1.getName(),
+					objectRelationshipERCObjectFieldName,
+					RandomTestUtil.randomInt())),
+			_objectDefinition1);
+
+		// List operators
+
+		_assertFilterString(
+			_OBJECT_FIELD_NAME_1, _OBJECT_FIELD_VALUE_1,
+			_escape(
+				String.format(
+					"%s/%s in ('%s', '%s')", _objectRelationship1.getName(),
+					objectRelationshipERCObjectFieldName,
+					_objectEntry1.getExternalReferenceCode(),
+					RandomTestUtil.randomInt())),
+			_objectDefinition1);
+
+		// String operators
+
+		_assertFilterString(
+			_OBJECT_FIELD_NAME_1, _OBJECT_FIELD_VALUE_1,
+			String.format(
+				"contains(%s/%s,'%s')", _objectRelationship1.getName(),
+				objectRelationshipERCObjectFieldName, substring),
+			_objectDefinition1);
+		_assertFilterString(
+			_OBJECT_FIELD_NAME_1, _OBJECT_FIELD_VALUE_1,
+			String.format(
+				"startswith(%s/%s,'%s')", _objectRelationship1.getName(),
+				objectRelationshipERCObjectFieldName, substring),
+			_objectDefinition1);
+	}
+
+	@Test
 	public void testFilterByStringOperatorsObjectEntriesByRelatedObjectEntriesFields()
 		throws Exception {
 
@@ -4800,6 +4924,7 @@ public class ObjectEntryResourceTest {
 		ObjectEntry serviceBuilderObjectEntry =
 			_objectEntryLocalService.addObjectEntry(
 				user.getUserId(), 0, objectDefinition.getObjectDefinitionId(),
+				null,
 				HashMapBuilder.<String, Serializable>put(
 					"testField", true
 				).build(),
@@ -6440,7 +6565,7 @@ public class ObjectEntryResourceTest {
 			ObjectEntry serviceBuilderObjectEntry =
 				_objectEntryLocalService.addObjectEntry(
 					TestPropsValues.getUserId(), 0,
-					objectDefinition.getObjectDefinitionId(),
+					objectDefinition.getObjectDefinitionId(), null,
 					HashMapBuilder.<String, Serializable>put(
 						"authorOfGospel", true
 					).put(
@@ -7604,16 +7729,7 @@ public class ObjectEntryResourceTest {
 				_OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA_SOURCE, ".folder"),
 			Http.Method.POST);
 
-		JSONObject portalInstanceJSONObject = HTTPTestUtil.invokeToJSONObject(
-			JSONUtil.put(
-				"domain", "able.com"
-			).put(
-				"portalInstanceId", "able.com"
-			).put(
-				"virtualHost", "www.able.com"
-			).toString(),
-			"headless-portal-instances/v1.0/portal-instances",
-			Http.Method.POST);
+		JSONObject portalInstanceJSONObject = _addPortalInstanceJSONObject();
 
 		User adminUser = UserTestUtil.getAdminUser(
 			portalInstanceJSONObject.getLong("companyId"));
@@ -8403,119 +8519,6 @@ public class ObjectEntryResourceTest {
 	}
 
 	@Test
-	public void testPostCustomObjectEntryWithRequiredObjectField()
-		throws Exception {
-
-		JSONObject jsonObject = HTTPTestUtil.invokeToJSONObject(
-			JSONUtil.put(
-				_OBJECT_FIELD_NAME_1, _OBJECT_FIELD_VALUE_1
-			).toString(),
-			_objectDefinition1.getRESTContextPath() +
-				"?fields=id,externalReferenceCode," + _OBJECT_FIELD_NAME_1,
-			Http.Method.POST);
-
-		_objectRelationship1 = ObjectRelationshipTestUtil.addObjectRelationship(
-			_objectDefinition1, _objectDefinition2, TestPropsValues.getUserId(),
-			ObjectRelationshipConstants.TYPE_ONE_TO_MANY);
-
-		_objectFieldLocalService.updateRequired(
-			_objectRelationship1.getObjectFieldId2(), true);
-
-		ObjectField objectField = _objectFieldLocalService.getObjectField(
-			_objectRelationship1.getObjectFieldId2());
-
-		String objectFieldName = objectField.getName();
-
-		Assert.assertEquals(
-			0,
-			HTTPTestUtil.invokeToJSONObject(
-				JSONUtil.put(
-					_OBJECT_FIELD_NAME_2, _OBJECT_FIELD_VALUE_2
-				).put(
-					objectFieldName, jsonObject.getLong("id")
-				).toString(),
-				_objectDefinition2.getRESTContextPath(), Http.Method.POST
-			).getJSONObject(
-				"status"
-			).get(
-				"code"
-			));
-
-		JSONAssert.assertEquals(
-			JSONUtil.put(
-				"status", "BAD_REQUEST"
-			).put(
-				"title",
-				StringBundler.concat(
-					"No value was provided for required object field ", '"',
-					objectFieldName, '"')
-			).toString(),
-			HTTPTestUtil.invokeToJSONObject(
-				JSONUtil.put(
-					_OBJECT_FIELD_NAME_2, _OBJECT_FIELD_VALUE_2
-				).put(
-					objectFieldName, 0
-				).toString(),
-				_objectDefinition2.getRESTContextPath(), Http.Method.POST
-			).toString(),
-			JSONCompareMode.STRICT);
-
-		JSONAssert.assertEquals(
-			JSONUtil.put(
-				"status", "BAD_REQUEST"
-			).put(
-				"title",
-				StringBundler.concat(
-					"No value was provided for required object field ", '"',
-					objectFieldName, '"')
-			).toString(),
-			HTTPTestUtil.invokeToJSONObject(
-				JSONUtil.put(
-					_OBJECT_FIELD_NAME_2, _OBJECT_FIELD_VALUE_2
-				).put(
-					objectFieldName, "0"
-				).toString(),
-				_objectDefinition2.getRESTContextPath(), Http.Method.POST
-			).toString(),
-			JSONCompareMode.STRICT);
-
-		JSONAssert.assertEquals(
-			JSONUtil.put(
-				"status", "BAD_REQUEST"
-			).put(
-				"title",
-				StringBundler.concat(
-					"No value was provided for required object field ", '"',
-					objectFieldName, '"')
-			).toString(),
-			HTTPTestUtil.invokeToJSONObject(
-				JSONUtil.put(
-					_OBJECT_FIELD_NAME_2, _OBJECT_FIELD_VALUE_2
-				).toString(),
-				_objectDefinition2.getRESTContextPath(), Http.Method.POST
-			).toString(),
-			JSONCompareMode.STRICT);
-
-		_objectFieldLocalService.updateRequired(
-			_objectRelationship1.getObjectFieldId2(), false);
-
-		Assert.assertEquals(
-			0,
-			HTTPTestUtil.invokeToJSONObject(
-				JSONUtil.put(
-					_OBJECT_FIELD_NAME_2, _OBJECT_FIELD_VALUE_2
-				).put(
-					objectFieldName, 0
-				).toString(),
-				_objectDefinition2.getRESTContextPath(), Http.Method.POST
-			).getJSONObject(
-				"status"
-			).get(
-				"code"
-			));
-	}
-
-	@Test
 	public void testPostCustomObjectEntryWithStatus() throws Exception {
 
 		// With code inside status
@@ -8620,19 +8623,10 @@ public class ObjectEntryResourceTest {
 				objectRelationship1.getObjectDefinitionId1()),
 			_OBJECT_FIELD_NAME_TEXT, RandomTestUtil.randomString());
 
-		JSONObject jsonObject = HTTPTestUtil.invokeToJSONObject(
-			JSONUtil.put(
-				"domain", "able.com"
-			).put(
-				"portalInstanceId", "able.com"
-			).put(
-				"virtualHost", "www.able.com"
-			).toString(),
-			"headless-portal-instances/v1.0/portal-instances",
-			Http.Method.POST);
+		JSONObject portalInstanceJSONObject = _addPortalInstanceJSONObject();
 
 		ObjectRelationship objectRelationship2 = _addObjectRelationship(
-			jsonObject.getLong("companyId"));
+			portalInstanceJSONObject.getLong("companyId"));
 
 		HTTPTestUtil.customize(
 		).withBaseURL(
@@ -9874,6 +9868,7 @@ public class ObjectEntryResourceTest {
 			ObjectFieldValidationConstants.BUSINESS_TYPE_LONG_VALUE_MAX);
 		String randomString1 = RandomTestUtil.randomString();
 		String randomString2 = RandomTestUtil.randomString();
+		String randomString3 = RandomTestUtil.randomString();
 
 		JSONObject jsonObject1 = HTTPTestUtil.invokeToJSONObject(
 			JSONUtil.put(
@@ -9901,12 +9896,18 @@ public class ObjectEntryResourceTest {
 			).put(
 				_OBJECT_FIELD_NAME_TEXT, "a" + randomString2
 			).put(
+				"externalReferenceCode", _ERC_VALUE_2
+			).put(
 				objectField.getName(),
 				() -> {
 					ObjectEntry relatedObjectEntry =
 						ObjectEntryTestUtil.addObjectEntry(
-							_objectDefinition2, _OBJECT_FIELD_NAME_2,
-							_OBJECT_FIELD_VALUE_2);
+							_objectDefinition2,
+							HashMapBuilder.<String, Serializable>put(
+								_OBJECT_FIELD_NAME_2, _OBJECT_FIELD_VALUE_2
+							).put(
+								"externalReferenceCode", "a" + randomString3
+							).build());
 
 					return relatedObjectEntry.getObjectEntryId();
 				}
@@ -9945,12 +9946,18 @@ public class ObjectEntryResourceTest {
 			).put(
 				_OBJECT_FIELD_NAME_TEXT, "b" + randomString2
 			).put(
+				"externalReferenceCode", _ERC_VALUE_1
+			).put(
 				objectField.getName(),
 				() -> {
 					ObjectEntry relatedObjectEntry =
 						ObjectEntryTestUtil.addObjectEntry(
-							_objectDefinition2, _OBJECT_FIELD_NAME_2,
-							_OBJECT_FIELD_VALUE_2);
+							_objectDefinition2,
+							HashMapBuilder.<String, Serializable>put(
+								_OBJECT_FIELD_NAME_2, _OBJECT_FIELD_VALUE_2
+							).put(
+								"externalReferenceCode", "b" + randomString3
+							).build());
 
 					return relatedObjectEntry.getObjectEntryId();
 				}
@@ -12764,6 +12771,27 @@ public class ObjectEntryResourceTest {
 		return _addObjectRelationshipAndRelateObjectEntries(
 			_objectDefinition1, _objectDefinition2,
 			_objectEntry1.getPrimaryKey(), _objectEntry2.getPrimaryKey(), type);
+	}
+
+	private JSONObject _addPortalInstanceJSONObject() throws Exception {
+		JSONObject jsonObject = HTTPTestUtil.invokeToJSONObject(
+			null, "headless-portal-instances/v1.0/portal-instances/able.com",
+			Http.Method.GET);
+
+		if (Objects.equals(jsonObject.getString("status"), "NOT_FOUND")) {
+			jsonObject = HTTPTestUtil.invokeToJSONObject(
+				JSONUtil.put(
+					"domain", "able.com"
+				).put(
+					"portalInstanceId", "able.com"
+				).put(
+					"virtualHost", "www.able.com"
+				).toString(),
+				"headless-portal-instances/v1.0/portal-instances",
+				Http.Method.POST);
+		}
+
+		return jsonObject;
 	}
 
 	private void _addResourcePermission(String actionId, String name, Role role)
@@ -16082,11 +16110,14 @@ public class ObjectEntryResourceTest {
 		return JSONFactoryUtil.createJSONObject(fileEntry.toString());
 	}
 
-	private static final String _ERC_VALUE_1 = RandomTestUtil.randomString();
+	private static final String _ERC_VALUE_1 =
+		"a" + RandomTestUtil.randomString();
 
-	private static final String _ERC_VALUE_2 = RandomTestUtil.randomString();
+	private static final String _ERC_VALUE_2 =
+		"b" + RandomTestUtil.randomString();
 
-	private static final String _ERC_VALUE_3 = RandomTestUtil.randomString();
+	private static final String _ERC_VALUE_3 =
+		"c" + RandomTestUtil.randomString();
 
 	private static final String _LIST_TYPE_ENTRY_KEY_1 =
 		"a" + RandomTestUtil.randomString();

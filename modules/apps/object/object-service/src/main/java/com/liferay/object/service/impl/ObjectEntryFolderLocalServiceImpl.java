@@ -20,6 +20,8 @@ import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.ResourceConstants;
 import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.search.Indexable;
+import com.liferay.portal.kernel.search.IndexableType;
 import com.liferay.portal.kernel.service.ResourceLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.UserLocalService;
@@ -28,6 +30,7 @@ import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.Validator;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -44,6 +47,7 @@ import org.osgi.service.component.annotations.Reference;
 public class ObjectEntryFolderLocalServiceImpl
 	extends ObjectEntryFolderLocalServiceBaseImpl {
 
+	@Indexable(type = IndexableType.REINDEX)
 	@Override
 	public ObjectEntryFolder addObjectEntryFolder(
 			String externalReferenceCode, long userId, long groupId,
@@ -54,11 +58,11 @@ public class ObjectEntryFolderLocalServiceImpl
 		User user = _userLocalService.getUser(userId);
 
 		_validateExternalReferenceCode(
-			externalReferenceCode, groupId, user.getCompanyId());
+			externalReferenceCode, user.getCompanyId(), groupId);
 
 		_validateParentObjectEntryFolderId(groupId, parentObjectEntryFolderId);
 		_validateName(
-			groupId, user.getCompanyId(), 0, parentObjectEntryFolderId, name);
+			user.getCompanyId(), groupId, 0, parentObjectEntryFolderId, name);
 
 		ObjectEntryFolder objectEntryFolder =
 			objectEntryFolderPersistence.create(
@@ -174,6 +178,37 @@ public class ObjectEntryFolderLocalServiceImpl
 		return objectEntryFolder;
 	}
 
+	@Indexable(type = IndexableType.REINDEX)
+	@Override
+	public ObjectEntryFolder deleteObjectEntryFolder(
+			String externalReferenceCode, long groupId, long companyId)
+		throws PortalException {
+
+		ObjectEntryFolder objectEntryFolder =
+			objectEntryFolderPersistence.findByERC_G_C(
+				externalReferenceCode, groupId, companyId);
+
+		return objectEntryFolderLocalService.deleteObjectEntryFolder(
+			objectEntryFolder);
+	}
+
+	@Override
+	public List<ObjectEntryFolder> getObjectEntryFolders(
+		long groupId, long companyId, long parentObjectEntryFolderId, int start,
+		int end) {
+
+		return objectEntryFolderPersistence.findByG_C_P(
+			groupId, companyId, parentObjectEntryFolderId, start, end);
+	}
+
+	@Override
+	public int getObjectEntryFoldersCount(
+		long groupId, long companyId, long parentObjectEntryFolderId) {
+
+		return objectEntryFolderPersistence.countByG_C_P(
+			groupId, companyId, parentObjectEntryFolderId);
+	}
+
 	@Override
 	public ObjectEntryFolder updateObjectEntryFolder(
 			long userId, long objectEntryFolderId,
@@ -187,7 +222,7 @@ public class ObjectEntryFolderLocalServiceImpl
 		_validateParentObjectEntryFolderId(
 			objectEntryFolder.getGroupId(), parentObjectEntryFolderId);
 		_validateName(
-			objectEntryFolder.getGroupId(), objectEntryFolder.getCompanyId(),
+			objectEntryFolder.getCompanyId(), objectEntryFolder.getGroupId(),
 			objectEntryFolderId, parentObjectEntryFolderId, name);
 
 		objectEntryFolder.setParentObjectEntryFolderId(

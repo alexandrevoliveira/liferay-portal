@@ -24,6 +24,15 @@ import org.osgi.service.component.annotations.Deactivate;
 @Component(service = SystemFDSEntryRegistry.class)
 public class SystemFDSEntryRegistryImpl implements SystemFDSEntryRegistry {
 
+	public SystemFDSEntryRegistryImpl() {
+	}
+
+	public SystemFDSEntryRegistryImpl(
+		ServiceTrackerMap<String, SystemFDSEntry> serviceTrackerMap) {
+
+		_serviceTrackerMap = serviceTrackerMap;
+	}
+
 	@Override
 	public SystemFDSEntry getSystemFDSEntry(String fdsName) {
 		return _serviceTrackerMap.getService(fdsName);

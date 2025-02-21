@@ -788,9 +788,8 @@ public class JenkinsResultsParserUtil {
 			httpURLConnection.setDoOutput(true);
 			httpURLConnection.setRequestMethod("POST");
 
-			HTTPAuthorization httpAuthorization = new BasicHTTPAuthorization(
-				getBuildProperty("jenkins.admin.user.token"),
-				getBuildProperty("jenkins.admin.user.name"));
+			HTTPAuthorization httpAuthorization =
+				_getJenkinsHTTPAuthorization();
 
 			httpURLConnection.setRequestProperty(
 				"Authorization", httpAuthorization.toString());
@@ -850,6 +849,12 @@ public class JenkinsResultsParserUtil {
 			httpURLConnection = (HttpURLConnection)url.openConnection();
 
 			httpURLConnection.setRequestMethod("HEAD");
+
+			HTTPAuthorization httpAuthorization =
+				_getJenkinsHTTPAuthorization();
+
+			httpURLConnection.setRequestProperty(
+				"Authorization", httpAuthorization.toString());
 
 			httpURLConnection.connect();
 
@@ -1263,7 +1268,7 @@ public class JenkinsResultsParserUtil {
 	public static String getBuildDirPath() {
 		StringBuilder sb = new StringBuilder();
 
-		sb.append("/tmp/jenkins/");
+		sb.append("/opt/dev/projects/github/liferay-jenkins-ee/tmp/jenkins/");
 
 		String topLevelBuildURL = System.getenv("TOP_LEVEL_BUILD_URL");
 
@@ -1299,7 +1304,7 @@ public class JenkinsResultsParserUtil {
 
 		StringBuilder sb = new StringBuilder();
 
-		sb.append("/tmp/jenkins/");
+		sb.append("/opt/dev/projects/github/liferay-jenkins-ee/tmp/jenkins/");
 
 		if (!isCINode() || isNullOrEmpty(buildNumber) ||
 			isNullOrEmpty(jobName) || isNullOrEmpty(masterHostname)) {
@@ -4217,6 +4222,13 @@ public class JenkinsResultsParserUtil {
 	public static void pullDockerImageDependencies(
 		File baseDir, String[] excludedDockerImageNames) {
 
+		pullDockerImageDependencies(baseDir, excludedDockerImageNames, null);
+	}
+
+	public static void pullDockerImageDependencies(
+		File baseDir, String[] excludedDockerImageNames,
+		String ecrRegistryName) {
+
 		String dockerEnabled = System.getenv("LIFERAY_DOCKER_ENABLED");
 
 		if (isNullOrEmpty(dockerEnabled) || !dockerEnabled.equals("true")) {
@@ -4255,15 +4267,64 @@ public class JenkinsResultsParserUtil {
 			}
 
 			try {
-				Process process = executeBashCommands(
-					"docker pull " + dockerImageName);
+				Process process = null;
+
+				if (!isNullOrEmpty(ecrRegistryName)) {
+					Matcher dockerImageNameMatcher =
+						_dockerImageNamePattern.matcher(dockerImageName);
+
+					if (!dockerImageNameMatcher.find()) {
+						continue;
+					}
+
+					StringBuilder sb = new StringBuilder();
+
+					sb.append(ecrRegistryName);
+					sb.append("/");
+
+					String dockerImageRepository = dockerImageNameMatcher.group(
+						"repository");
+
+					if (isNullOrEmpty(dockerImageRepository)) {
+						sb.append("library");
+					}
+					else {
+						sb.append(dockerImageRepository);
+					}
+
+					sb.append("/");
+
+					sb.append(dockerImageNameMatcher.group("name"));
+
+					String dockerImageVersion = dockerImageNameMatcher.group(
+						"version");
+
+					if (!isNullOrEmpty(dockerImageVersion)) {
+						sb.append(":");
+						sb.append(dockerImageVersion);
+					}
+
+					process = executeBashCommands(
+						"docker pull " + sb,
+						"docker tag " + sb + " " + dockerImageName);
+				}
+				else {
+					process = executeBashCommands(
+						"docker pull " + dockerImageName);
+				}
 
 				if (process.exitValue() != 0) {
 					System.out.println(
 						"Unable to pull Docker image " + dockerImageName);
 
+					System.out.println(
+						readInputStream(process.getErrorStream(), true));
+
 					return;
 				}
+
+				System.out.println(
+					readInputStream(process.getInputStream(), true));
 
 				pulledDockerImageNames.add(dockerImageName);
 			}
@@ -4573,15 +4634,14 @@ public class JenkinsResultsParserUtil {
 	public static BufferedReader toBufferedReader(
 			String url, boolean checkCache, int maxRetries,
 			HttpRequestMethod httpRequestMethod, String postContent,
-			int retryPeriod, int timeout,
-			HTTPAuthorization httpAuthorizationHeader)
+			int retryPeriod, int timeout, HTTPAuthorization httpAuthorization)
 		throws IOException {
 
 		return new BufferedReader(
 			new InputStreamReader(
 				toInputStream(
 					url, checkCache, maxRetries, httpRequestMethod, postContent,
-					retryPeriod, timeout, httpAuthorizationHeader)));
+					retryPeriod, timeout, httpAuthorization)));
 	}
 
 	public static String toDateString(Date date) {
@@ -4734,8 +4794,7 @@ public class JenkinsResultsParserUtil {
 	public static InputStream toInputStream(
 			String url, boolean checkCache, int maxRetries,
 			HttpRequestMethod httpRequestMethod, String postContent,
-			int retryPeriod, int timeout,
-			HTTPAuthorization httpAuthorizationHeader)
+			int retryPeriod, int timeout, HTTPAuthorization httpAuthorization)
 		throws IOException {
 
 		if (url.startsWith("file:") &&
@@ -4814,39 +4873,24 @@ public class JenkinsResultsParserUtil {
 					}
 				}
 
-				if ((httpAuthorizationHeader == null) &&
+				if ((httpAuthorization == null) &&
 					(gitHubAPICall ||
 					 url.startsWith(
 						 "https://raw.githubusercontent.com/liferay/"))) {
 
 					Properties buildProperties = getBuildProperties();
 
-					httpAuthorizationHeader = new TokenHTTPAuthorization(
+					httpAuthorization = new TokenHTTPAuthorization(
 						buildProperties.getProperty("github.access.token"));
 				}
 
-				if ((httpAuthorizationHeader == null) &&
+				if ((httpAuthorization == null) &&
 					url.startsWith("https://release.liferay.com")) {
 
-					Properties buildProperties = getBuildProperties();
-
-					httpAuthorizationHeader = new BasicHTTPAuthorization(
-						buildProperties.getProperty(
-							"jenkins.admin.user.password"),
-						buildProperties.getProperty("jenkins.admin.user.name"));
+					httpAuthorization = _getJenkinsHTTPAuthorization();
 				}
 
-				if ((httpAuthorizationHeader == null) &&
-					url.matches("https://liferay.spiraservice.net.+")) {
-
-					Properties buildProperties = getBuildProperties();
-
-					httpAuthorizationHeader = new BasicHTTPAuthorization(
-						buildProperties.getProperty("spira.admin.user.token"),
-						buildProperties.getProperty("spira.admin.user.name"));
-				}
-
-				if ((httpAuthorizationHeader == null) &&
+				if ((httpAuthorization == null) &&
 					url.matches(
 						"https?:\\/\\/test-[135]-\\d+(?:\\.liferay\\.com)?.*?" +
 							"|http:\\/\\/localhost:8081.*?")) {
@@ -4855,14 +4899,7 @@ public class JenkinsResultsParserUtil {
 						url = getLocalURL(url);
 					}
 
-					Properties buildProperties = getBuildProperties();
-
-					String jenkinsAdminUserToken = buildProperties.getProperty(
-						"jenkins.admin.user.token");
-
-					httpAuthorizationHeader = new BasicHTTPAuthorization(
-						jenkinsAdminUserToken,
-						buildProperties.getProperty("jenkins.admin.user.name"));
+					httpAuthorization = _getJenkinsHTTPAuthorization();
 				}
 
 				boolean testray1Request = false;
@@ -4871,10 +4908,10 @@ public class JenkinsResultsParserUtil {
 					testray1Request = true;
 				}
 
-				if ((httpAuthorizationHeader == null) && testray1Request) {
+				if ((httpAuthorization == null) && testray1Request) {
 					Properties buildProperties = getBuildProperties();
 
-					httpAuthorizationHeader = new BasicHTTPAuthorization(
+					httpAuthorization = new BasicHTTPAuthorization(
 						getProperty(
 							buildProperties, "testray.admin.user.password"),
 						getProperty(
@@ -4883,8 +4920,7 @@ public class JenkinsResultsParserUtil {
 
 				Matcher testray2URLMatcher = _testray2URLPattern.matcher(url);
 
-				if ((httpAuthorizationHeader == null) &&
-					testray2URLMatcher.find() &&
+				if ((httpAuthorization == null) && testray2URLMatcher.find() &&
 					!url.contains("/o/oauth2/token")) {
 
 					Properties buildProperties = getBuildProperties();
@@ -4903,9 +4939,8 @@ public class JenkinsResultsParserUtil {
 						buildProperties, "testray.oauth2.client.secret",
 						lxcEnvironment);
 
-					httpAuthorizationHeader =
-						new ClientCredentialsHTTPAuthorization(
-							clientId, clientSecret, tokenURL);
+					httpAuthorization = new ClientCredentialsHTTPAuthorization(
+						clientId, clientSecret, tokenURL);
 				}
 
 				URL urlObject = new URL(url);
@@ -4954,12 +4989,11 @@ public class JenkinsResultsParserUtil {
 						}
 					}
 
-					if (httpAuthorizationHeader != null) {
+					if (httpAuthorization != null) {
 						httpURLConnection.setRequestProperty(
 							"accept", "application/json");
 						httpURLConnection.setRequestProperty(
-							"Authorization",
-							httpAuthorizationHeader.toString());
+							"Authorization", httpAuthorization.toString());
 
 						if (!testray1Request) {
 							httpURLConnection.setRequestProperty(
@@ -5044,7 +5078,7 @@ public class JenkinsResultsParserUtil {
 							"http://(test-\\d+-\\d+)(/.*)",
 							"https://$1.liferay.com$2"),
 						checkCache, maxRetries, httpRequestMethod, postContent,
-						retryPeriod, timeout, httpAuthorizationHeader);
+						retryPeriod, timeout, httpAuthorization);
 				}
 
 				String exceptionMessage = ioException.getMessage();
@@ -5418,13 +5452,13 @@ public class JenkinsResultsParserUtil {
 
 	public static String toString(
 			String url, boolean checkCache, HttpRequestMethod httpRequestMethod,
-			String postContent, HTTPAuthorization httpAuthorizationHeader)
+			String postContent, HTTPAuthorization httpAuthorization)
 		throws IOException {
 
 		return toString(
 			url, checkCache, _RETRIES_SIZE_MAX_DEFAULT, httpRequestMethod,
 			postContent, _SECONDS_RETRY_PERIOD_DEFAULT, _MILLIS_TIMEOUT_DEFAULT,
-			httpAuthorizationHeader, false);
+			httpAuthorization, false);
 	}
 
 	public static String toString(String url, boolean checkCache, int timeout)
@@ -5438,8 +5472,8 @@ public class JenkinsResultsParserUtil {
 	public static String toString(
 			String url, boolean checkCache, int maxRetries,
 			HttpRequestMethod httpRequestMethod, String postContent,
-			int retryPeriod, int timeout,
-			HTTPAuthorization httpAuthorizationHeader, boolean expectResponse)
+			int retryPeriod, int timeout, HTTPAuthorization httpAuthorization,
+			boolean expectResponse)
 		throws IOException {
 
 		long start = System.currentTimeMillis();
@@ -5448,8 +5482,7 @@ public class JenkinsResultsParserUtil {
 			for (int i = 0; i < 2; i++) {
 				try (BufferedReader bufferedReader = toBufferedReader(
 						url, checkCache, maxRetries, httpRequestMethod,
-						postContent, retryPeriod, timeout,
-						httpAuthorizationHeader)) {
+						postContent, retryPeriod, timeout, httpAuthorization)) {
 
 					StringBuilder sb = new StringBuilder();
 
@@ -6323,8 +6356,22 @@ public class JenkinsResultsParserUtil {
 	}
 
 	private static File _getCacheFile(String key) {
+		String baseDirPath = System.getProperty("java.io.tmpdir");
+
+		if (isCINode()) {
+			String baseRepositoryDirPath = "/opt/dev/projects/github";
+
+			try {
+				baseRepositoryDirPath = getBuildProperty("base.repository.dir");
+			}
+			catch (IOException ioException) {
+			}
+
+			baseDirPath = baseRepositoryDirPath + "/liferay-jenkins-ee/tmp";
+		}
+
 		String fileName = combine(
-			System.getProperty("java.io.tmpdir"), "/jenkins-cached-files/",
+			baseDirPath, "/jenkins-cached-files/",
 			String.valueOf(key.hashCode()), ".txt");
 
 		return new File(fileName);
@@ -6571,6 +6618,14 @@ public class JenkinsResultsParserUtil {
 		}
 
 		return _gitWorkingDirectoriesJSONArray;
+	}
+
+	private static HTTPAuthorization _getJenkinsHTTPAuthorization()
+		throws IOException {
+
+		return new BasicHTTPAuthorization(
+			getBuildProperty("jenkins.admin.user.token"),
+			getBuildProperty("jenkins.admin.user.name"));
 	}
 
 	private static Set<Set<String>> _getOrderedOptSets(String... opts) {
@@ -6954,6 +7009,9 @@ public class JenkinsResultsParserUtil {
 	private static Long _currentTimeMillisDelta;
 	private static final Pattern _dockerFilePattern = Pattern.compile(
 		".*FROM (?<dockerImageName>[^\\s]+)( AS builder)?\\n[\\s\\S]*");
+	private static final Pattern _dockerImageNamePattern = Pattern.compile(
+		"((?<repository>[^/\\s]+)/)?(?<name>[^/:\\s]+)" +
+			"(:(?<version>[^:\\s]+))?");
 	private static final List<String> _forbiddenRedactTokens = Arrays.asList(
 		"admin", "liferay", "test");
 	private static JSONArray _gitDirectoriesJSONArray;

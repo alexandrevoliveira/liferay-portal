@@ -6,9 +6,10 @@
 import classNames from 'classnames';
 import React from 'react';
 
-import FormLayoutFooter from './FormLayoutFooter';
-import FormLayoutHeader from './FormLayoutHeader';
+import FormLayoutFooter from './components/FormLayoutFooter';
+import FormLayoutHeader from './components/FormLayoutHeader';
 
+import './FormLayout.css';
 interface IProps {
 	children: React.ReactNode;
 	className?: string;
@@ -33,7 +34,7 @@ const FormLayout: React.FC<IProps> = ({
 }) => (
 	<div
 		className={classNames(
-			'border d-flex flex-column mx-auto rounded-lg shadow-lg',
+			'border d-flex flex-column mx-auto overflow-auto rounded-lg shadow-lg',
 			layoutType
 		)}
 	>

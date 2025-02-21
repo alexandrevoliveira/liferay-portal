@@ -4,3 +4,4 @@
  */
 
 export {default} from './Table';
+export type {IColumn, IRow} from './Table';

@@ -432,7 +432,7 @@
 		<finder name="CompanyId" return-type="Collection">
 			<finder-column name="companyId" />
 		</finder>
-		<finder name="LiveGroupId" return-type="Group">
+		<finder name="LiveGroupId" return-type="Collection">
 			<finder-column name="liveGroupId" />
 		</finder>
 		<finder name="C_C" return-type="Collection">
@@ -969,12 +969,6 @@
 			<finder-column name="layoutSetBranchId" />
 			<finder-column name="plid" />
 			<finder-column name="status" />
-		</finder>
-		<finder name="L_L_H_P" return-type="LayoutRevision">
-			<finder-column name="layoutSetBranchId" />
-			<finder-column name="layoutBranchId" />
-			<finder-column name="head" />
-			<finder-column name="plid" />
 		</finder>
 	</entity>
 	<entity change-tracking-enabled="true" local-service="true" name="LayoutSet" remote-service="true">
@@ -2352,6 +2346,7 @@
 
 		<!-- Other fields -->
 
+		<column name="classExternalReferenceCode" type="String" />
 		<column name="classNameId" type="long" />
 		<column name="classPK" type="long" />
 		<column name="classUuid" type="String" />
@@ -2463,7 +2458,7 @@
 
 		<!-- Finder methods -->
 
-		<finder name="Key" return-type="Ticket">
+		<finder name="Key" return-type="Ticket" unique="true">
 			<finder-column name="key" />
 		</finder>
 		<finder name="C_C_C" return-type="Collection">
@@ -2583,10 +2578,6 @@
 		<finder name="C_FID" return-type="User">
 			<finder-column name="companyId" />
 			<finder-column name="facebookId" />
-		</finder>
-		<finder name="C_GUID" return-type="User">
-			<finder-column name="companyId" />
-			<finder-column name="googleUserId" />
 		</finder>
 		<finder name="C_T" return-type="Collection">
 			<finder-column name="companyId" />
@@ -3238,9 +3229,7 @@
 		<exception>CountryNumber</exception>
 		<exception>CountryTitle</exception>
 		<exception>DuplicateCountry</exception>
-		<exception>DuplicateGoogleUserId</exception>
 		<exception>DuplicateGroup</exception>
-		<exception>DuplicateOpenId</exception>
 		<exception>DuplicateOrganization</exception>
 		<exception>DuplicatePasswordPolicy</exception>
 		<exception>DuplicateRegion</exception>

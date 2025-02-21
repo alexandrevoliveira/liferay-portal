@@ -13,12 +13,25 @@ import com.liferay.frontend.data.set.action.FDSCreationMenu;
 import com.liferay.frontend.data.set.action.FDSCreationMenuRegistry;
 import com.liferay.frontend.data.set.action.FDSItemsActions;
 import com.liferay.frontend.data.set.action.FDSItemsActionsRegistry;
+import com.liferay.frontend.data.set.filter.FDSFilter;
+import com.liferay.frontend.data.set.filter.FDSFilterContextContributor;
+import com.liferay.frontend.data.set.filter.FDSFilterContextContributorRegistry;
+import com.liferay.frontend.data.set.filter.FDSFilterRegistry;
 import com.liferay.frontend.data.set.model.FDSActionDropdownItem;
 import com.liferay.frontend.data.set.serializer.FDSSerializer;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.CreationMenu;
+import com.liferay.portal.kernel.json.JSONArray;
+import com.liferay.portal.kernel.json.JSONObject;
+import com.liferay.portal.kernel.json.JSONUtil;
+import com.liferay.portal.kernel.language.LanguageUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.ResourceBundleUtil;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.ResourceBundle;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -40,7 +53,7 @@ public class SystemFDSSerializer
 		String fdsName, HttpServletRequest httpServletRequest) {
 
 		SystemFDSEntry systemFDSEntry =
-			_systemFDSEntryRegistry.getSystemFDSEntry(fdsName);
+			systemFDSEntryRegistry.getSystemFDSEntry(fdsName);
 
 		if (systemFDSEntry == null) {
 			return null;
@@ -59,7 +72,7 @@ public class SystemFDSSerializer
 		String fdsName, HttpServletRequest httpServletRequest) {
 
 		FDSBulkActions fdsBulkActions =
-			_fdsBulkActionsRegistry.getFDSBulkActions(fdsName);
+			fdsBulkActionsRegistry.getFDSBulkActions(fdsName);
 
 		if (fdsBulkActions == null) {
 			return Collections.emptyList();
@@ -73,7 +86,7 @@ public class SystemFDSSerializer
 		String fdsName, HttpServletRequest httpServletRequest) {
 
 		FDSCreationMenu fdsCreationMenu =
-			_fdsCreationMenuRegistry.getFDSCreationMenu(fdsName);
+			fdsCreationMenuRegistry.getFDSCreationMenu(fdsName);
 
 		if (fdsCreationMenu == null) {
 			return new CreationMenu();
@@ -83,11 +96,35 @@ public class SystemFDSSerializer
 	}
 
 	@Override
+	public JSONArray serializeFilters(
+		List<FDSFilter> fdsFilters, String fdsName,
+		HttpServletRequest httpServletRequest) {
+
+		JSONArray jsonArray = JSONUtil.putAll();
+
+		Locale locale = PortalUtil.getLocale(httpServletRequest);
+
+		_serializeFilters(fdsFilters, jsonArray, locale);
+		_serializeFilters(
+			fdsFilterRegistry.getFDSFilters(fdsName), jsonArray, locale);
+
+		return jsonArray;
+	}
+
+	@Override
+	public JSONArray serializeFilters(
+		String fdsName, HttpServletRequest httpServletRequest) {
+
+		return serializeFilters(
+			Collections.emptyList(), fdsName, httpServletRequest);
+	}
+
+	@Override
 	public List<FDSActionDropdownItem> serializeItemsActions(
 		String fdsName, HttpServletRequest httpServletRequest) {
 
 		FDSItemsActions fdsItemsActions =
-			_fdsItemsActionsRegistry.getFDSItemsActions(fdsName);
+			fdsItemsActionsRegistry.getFDSItemsActions(fdsName);
 
 		if (fdsItemsActions == null) {
 			return Collections.emptyList();
@@ -97,15 +134,71 @@ public class SystemFDSSerializer
 	}
 
 	@Reference
-	private FDSBulkActionsRegistry _fdsBulkActionsRegistry;
+	protected FDSBulkActionsRegistry fdsBulkActionsRegistry;
 
 	@Reference
-	private FDSCreationMenuRegistry _fdsCreationMenuRegistry;
+	protected FDSCreationMenuRegistry fdsCreationMenuRegistry;
 
 	@Reference
-	private FDSItemsActionsRegistry _fdsItemsActionsRegistry;
+	protected FDSFilterContextContributorRegistry
+		fdsFilterContextContributorRegistry;
 
 	@Reference
-	private SystemFDSEntryRegistry _systemFDSEntryRegistry;
+	protected FDSFilterRegistry fdsFilterRegistry;
+
+	@Reference
+	protected FDSItemsActionsRegistry fdsItemsActionsRegistry;
+
+	@Reference
+	protected SystemFDSEntryRegistry systemFDSEntryRegistry;
+
+	private void _serializeFilters(
+		List<FDSFilter> fdsFilters, JSONArray jsonArray, Locale locale) {
+
+		ResourceBundle resourceBundle = ResourceBundleUtil.getBundle(
+			"content.Language", locale, getClass());
+
+		for (FDSFilter fdsFilter : fdsFilters) {
+			if (!fdsFilter.isEnabled()) {
+				continue;
+			}
+
+			JSONObject jsonObject = JSONUtil.put(
+				"entityFieldType", fdsFilter.getEntityFieldType()
+			).put(
+				"id", fdsFilter.getId()
+			).put(
+				"label", LanguageUtil.get(resourceBundle, fdsFilter.getLabel())
+			).put(
+				"preloadedData", fdsFilter.getPreloadedData()
+			).put(
+				"type", fdsFilter.getType()
+			);
+
+			List<FDSFilterContextContributor> fdsFilterContextContributors =
+				fdsFilterContextContributorRegistry.
+					getFDSFilterContextContributors(fdsFilter.getType());
+
+			for (FDSFilterContextContributor fdsFilterContextContributor :
+					fdsFilterContextContributors) {
+
+				Map<String, Object> fdsFilterContext =
+					fdsFilterContextContributor.getFDSFilterContext(
+						fdsFilter, locale);
+
+				if (fdsFilterContext == null) {
+					continue;
+				}
+
+				for (Map.Entry<String, Object> entry :
+						fdsFilterContext.entrySet()) {
+
+					jsonObject.put(entry.getKey(), entry.getValue());
+				}
+			}
+
+			jsonArray.put(jsonObject);
+		}
+	}
 
 }

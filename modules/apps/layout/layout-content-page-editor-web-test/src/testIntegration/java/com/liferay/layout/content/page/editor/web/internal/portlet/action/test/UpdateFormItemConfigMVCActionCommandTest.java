@@ -84,6 +84,7 @@ import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.segments.service.SegmentsExperienceLocalService;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -92,6 +93,9 @@ import java.util.TreeSet;
 
 import javax.portlet.ActionRequest;
 import javax.portlet.ActionResponse;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -161,12 +165,16 @@ public class UpdateFormItemConfigMVCActionCommandTest {
 		ReflectionTestUtil.invoke(
 			_mvcActionCommand, "_updateFormStyledLayoutStructureItemFormType",
 			new Class<?>[] {
-				FormStyledLayoutStructureItem.class, String.class,
-				LayoutStructure.class, int.class, String.class, int.class,
+				List.class, FormStyledLayoutStructureItem.class,
+				HttpServletRequest.class, HttpServletResponse.class,
+				String.class, Layout.class, LayoutStructure.class, int.class,
+				String.class, int.class, long.class, ServiceContext.class,
 				long.class
 			},
-			formStyledLayoutStructureItem, "multistep", layoutStructure, 2,
-			"multistep", 3, 0);
+			new ArrayList<>(), formStyledLayoutStructureItem, null, null,
+			"multistep", _draftLayout, layoutStructure, 2, "multistep", 3,
+			_segmentsExperienceId,
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()), 0);
 
 		LayoutStructureItem formStepContainerStyledLayoutStructureItem =
 			layoutStructure.getLayoutStructureItem(
@@ -300,6 +308,123 @@ public class UpdateFormItemConfigMVCActionCommandTest {
 		}
 	}
 
+	@FeatureFlags("LPD-31772")
+	@Test
+	public void testUpdateFormItemConfigMVCActionCommandIncreasingNumberOfStepsWithFeatureFlagEnabled()
+		throws Exception {
+
+		LayoutStructure layoutStructure = new LayoutStructure();
+
+		LayoutStructureItem rootLayoutStructureItem =
+			layoutStructure.addRootLayoutStructureItem();
+
+		FormStyledLayoutStructureItem formStyledLayoutStructureItem =
+			(FormStyledLayoutStructureItem)
+				layoutStructure.addFormStyledLayoutStructureItem(
+					rootLayoutStructureItem.getItemId(), 0);
+
+		formStyledLayoutStructureItem.setFormType("multiple");
+		formStyledLayoutStructureItem.setNumberOfSteps(2);
+
+		LayoutStructureItem formStepContainerStyledLayoutStructureItem =
+			layoutStructure.addFormStepContainerStyledLayoutStructureItem(
+				formStyledLayoutStructureItem.getItemId(), 0);
+
+		layoutStructure.addFormStepLayoutStructureItem(
+			formStepContainerStyledLayoutStructureItem.getItemId(), -1);
+
+		LayoutStructureItem lastFormStepLayoutStructureItem =
+			layoutStructure.addFormStepLayoutStructureItem(
+				formStepContainerStyledLayoutStructureItem.getItemId(), -1);
+
+		FragmentEntry fragmentEntry =
+			_fragmentCollectionContributorRegistry.getFragmentEntry(
+				"INPUTS-submit-button");
+
+		FragmentEntryLink fragmentEntryLink =
+			_fragmentEntryLinkLocalService.addFragmentEntryLink(
+				null, TestPropsValues.getUserId(), _draftLayout.getGroupId(), 0,
+				fragmentEntry.getFragmentEntryId(), _segmentsExperienceId,
+				_draftLayout.getPlid(), fragmentEntry.getCss(),
+				fragmentEntry.getHtml(), fragmentEntry.getJs(),
+				fragmentEntry.getConfiguration(), null, StringPool.BLANK, 0,
+				fragmentEntry.getFragmentEntryKey(), fragmentEntry.getType(),
+				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+
+		layoutStructure.addFragmentStyledLayoutStructureItem(
+			fragmentEntryLink.getFragmentEntryLinkId(),
+			lastFormStepLayoutStructureItem.getItemId(), -1);
+
+		ReflectionTestUtil.invoke(
+			_mvcActionCommand, "_updateFormStyledLayoutStructureItemFormType",
+			new Class<?>[] {
+				List.class, FormStyledLayoutStructureItem.class,
+				HttpServletRequest.class, HttpServletResponse.class,
+				String.class, Layout.class, LayoutStructure.class, int.class,
+				String.class, int.class, long.class, ServiceContext.class,
+				long.class
+			},
+			new ArrayList<>(), formStyledLayoutStructureItem, null, null,
+			"multistep", _draftLayout, layoutStructure, 4, "multistep", 2,
+			_segmentsExperienceId,
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()), 0);
+
+		LayoutStructureItem firstFormStepStyledLayoutStructureItem =
+			layoutStructure.getLayoutStructureItem(
+				formStepContainerStyledLayoutStructureItem.getChildrenItemId(
+					1));
+
+		List<String> childrenItemIds =
+			firstFormStepStyledLayoutStructureItem.getChildrenItemIds();
+
+		Assert.assertEquals(
+			childrenItemIds.toString(), 1, childrenItemIds.size());
+
+		_assertFormButtonType(
+			"next", firstFormStepStyledLayoutStructureItem.getChildrenItemId(0),
+			layoutStructure);
+
+		LayoutStructureItem secondFormStepStyledLayoutStructureItem =
+			layoutStructure.getLayoutStructureItem(
+				formStepContainerStyledLayoutStructureItem.getChildrenItemId(
+					2));
+
+		childrenItemIds =
+			secondFormStepStyledLayoutStructureItem.getChildrenItemIds();
+
+		Assert.assertEquals(
+			childrenItemIds.toString(), 2, childrenItemIds.size());
+
+		_assertFormButtonType(
+			"previous",
+			secondFormStepStyledLayoutStructureItem.getChildrenItemId(0),
+			layoutStructure);
+		_assertFormButtonType(
+			"next",
+			secondFormStepStyledLayoutStructureItem.getChildrenItemId(1),
+			layoutStructure);
+
+		LayoutStructureItem thirdFormStepStyledLayoutStructureItem =
+			layoutStructure.getLayoutStructureItem(
+				formStepContainerStyledLayoutStructureItem.getChildrenItemId(
+					3));
+
+		childrenItemIds =
+			thirdFormStepStyledLayoutStructureItem.getChildrenItemIds();
+
+		Assert.assertEquals(
+			childrenItemIds.toString(), 2, childrenItemIds.size());
+
+		_assertFormButtonType(
+			"previous",
+			thirdFormStepStyledLayoutStructureItem.getChildrenItemId(0),
+			layoutStructure);
+		_assertFormButtonType(
+			"submit",
+			thirdFormStepStyledLayoutStructureItem.getChildrenItemId(1),
+			layoutStructure);
+	}
+
 	@Test
 	public void testUpdateFormItemConfigMVCActionCommandInputsFragmentCollectionProviderNotAvailable()
 		throws Exception {
@@ -420,12 +545,16 @@ public class UpdateFormItemConfigMVCActionCommandTest {
 		ReflectionTestUtil.invoke(
 			_mvcActionCommand, "_updateFormStyledLayoutStructureItemFormType",
 			new Class<?>[] {
-				FormStyledLayoutStructureItem.class, String.class,
-				LayoutStructure.class, int.class, String.class, int.class,
+				List.class, FormStyledLayoutStructureItem.class,
+				HttpServletRequest.class, HttpServletResponse.class,
+				String.class, Layout.class, LayoutStructure.class, int.class,
+				String.class, int.class, long.class, ServiceContext.class,
 				long.class
 			},
-			formStyledLayoutStructureItem, "multistep", layoutStructure, 2,
-			"simple", 2, 0);
+			new ArrayList<>(), formStyledLayoutStructureItem, null, null,
+			"multistep", _draftLayout, layoutStructure, 2, "simple", 2,
+			_segmentsExperienceId,
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()), 0);
 
 		List<String> childrenItemIds =
 			formStyledLayoutStructureItem.getChildrenItemIds();
@@ -463,6 +592,93 @@ public class UpdateFormItemConfigMVCActionCommandTest {
 			layoutStructureItem instanceof ContainerStyledLayoutStructureItem);
 	}
 
+	@FeatureFlags("LPD-31772")
+	@Test
+	public void testUpdateFormItemConfigMVCActionCommandMappingFormChangingFormTypeMultistepWithFeatureFlagEnabled()
+		throws Exception {
+
+		LayoutStructure layoutStructure = new LayoutStructure();
+
+		LayoutStructureItem rootLayoutStructureItem =
+			layoutStructure.addRootLayoutStructureItem();
+
+		FormStyledLayoutStructureItem formStyledLayoutStructureItem =
+			(FormStyledLayoutStructureItem)
+				layoutStructure.addFormStyledLayoutStructureItem(
+					rootLayoutStructureItem.getItemId(), 0);
+
+		FragmentEntry fragmentEntry =
+			_fragmentCollectionContributorRegistry.getFragmentEntry(
+				"INPUTS-submit-button");
+
+		FragmentEntryLink fragmentEntryLink =
+			_fragmentEntryLinkLocalService.addFragmentEntryLink(
+				null, TestPropsValues.getUserId(), _draftLayout.getGroupId(), 0,
+				fragmentEntry.getFragmentEntryId(), _segmentsExperienceId,
+				_draftLayout.getPlid(), fragmentEntry.getCss(),
+				fragmentEntry.getHtml(), fragmentEntry.getJs(),
+				fragmentEntry.getConfiguration(), null, StringPool.BLANK, 0,
+				fragmentEntry.getFragmentEntryKey(), fragmentEntry.getType(),
+				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+
+		layoutStructure.addFragmentStyledLayoutStructureItem(
+			fragmentEntryLink.getFragmentEntryLinkId(),
+			formStyledLayoutStructureItem.getItemId(), -1);
+
+		ReflectionTestUtil.invoke(
+			_mvcActionCommand, "_updateFormStyledLayoutStructureItemFormType",
+			new Class<?>[] {
+				List.class, FormStyledLayoutStructureItem.class,
+				HttpServletRequest.class, HttpServletResponse.class,
+				String.class, Layout.class, LayoutStructure.class, int.class,
+				String.class, int.class, long.class, ServiceContext.class,
+				long.class
+			},
+			new ArrayList<>(), formStyledLayoutStructureItem, null, null,
+			"multistep", _draftLayout, layoutStructure, 2, "simple", 2,
+			_segmentsExperienceId,
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()), 0);
+
+		LayoutStructureItem formStepContainerStyledLayoutStructureItem =
+			layoutStructure.getLayoutStructureItem(
+				formStyledLayoutStructureItem.getChildrenItemId(0));
+
+		LayoutStructureItem firstFormStepStyledLayoutStructureItem =
+			layoutStructure.getLayoutStructureItem(
+				formStepContainerStyledLayoutStructureItem.getChildrenItemId(
+					0));
+
+		List<String> childrenItemIds =
+			firstFormStepStyledLayoutStructureItem.getChildrenItemIds();
+
+		Assert.assertEquals(
+			childrenItemIds.toString(), 1, childrenItemIds.size());
+
+		_assertFormButtonType(
+			"next", firstFormStepStyledLayoutStructureItem.getChildrenItemId(0),
+			layoutStructure);
+
+		LayoutStructureItem secondFormStepStyledLayoutStructureItem =
+			layoutStructure.getLayoutStructureItem(
+				formStepContainerStyledLayoutStructureItem.getChildrenItemId(
+					1));
+
+		childrenItemIds =
+			secondFormStepStyledLayoutStructureItem.getChildrenItemIds();
+
+		Assert.assertEquals(
+			childrenItemIds.toString(), 2, childrenItemIds.size());
+
+		_assertFormButtonType(
+			"previous",
+			secondFormStepStyledLayoutStructureItem.getChildrenItemId(0),
+			layoutStructure);
+		_assertFormButtonType(
+			"submit",
+			secondFormStepStyledLayoutStructureItem.getChildrenItemId(1),
+			layoutStructure);
+	}
+
 	@Test
 	public void testUpdateFormItemConfigMVCActionCommandMappingFormChangingFormTypeSimple()
 		throws Exception {
@@ -476,22 +692,30 @@ public class UpdateFormItemConfigMVCActionCommandTest {
 		ReflectionTestUtil.invoke(
 			_mvcActionCommand, "_updateFormStyledLayoutStructureItemFormType",
 			new Class<?>[] {
-				FormStyledLayoutStructureItem.class, String.class,
-				LayoutStructure.class, int.class, String.class, int.class,
+				List.class, FormStyledLayoutStructureItem.class,
+				HttpServletRequest.class, HttpServletResponse.class,
+				String.class, Layout.class, LayoutStructure.class, int.class,
+				String.class, int.class, long.class, ServiceContext.class,
 				long.class
 			},
-			formStyledLayoutStructureItem, "multistep", layoutStructure, 2,
-			"simple", 2, 0);
+			new ArrayList<>(), formStyledLayoutStructureItem, null, null,
+			"multistep", _draftLayout, layoutStructure, 2, "simple", 2,
+			_segmentsExperienceId,
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()), 0);
 
 		ReflectionTestUtil.invoke(
 			_mvcActionCommand, "_updateFormStyledLayoutStructureItemFormType",
 			new Class<?>[] {
-				FormStyledLayoutStructureItem.class, String.class,
-				LayoutStructure.class, int.class, String.class, int.class,
+				List.class, FormStyledLayoutStructureItem.class,
+				HttpServletRequest.class, HttpServletResponse.class,
+				String.class, Layout.class, LayoutStructure.class, int.class,
+				String.class, int.class, long.class, ServiceContext.class,
 				long.class
 			},
-			formStyledLayoutStructureItem, "simple", layoutStructure, 2,
-			"multistep", 2, 0);
+			new ArrayList<>(), formStyledLayoutStructureItem, null, null,
+			"simple", _draftLayout, layoutStructure, 2, "multistep", 2,
+			_segmentsExperienceId,
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()), 0);
 
 		List<String> childrenItemIds =
 			formStyledLayoutStructureItem.getChildrenItemIds();
@@ -523,12 +747,16 @@ public class UpdateFormItemConfigMVCActionCommandTest {
 		ReflectionTestUtil.invoke(
 			_mvcActionCommand, "_updateFormStyledLayoutStructureItemFormType",
 			new Class<?>[] {
-				FormStyledLayoutStructureItem.class, String.class,
-				LayoutStructure.class, int.class, String.class, int.class,
+				List.class, FormStyledLayoutStructureItem.class,
+				HttpServletRequest.class, HttpServletResponse.class,
+				String.class, Layout.class, LayoutStructure.class, int.class,
+				String.class, int.class, long.class, ServiceContext.class,
 				long.class
 			},
-			formStyledLayoutStructureItem, "simple", layoutStructure, 0,
-			"multistep", 0, 0);
+			new ArrayList<>(), formStyledLayoutStructureItem, null, null,
+			"simple", _draftLayout, layoutStructure, 0, "multistep", 0,
+			_segmentsExperienceId,
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()), 0);
 
 		List<String> childrenItemIds =
 			formStyledLayoutStructureItem.getChildrenItemIds();
@@ -1202,6 +1430,25 @@ public class UpdateFormItemConfigMVCActionCommandTest {
 		return fragmentEntryLink.getFragmentEntryLinkId();
 	}
 
+	private void _assertFormButtonType(
+		String expectedType, String itemId, LayoutStructure layoutStructure) {
+
+		FragmentStyledLayoutStructureItem fragmentStyledLayoutStructureItem =
+			(FragmentStyledLayoutStructureItem)
+				layoutStructure.getLayoutStructureItem(itemId);
+
+		FragmentEntryLink fragmentEntryLink =
+			_fragmentEntryLinkLocalService.fetchFragmentEntryLink(
+				fragmentStyledLayoutStructureItem.getFragmentEntryLinkId());
+
+		Assert.assertEquals(
+			expectedType,
+			_fragmentEntryConfigurationParser.getFieldValue(
+				fragmentEntryLink.getConfiguration(),
+				fragmentEntryLink.getEditableValues(),
+				LocaleUtil.getMostRelevantLocale(), "type"));
+	}
+
 	private void _assertFormStyledLayoutStructureItem(
 			long expectedClassNameId, int expectedChildrenSize,
 			String formItemId, InfoField<?>[] infoFields,
@@ -1299,7 +1546,7 @@ public class UpdateFormItemConfigMVCActionCommandTest {
 	}
 
 	private void _assertUpdateFormStyledLayoutStructureItemConfigJSONObject(
-		JSONObject jsonObject, int expectedAddedFragmentEntryLinks,
+		JSONObject jsonObject, int expectedFragmentEntryLinks,
 		String expectedError, String expectedErrorMessage,
 		int expectedRemovedLayoutStructureItems) {
 
@@ -1311,12 +1558,11 @@ public class UpdateFormItemConfigMVCActionCommandTest {
 
 		Assert.assertTrue(jsonObject.has("layoutData"));
 
-		JSONObject addedFragmentEntryLinksJSONObject = jsonObject.getJSONObject(
-			"addedFragmentEntryLinks");
+		JSONObject fragmentEntryLinksJSONObject = jsonObject.getJSONObject(
+			"fragmentEntryLinks");
 
 		Assert.assertEquals(
-			expectedAddedFragmentEntryLinks,
-			addedFragmentEntryLinksJSONObject.length());
+			expectedFragmentEntryLinks, fragmentEntryLinksJSONObject.length());
 
 		JSONArray removedLayoutStructureItemsJSONArray =
 			jsonObject.getJSONArray("removedItemIds");

@@ -11,36 +11,32 @@ import com.liferay.gradle.util.Validator;
 
 import java.io.File;
 
+import java.lang.reflect.Method;
+
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLClassLoader;
 
 import java.nio.file.Path;
 
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.apache.jasper.JspC;
-import org.apache.jasper.servlet.JspCServletContext;
-import org.apache.jasper.servlet.TldScanner;
-import org.apache.tomcat.JarScanType;
-import org.apache.tomcat.JarScanner;
-import org.apache.tomcat.JarScannerCallback;
-import org.apache.tomcat.util.scan.StandardJarScanner;
+import java.util.stream.Stream;
 
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.Project;
 import org.gradle.api.file.FileCollection;
+import org.gradle.api.logging.Logger;
 import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.InputDirectory;
 import org.gradle.api.tasks.InputFiles;
+import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
@@ -55,70 +51,67 @@ public class CompileJSPTask extends DefaultTask {
 
 	@TaskAction
 	public void compileJSP() {
+		FileCollection compileJspClasspath = getCompileJspClasspath();
 		FileCollection jspCClasspath = getJspCClasspath();
+		Logger logger = getLogger();
 
-		JspC jspC = new JspC() {
-
-			@Override
-			public String getCompilerClassName() {
-				return _getCompilerClassName();
+		if ((compileJspClasspath == null) || compileJspClasspath.isEmpty()) {
+			if (logger.isInfoEnabled()) {
+				logger.info("Compiling JSP with standard class path");
 			}
 
-			@Override
-			protected TldScanner newTldScanner(
-				JspCServletContext jspCServletContext, boolean namespaceAware,
-				boolean validate, boolean blockExternal) {
+			CompileJSPUtil.compileJSP(
+				_getCompilerClassName(), _getCompleteArgs(),
+				jspCClasspath.getAsPath());
 
-				return new TldScanner(
-					jspCServletContext, namespaceAware, validate,
-					blockExternal) {
+			return;
+		}
 
-					@Override
-					public void scanJars() {
-						jspCServletContext.setAttribute(
-							JarScanner.class.getName(),
-							new StandardJarScanner() {
+		if (logger.isInfoEnabled()) {
+			logger.info("Compiling JSP with custom class path");
+		}
 
-								protected void processURLs(
-									JarScanType scanType,
-									JarScannerCallback callback,
-									Set<URL> processedURLs, boolean webApp,
-									Deque<URL> classPathUrlsToProcess) {
+		Set<File> files = compileJspClasspath.getFiles();
 
-									if (!webApp) {
-										classPathUrlsToProcess.clear();
+		Stream<File> stream = files.stream();
 
-										return;
-									}
-
-									super.processURLs(
-										scanType, callback, processedURLs,
-										webApp, classPathUrlsToProcess);
-								}
-
-							});
-
-						super.scanJars();
-					}
-
-				};
+		URL[] urls = stream.map(
+			File::toURI
+		).map(
+			uri -> {
+				try {
+					return uri.toURL();
+				}
+				catch (MalformedURLException malformedURLException) {
+					throw new GradleException(
+						malformedURLException.getMessage(),
+						malformedURLException);
+				}
 			}
+		).toArray(
+			URL[]::new
+		);
 
-		};
+		try (URLClassLoader urlClassLoader = new URLClassLoader(urls, null)) {
+			Class<?> compileJSPUtilClass = Class.forName(
+				CompileJSPUtil.class.getName(), true, urlClassLoader);
 
-		Logger logger = Logger.getLogger("org.apache.tomcat");
+			Method compileJSPMethod = compileJSPUtilClass.getMethod(
+				"compileJSP", String.class, String[].class, String.class);
 
-		logger.setLevel(Level.INFO);
-
-		try {
-			jspC.setArgs(_getCompleteArgs());
-			jspC.setClassPath(jspCClasspath.getAsPath());
-
-			jspC.execute();
+			compileJSPMethod.invoke(
+				null, _getCompilerClassName(), _getCompleteArgs(),
+				jspCClasspath.getAsPath());
 		}
 		catch (Exception exception) {
 			throw new GradleException(exception.getMessage(), exception);
 		}
+	}
+
+	@Classpath
+	@Optional
+	public FileCollection getCompileJspClasspath() {
+		return _compileJspClasspath;
 	}
 
 	@OutputDirectory
@@ -157,6 +150,10 @@ public class CompileJSPTask extends DefaultTask {
 	@PathSensitive(PathSensitivity.RELATIVE)
 	public File getWebAppDir() {
 		return GradleUtil.toFile(getProject(), _webAppDir);
+	}
+
+	public void setCompileJspClasspath(FileCollection compileJspClasspath) {
+		_compileJspClasspath = compileJspClasspath;
 	}
 
 	public void setDestinationDir(Object destinationDir) {
@@ -214,6 +211,7 @@ public class CompileJSPTask extends DefaultTask {
 		};
 	}
 
+	private FileCollection _compileJspClasspath;
 	private Object _destinationDir;
 	private FileCollection _jspCClasspath;
 	private Object _webAppDir;

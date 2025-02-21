@@ -46,27 +46,39 @@ public class ModifierComparator implements Comparator<JavaSimpleValue> {
 			return 6;
 		}
 
-		if (name.equals("final")) {
+		if (name.equals("sealed")) {
 			return 7;
 		}
 
-		if (name.equals("transient")) {
+		if (name.equals("non-sealed")) {
 			return 8;
 		}
 
-		if (name.equals("volatile")) {
+		if (name.equals("final")) {
 			return 9;
 		}
 
-		if (name.equals("synchronized")) {
+		if (name.equals("transient")) {
 			return 10;
 		}
 
-		if (name.equals("native")) {
+		if (name.equals("volatile")) {
 			return 11;
 		}
 
-		return 12;
+		if (name.equals("synchronized")) {
+			return 12;
+		}
+
+		if (name.equals("native")) {
+			return 13;
+		}
+
+		if (name.equals("strictfp")) {
+			return 14;
+		}
+
+		return 15;
 	}
 
 }

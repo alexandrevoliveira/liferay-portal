@@ -3426,6 +3426,17 @@
 		"to": "HtmlUtil_IW.getInstance"
 	},
 	{
+		"classNames": [
+			"ArchivedSettingsFactory"
+		],
+		"from": "getSettings(SettingsLocator paramName)",
+		"issueKey": "LPD-38353",
+		"newImports": [
+			"com.liferay.portal.kernel.settings.FallbackKeysSettingsUtil"
+		],
+		"to": "FallbackKeysSettingsUtil.getSettings(param#0#)"
+	},
+	{
 		"classNames": "CommercePaymentMethodGroupRel",
 		"from": "getEngineKey",
 		"issueKey": "LPD-40549",
@@ -3479,6 +3490,24 @@
 			"com.liferay.portal.kernel.security.auth.CompanyThreadLocal"
 		],
 		"to": "getListType(CompanyThreadLocal.getCompanyId(), param#0#, param#1#)"
+	},
+	{
+		"classNames": [
+			"AssetCategoryLocalService",
+			"AssetCategoryLocalServiceUtil"
+		],
+		"from": "getAssetEntryAssetCategories",
+		"issueKey": "LPD-41237",
+		"to": "getEntryCategories"
+	},
+	{
+		"classNames": [
+			"DLAppService",
+			"DLAppServiceUtil"
+		],
+		"from": "updateFileEntry(long paramName, String paramName, String paramName, String paramName, String paramName, String paramName, DLVersionNumberIncrease paramName, byte[] paramName, ServiceContext paramName)",
+		"issueKey": "LPD-41239",
+		"to": "updateFileEntry(param#0#, param#1#, param#2#, param#3#, null, param#4#, param#5#, param#6#, param#7#, null, null, null, param#8#)"
 	},
 	{
 		"classNames": [
@@ -3551,6 +3580,32 @@
 		"from": "addRole(String paramName, long paramName, String paramName, Map<Locale, String> paramName, Map<Locale, String> paramName, int paramName, String paramName, ServiceContext paramName)",
 		"issueKey": "LPD-47117",
 		"to": "addRole(null, param#0#, param#1#, param#2#, param#3#, param#4#, param#5#, param#6#, param#7#)"
+	},
+	{
+		"classNames": [
+			"PortletDisplay"
+		],
+		"from": "regex:(?<variableName>\\w+)\\.(?<prefixMethodName>getPortlet|setPortlet)Setup",
+		"issueKey": "LPD-47124",
+		"to": "${variableName}.${prefixMethodName}Preferences"
+	},
+	{
+		"classNames": [
+			"CPAttachmentFileEntryService",
+			"CPAttachmentFileEntryServiceUtil"
+		],
+		"from": "addOrUpdateCPAttachmentFileEntry(String paramName, long paramName, long paramName, long paramName, long paramName, long paramName, boolean paramName, String paramName, int paramName, int paramName, int paramName, int paramName, int paramName, int paramName, int paramName, int paramName, int paramName, int paramName, boolean paramName, Map<Locale, String> paramName, String paramName, double paramName, int paramName, ServiceContext paramName)",
+		"issueKey": "LPD-48759",
+		"to": "addOrUpdateCPAttachmentFileEntry(param#0#, param#1#, param#2#, param#3#, param#4#, param#5#, param#6#, param#7#, param#8#, param#9#, param#10#, param#11#, param#12#, param#13#, param#14#, param#15#, param#16#, param#17#, param#18#, null, param#19#, param#20#, param#21#, param#22#, param#23#)"
+	},
+	{
+		"classNames": [
+			"CPAttachmentFileEntryLocalService",
+			"CPAttachmentFileEntryLocalServiceUtil"
+		],
+		"from": "addOrUpdateCPAttachmentFileEntry(String paramName, long paramName, long paramName, long paramName, long paramName, long paramName, long paramName, boolean paramName, String paramName, int paramName, int paramName, int paramName, int paramName, int paramName, int paramName, int paramName, int paramName, int paramName, int paramName, boolean paramName, Map<Locale, String> paramName, String paramName, double paramName, int paramName, ServiceContext paramName)",
+		"issueKey": "LPD-48759",
+		"to": "addOrUpdateCPAttachmentFileEntry(param#0#, param#1#, param#2#, param#3#, param#4#, param#5#, param#6#, param#7#, param#8#, param#9#, param#10#, param#11#, param#12#, param#13#, param#14#, param#15#, param#16#, param#17#, param#18#, param#19#, null, param#20#, param#21#, param#22#, param#23#, param#24#)"
 	},
 	{
 		"from": "CookieKeys.COMMERCE_CONTINUE_AS_GUEST",
@@ -3901,7 +3956,7 @@
 		"newImports": [
 			"com.liferay.document.library.kernel.model.DLVersionNumberIncrease"
 		],
-		"to": "updateFileEntry(param#0#, param#1#, param#2#, param#3#, param#4#, null, param#5#, param#6#, dlVersionNumberIncrease, param#7#, null, null, param#8#, param#9#)"
+		"to": "updateFileEntry(param#0#, param#1#, param#2#, param#3#, param#4#, null, param#5#, param#6#, DLVersionNumberIncrease.fromMajorVersion(param#7#), param#8#, null, null, null, param#9#)"
 	},
 	{
 		"classNames": [
@@ -3910,10 +3965,7 @@
 		],
 		"from": "updateFileEntry(long paramName, long paramName, String paramName, String paramName, String paramName, String paramName, String paramName, DLVersionNumberIncrease paramName, byte[] paramName, ServiceContext paramName)",
 		"issueKey": "LPS-194134",
-		"newImports": [
-			"com.liferay.document.library.kernel.model.DLVersionNumberIncrease"
-		],
-		"to": "updateFileEntry(param#0#, param#1#, param#2#, param#3#, param#4#, null, param#5#, param#6#, param#7#, param#8#, null, null, param#9#)"
+		"to": "updateFileEntry(param#0#, param#1#, param#2#, param#3#, param#4#, null, param#5#, param#6#, param#7#, param#8#, null, null, null, param#9#)"
 	},
 	{
 		"from": "compat/mixins",
@@ -4085,7 +4137,10 @@
 		],
 		"from": "deleteCommerceOrderItems(long paramName)",
 		"issueKey": "LPS-197459",
-		"to": "deleteCommerceOrderItems(0, param#0#)"
+		"newImports": [
+			"com.liferay.portal.kernel.service.ServiceContextThreadLocal"
+		],
+		"to": "deleteCommerceOrderItems(ServiceContextThreadLocal.getServiceContext().getUserId(), param#0#)"
 	},
 	{
 		"classNames": [

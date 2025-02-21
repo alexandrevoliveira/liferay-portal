@@ -120,7 +120,10 @@ export class ExportImportPage {
 	async downloadExportProcess(name: string) {
 		const downloadPromise = this.page.waitForEvent('download');
 
-		await this.page.locator('//*[contains(@href, "' + name + '")]').click();
+		await this.page
+			.locator('//h2[span[normalize-space()="' + name + '"]]/span/a')
+			.first()
+			.click();
 
 		const download = await downloadPromise;
 		const filePath = getTempDir() + download.suggestedFilename();
@@ -138,5 +141,25 @@ export class ExportImportPage {
 	async goToImport() {
 		await this.productMenuPage.openProductMenuIfClosed();
 		await this.productMenuPage.goToPublishingImport();
+	}
+
+	async goToImportOptions(folderPath: string) {
+		await this.productMenuPage.openProductMenuIfClosed();
+		await this.productMenuPage.goToPublishingImport();
+
+		await this.newImportButton.click();
+
+		const fileChooserPromise = this.page.waitForEvent('filechooser');
+
+		await this.fileSelector.click();
+
+		const fileChooser = await fileChooserPromise;
+
+		await fileChooser.setFiles(folderPath);
+
+		await this.continueButton.click();
+
+		await this.page.waitForLoadState('domcontentloaded');
+		await this.page.waitForTimeout(1000);
 	}
 }

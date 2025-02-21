@@ -157,10 +157,7 @@ public class DisplayPageTemplateFolderResourceImpl
 			_getParentLayoutPageTemplateCollectionId(
 				displayPageTemplateFolder, groupId);
 
-		if (Validator.isNotNull(
-				displayPageTemplateFolder.
-					getParentDisplayPageTemplateFolderExternalReferenceCode()) &&
-			!Objects.equals(
+		if (!Objects.equals(
 				layoutPageTemplateCollection.
 					getParentLayoutPageTemplateCollectionId(),
 				parentLayoutPageTemplateCollectionId)) {
@@ -193,6 +190,7 @@ public class DisplayPageTemplateFolderResourceImpl
 					groupId,
 					_getParentLayoutPageTemplateCollectionId(
 						displayPageTemplateFolder, groupId),
+					displayPageTemplateFolder.getKey(),
 					displayPageTemplateFolder.getName(),
 					displayPageTemplateFolder.getDescription(),
 					LayoutPageTemplateCollectionTypeConstants.DISPLAY_PAGE,

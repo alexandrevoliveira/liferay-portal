@@ -470,7 +470,7 @@ public class LayoutLocalServiceStagingAdvice {
 						SystemEventHierarchyEntryThreadLocal.peek();
 
 					_systemEventLocalService.addSystemEvent(
-						0, layout.getGroupId(), Layout.class.getName(),
+						0, layout.getGroupId(), null, Layout.class.getName(),
 						layout.getPlid(), layout.getUuid(), null,
 						SystemEventConstants.TYPE_DELETE,
 						systemEventHierarchyEntry.getExtraData());

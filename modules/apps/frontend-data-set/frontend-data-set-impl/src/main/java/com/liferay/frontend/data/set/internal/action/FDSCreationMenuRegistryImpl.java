@@ -24,6 +24,18 @@ import org.osgi.service.component.annotations.Deactivate;
 @Component(service = FDSCreationMenuRegistry.class)
 public class FDSCreationMenuRegistryImpl implements FDSCreationMenuRegistry {
 
+	public FDSCreationMenuRegistryImpl() {
+	}
+
+	public FDSCreationMenuRegistryImpl(
+		ServiceTrackerMap
+			<String,
+			 ServiceTrackerCustomizerFactory.ServiceWrapper<FDSCreationMenu>>
+				serviceTrackerMap) {
+
+		_serviceTrackerMap = serviceTrackerMap;
+	}
+
 	@Override
 	public FDSCreationMenu getFDSCreationMenu(String fdsName) {
 		ServiceTrackerCustomizerFactory.ServiceWrapper<FDSCreationMenu>

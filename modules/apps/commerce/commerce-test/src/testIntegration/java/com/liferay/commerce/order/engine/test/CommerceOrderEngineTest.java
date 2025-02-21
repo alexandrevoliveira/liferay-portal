@@ -43,12 +43,10 @@ import com.liferay.commerce.test.util.context.TestCommerceContext;
 import com.liferay.commerce.test.util.order.status.Test1CommerceOrderStatusImpl;
 import com.liferay.commerce.test.util.order.status.Test2CommerceOrderStatusImpl;
 import com.liferay.commerce.test.util.order.status.Test3CommerceOrderStatusImpl;
-import com.liferay.petra.lang.CentralizedThreadLocal;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.security.RandomUtil;
-import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.security.auth.PrincipalException;
 import com.liferay.portal.kernel.security.auth.PrincipalThreadLocal;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
@@ -61,7 +59,6 @@ import com.liferay.portal.kernel.test.rule.Sync;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
-import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.test.rule.Inject;
@@ -103,10 +100,6 @@ public class CommerceOrderEngineTest {
 
 	@Before
 	public void setUp() throws Exception {
-		_originalCompanyId = CompanyThreadLocal.getCompanyId();
-
-		CompanyThreadLocal.setCompanyId(TestPropsValues.getCompanyId());
-
 		_group = GroupTestUtil.addGroup();
 
 		_user = UserTestUtil.addUser();
@@ -157,8 +150,6 @@ public class CommerceOrderEngineTest {
 	@After
 	public void tearDown() throws PortalException {
 		_commerceOrderLocalService.deleteCommerceOrder(_commerceOrder);
-
-		CentralizedThreadLocal.clearShortLivedCentralizedThreadLocals();
 	}
 
 	@Test
@@ -1214,7 +1205,6 @@ public class CommerceOrderEngineTest {
 	private CommerceShipmentLocalService _commerceShipmentLocalService;
 
 	private Group _group;
-	private long _originalCompanyId;
 	private PermissionChecker _permissionChecker;
 
 	@Inject

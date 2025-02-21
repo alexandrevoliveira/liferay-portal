@@ -452,6 +452,7 @@ ReturnVariableDeclarationAsUsedCheck | [Miscellaneous](miscellaneous_checks.mark
 SQLEmptyLinesCheck | [Styling](styling_checks.markdown#styling-checks) | .sql | Finds missing and unnecessary empty lines. |
 [SQLLongNamesCheck](check/sql_long_names_check.markdown#sqllongnamescheck) | [Bug Prevention](bug_prevention_checks.markdown#bug-prevention-checks) | .sql | Checks for table and column names that exceed 30 characters. |
 SQLStylingCheck | [Styling](styling_checks.markdown#styling-checks) | .sql | Applies rules to enforce consistency in code style. |
+SealedAndNonsealedModifierCheck | [Performance](performance_checks.markdown#performance-checks) | .java | Finds usage of `sealed` and `non-sealed`. |
 SelfReferenceCheck | [Bug Prevention](bug_prevention_checks.markdown#bug-prevention-checks) | .java | Finds cases of unnecessary reference to its own class. |
 SemiColonCheck | [Styling](styling_checks.markdown#styling-checks) | .java, .jsp, .jspf, .jspx, .tag, .tpl or .vm | Finds cases of unnecessary semicolon. |
 [ServiceComponentRuntimeCheck](check/service_component_runtime_check.markdown#servicecomponentruntimecheck) | [Bug Prevention](bug_prevention_checks.markdown#bug-prevention-checks) | .java | Checks `ServiceComponentRuntime` usage in test classes. |
@@ -490,7 +491,6 @@ URLInputStreamCheck | [Bug Prevention](bug_prevention_checks.markdown#bug-preven
 [UnicodePropertiesBuilderCheck](check/builder_check.markdown#buildercheck) | [Miscellaneous](miscellaneous_checks.markdown#miscellaneous-checks) | .java | Checks that `UnicodePropertiesBuilder` is used when possible. |
 [UnnecessaryAssignCheck](check/unnecessary_assign_check.markdown#unnecessaryassigncheck) | [Performance](performance_checks.markdown#performance-checks) | .java | Finds unnecessary assign statements (when it is either reassigned or returned right after). |
 UnnecessaryMethodCallCheck | [Styling](styling_checks.markdown#styling-checks) | .java | Finds unnecessary method calls. |
-[UnnecessaryParenthesesCheck](https://checkstyle.sourceforge.io/checks/coding/unnecessaryparentheses.html) | [Styling](styling_checks.markdown#styling-checks) | .java, .jsp, .jspf, .jspx, .tag, .tpl or .vm | Checks if unnecessary parentheses are used in a statement or expression. |
 UnnecessaryTypeCastCheck | [Performance](performance_checks.markdown#performance-checks) | .java, .jsp, .jspf, .jspx, .tag, .tpl or .vm | Finds unnecessary Type Casting. |
 [UnnecessaryVariableDeclarationCheck](check/unnecessary_variable_declaration_check.markdown#unnecessaryvariabledeclarationcheck) | [Performance](performance_checks.markdown#performance-checks) | .java | Finds unnecessary variable declarations (when it is either reassigned or returned right after). |
 UnparameterizedClassCheck | [Bug Prevention](bug_prevention_checks.markdown#bug-prevention-checks) | .java, .jsp, .jspf, .jspx, .tag, .tpl or .vm | Finds `Class` instantiation without generic type. |

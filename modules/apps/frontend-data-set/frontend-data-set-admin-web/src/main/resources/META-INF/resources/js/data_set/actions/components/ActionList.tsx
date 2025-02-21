@@ -6,6 +6,7 @@
 import React from 'react';
 
 import OrderableTable from '../../../components/OrderableTable';
+import Toggle from '../../../components/Toggle';
 import {IAction} from '../Actions';
 
 const ActionList = ({
@@ -15,7 +16,9 @@ const ActionList = ({
 	deleteAction,
 	editAction,
 	noItemsButtonLabel,
+	toogleActiveDisabled,
 	updateActionsOrder,
+	updateActive,
 }: {
 	actions: Array<IAction>;
 	createAction: () => void;
@@ -23,7 +26,9 @@ const ActionList = ({
 	deleteAction: ({item}: {item: IAction}) => void;
 	editAction: ({item}: {item: IAction}) => void;
 	noItemsButtonLabel: string;
+	toogleActiveDisabled: boolean;
 	updateActionsOrder: ({order}: {order: string}) => void;
+	updateActive: (item: IAction) => Promise<void>;
 }) => {
 	return (
 		<OrderableTable
@@ -59,6 +64,22 @@ const ActionList = ({
 					label: Liferay.Language.get('type'),
 					name: 'target',
 				},
+				...(Liferay.FeatureFlags['LPD-37531']
+					? [
+							{
+								contentRenderer: {
+									component: ({item}: any) =>
+										Toggle({
+											disabled: toogleActiveDisabled,
+											item,
+											toggleChange: updateActive,
+										}),
+								},
+								label: Liferay.Language.get('status'),
+								name: 'active',
+							},
+						]
+					: []),
 			]}
 			items={actions}
 			noItemsButtonLabel={noItemsButtonLabel}

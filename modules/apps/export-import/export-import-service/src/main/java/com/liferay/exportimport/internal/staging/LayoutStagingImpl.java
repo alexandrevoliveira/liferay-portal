@@ -21,12 +21,14 @@ import com.liferay.portal.kernel.model.LayoutStagingHandler;
 import com.liferay.portal.kernel.service.LayoutRevisionLocalService;
 import com.liferay.portal.kernel.service.LayoutSetBranchLocalService;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.ProxyUtil;
 import com.liferay.portal.kernel.util.UnicodeProperties;
 
 import java.lang.reflect.InvocationHandler;
 
+import java.util.Iterator;
 import java.util.List;
 
 import org.osgi.service.component.annotations.Component;
@@ -239,35 +241,41 @@ public class LayoutStagingImpl implements LayoutStaging {
 			return false;
 		}
 
-		LayoutRevision layoutRevision = null;
-
 		List<LayoutRevision> layoutRevisions =
 			_layoutRevisionLocalService.getLayoutRevisions(
 				layoutSetBranchId, layout.getPlid(), true);
 
-		if (!layoutRevisions.isEmpty()) {
-			if (layoutRevisions.size() > 1) {
-				layoutRevision = getLayoutRevision(layout);
+		if (layoutRevisions.isEmpty()) {
+			return false;
+		}
 
-				long layoutBranchId = GetterUtil.DEFAULT_LONG;
+		LayoutRevision layoutRevision = null;
 
-				if (layoutRevision != null) {
-					layoutBranchId = layoutRevision.getLayoutBranchId();
-				}
+		if (layoutRevisions.size() > 1) {
+			layoutRevision = getLayoutRevision(layout);
 
-				layoutRevision =
-					_layoutRevisionLocalService.fetchLayoutRevision(
-						layoutSetBranchId, layoutBranchId, true,
-						layout.getPlid());
+			long layoutBranchId = GetterUtil.DEFAULT_LONG;
+
+			if (layoutRevision != null) {
+				layoutBranchId = layoutRevision.getLayoutBranchId();
 			}
 
-			if ((layoutRevision == null) && !layoutRevisions.isEmpty()) {
-				layoutRevision = layoutRevisions.get(0);
+			Iterator<LayoutRevision> iterator = ListUtil.reverseIterator(
+				layoutRevisions);
+
+			while (iterator.hasNext()) {
+				LayoutRevision curLayoutRevision = iterator.next();
+
+				if (curLayoutRevision.getLayoutBranchId() == layoutBranchId) {
+					layoutRevision = curLayoutRevision;
+
+					break;
+				}
 			}
 		}
 
 		if (layoutRevision == null) {
-			return false;
+			layoutRevision = layoutRevisions.get(0);
 		}
 
 		LayoutStagingHandler layoutStagingHandler =

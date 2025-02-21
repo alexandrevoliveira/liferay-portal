@@ -2315,6 +2315,159 @@ test.describe('Form Localization', () => {
 	);
 
 	test(
+		'Can translate multiselect form field',
+		{tag: '@LPD-48344'},
+		async ({apiHelpers, page, pageEditorPage, site}) => {
+
+			// Create object definition
+
+			const listTypeDefinition =
+				await apiHelpers.listTypeAdmin.postRandomListTypeDefinition();
+
+			for (const option of ['Spain', 'Italy', 'Germany']) {
+				await apiHelpers.listTypeAdmin.postListTypeEntry(
+					listTypeDefinition.externalReferenceCode,
+					option
+				);
+			}
+
+			const objectDefinitionAPIClient =
+				await apiHelpers.buildRestClient(ObjectDefinitionApi);
+
+			const {body: objectDefinition} =
+				await objectDefinitionAPIClient.postObjectDefinition({
+					active: true,
+					enableLocalization: true,
+					externalReferenceCode: 'plantERC',
+					label: {
+						en_US: 'Plant',
+					},
+					name: 'Plant',
+					objectFields: [
+						{
+							DBType: ObjectField.DBTypeEnum.String,
+							businessType:
+								ObjectField.BusinessTypeEnum
+									.MultiselectPicklist,
+							indexed: true,
+							indexedAsKeyword: false,
+							label: {
+								en_US: 'Growth Areas',
+							},
+							listTypeDefinitionExternalReferenceCode:
+								listTypeDefinition.externalReferenceCode,
+							listTypeDefinitionId: listTypeDefinition.id,
+							localized: true,
+							name: 'growthAreas',
+							required: false,
+						},
+					],
+					pluralLabel: {
+						en_US: 'Plants',
+					},
+					portlet: true,
+					scope: 'company',
+					status: {
+						code: 0,
+					},
+				});
+
+			apiHelpers.data.push({
+				id: objectDefinition.id,
+				type: 'objectDefinition',
+			});
+
+			// Create a page with a Form fragment
+
+			const formId = getRandomString();
+
+			const formDefinition = getFormContainerDefinition({
+				id: formId,
+			});
+
+			const layout = await apiHelpers.headlessDelivery.createSitePage({
+				pageDefinition: getPageDefinition([formDefinition]),
+				siteId: site.id,
+				title: getRandomString(),
+			});
+
+			await pageEditorPage.goto(layout, site.friendlyUrlPath);
+
+			// Map the form to the Plant object
+
+			await pageEditorPage.mapFormFragment(formId, 'Plant', 'all', {
+				addLocalizationSelect: true,
+			});
+
+			await pageEditorPage.publishPage();
+
+			await page.goto(
+				`/web${site.friendlyUrlPath}${layout.friendlyUrlPath}`
+			);
+
+			const translationTrigger = page.getByLabel(
+				'Select a language, current language:'
+			);
+
+			await translationTrigger.waitFor();
+
+			await page.getByRole('checkbox', {name: 'Spain'}).check();
+			await page.getByRole('checkbox', {name: 'Italy'}).check();
+
+			await clickAndExpectToBeVisible({
+				autoClick: true,
+				target: page.getByRole('option', {
+					name: 'Spanish (Spain) Language',
+				}),
+				trigger: translationTrigger,
+			});
+
+			await page.getByRole('checkbox', {name: 'Germany'}).check();
+
+			// Check the translation in the localization multiselect
+
+			await translationTrigger.click();
+
+			expect(
+				page.getByRole('option', {
+					name: 'Spanish (Spain) Language',
+				})
+			).toContainText(/Translated/);
+
+			await page.keyboard.press('Escape');
+
+			// Save the form and publish the page
+
+			await page.getByRole('button', {name: 'Submit'}).click();
+
+			await expect(
+				page.getByText(
+					'Thank you. Your information was successfully received.'
+				)
+			).toBeVisible();
+
+			// Check the object entry
+
+			const {items} =
+				await apiHelpers.objectEntry.getObjectDefinitionObjectEntries(
+					'c/plants'
+				);
+
+			expect(items[0].growthAreas_i18n).toStrictEqual({
+				en_US: [
+					{key: 'spain', name: 'Spain'},
+					{key: 'italy', name: 'Italy'},
+				],
+				es_ES: [
+					{key: 'spain', name: 'Spain'},
+					{key: 'italy', name: 'Italy'},
+					{key: 'germany', name: 'Germany'},
+				],
+			});
+		}
+	);
+
+	test(
 		'Can translate date and date time form fields',
 		{tag: '@LPD-43805'},
 		async ({apiHelpers, page, pageEditorPage, site}) => {
@@ -2637,6 +2790,23 @@ test.describe('Form Localization', () => {
 							name: 'selectOrigin',
 							required: false,
 						},
+						{
+							DBType: ObjectField.DBTypeEnum.String,
+							businessType:
+								ObjectField.BusinessTypeEnum
+									.MultiselectPicklist,
+							indexed: true,
+							indexedAsKeyword: false,
+							label: {
+								en_US: 'Growth Areas',
+							},
+							listTypeDefinitionExternalReferenceCode:
+								listTypeDefinition.externalReferenceCode,
+							listTypeDefinitionId: listTypeDefinition.id,
+							localized: false,
+							name: 'growthAreas',
+							required: false,
+						},
 					],
 					pluralLabel: {
 						en_US: 'Plants',
@@ -2717,6 +2887,10 @@ test.describe('Form Localization', () => {
 				page.getByLabel('Select Origin field cannot be localized')
 			).toBeVisible();
 
+			await expect(
+				page.getByLabel('Growth Areas field cannot be localized')
+			).toBeVisible();
+
 			// Check that unlocalized fields are disabled
 
 			await expect(
@@ -2750,6 +2924,16 @@ test.describe('Form Localization', () => {
 				page.getByPlaceholder('Choose an option')
 			).toBeDisabled();
 
+			const firstMultiSelectOption = page.getByRole('checkbox', {
+				name: 'Spain',
+			});
+			const secondMultiSelectOption = page.getByRole('checkbox', {
+				name: 'Italy',
+			});
+
+			await expect(firstMultiSelectOption).toBeDisabled();
+			await expect(secondMultiSelectOption).toBeDisabled();
+
 			// Check that the read only labels are not visibles
 
 			const checkboxReadOnlyLabel = page
@@ -2768,10 +2952,15 @@ test.describe('Form Localization', () => {
 				.getByText('Select Origin')
 				.getByText('(Read Only)');
 
+			const multiSelectReadOnlyLabel = page
+				.getByText('Growth Areas')
+				.getByText('(Read Only)');
+
 			await expect(checkboxReadOnlyLabel).not.toBeVisible();
 			await expect(inputTextReadOnlyLabel).not.toBeVisible();
 			await expect(textareaReadOnlyLabel).not.toBeVisible();
 			await expect(selectReadOnlyLabel).not.toBeVisible();
+			await expect(multiSelectReadOnlyLabel).not.toBeVisible();
 
 			// Go to edit mode and change unlocalized field configuration to read only
 
@@ -2815,12 +3004,13 @@ test.describe('Form Localization', () => {
 
 			await expect(
 				page.getByLabel('field is not localizable message')
-			).toHaveCount(5);
+			).toHaveCount(6);
 
 			await expect(checkboxReadOnlyLabel).toBeVisible();
 			await expect(inputTextReadOnlyLabel).toBeVisible();
 			await expect(textareaReadOnlyLabel).toBeVisible();
 			await expect(selectReadOnlyLabel).toBeVisible();
+			await expect(multiSelectReadOnlyLabel).toBeVisible();
 
 			await expect(page.getByLabel('Country')).toHaveAttribute(
 				'readonly'
@@ -2842,6 +3032,12 @@ test.describe('Form Localization', () => {
 			await expect(page.getByLabel('Select Origin')).toHaveAttribute(
 				'readonly'
 			);
+
+			await firstMultiSelectOption.click({force: true});
+			await secondMultiSelectOption.click({force: true});
+
+			await expect(firstMultiSelectOption).not.toBeChecked();
+			await expect(secondMultiSelectOption).not.toBeChecked();
 		}
 	);
 
@@ -5658,13 +5854,25 @@ test.describe('Multistep', () => {
 				key: 'INPUTS-stepper',
 			});
 
+			// Create a form with two steps and the Stepper
+
+			const headingDefinition = getFragmentDefinition({
+				id: getRandomString(),
+				key: 'BASIC_COMPONENT-heading',
+			});
+
+			const buttonDefinition = getFragmentDefinition({
+				id: getRandomString(),
+				key: 'BASIC_COMPONENT-button',
+			});
+
 			const firstFormId = getRandomString();
 
 			const firstFormDefinition = getFormContainerDefinition({
 				id: firstFormId,
 				objectDefinitionClassName,
 				pageElements: [stepperFragment],
-				steps: [[]],
+				steps: [[headingDefinition], [buttonDefinition]],
 			});
 
 			const secondFormId = getRandomString();
@@ -5737,6 +5945,18 @@ test.describe('Multistep', () => {
 			await expect(
 				secondForm.locator('.multi-step-nav')
 			).not.toBeVisible();
+
+			// Check Stepper is present in the first shape in the first position
+
+			const firstForm = page
+				.locator('.page-editor__form .page-editor__container')
+				.first();
+
+			await expect(firstForm.locator('.multi-step-nav')).toBeVisible();
+
+			await expect(
+				firstForm.locator('.page-editor__topper').first()
+			).toContainText(/Step 1/);
 		}
 	);
 

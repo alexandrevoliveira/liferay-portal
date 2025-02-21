@@ -44,7 +44,6 @@ import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
-import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.repository.model.FileEntry;
@@ -96,7 +95,7 @@ public class ObjectEntryInfoItemValuesProviderUtil {
 
 			Object value = values.get(objectField.getName());
 
-			if (FeatureFlagManagerUtil.isEnabled("LPD-37927") &
+			if (FeatureFlagManagerUtil.isEnabled("LPD-37927") &&
 				objectField.isLocalized()) {
 
 				value = values.get(objectField.getI18nObjectFieldName());
@@ -232,12 +231,25 @@ public class ObjectEntryInfoItemValuesProviderUtil {
 		if (objectField.isLocalized() && (value instanceof Map)) {
 			Map<String, Object> map = (Map<String, Object>)value;
 
-			infoFieldValue = InfoLocalizedValue.function(
-				currentLocale -> _parseValue(
-					listTypeEntryLocalService, currentLocale,
-					objectEntryLocalService, objectField,
-					objectRelationshipLocalService,
-					map.get(LanguageUtil.getLanguageId(currentLocale))));
+			infoFieldValue = InfoLocalizedValue.builder(
+			).defaultLocale(
+				LocaleUtil.fromLanguageId(objectField.getDefaultLanguageId())
+			).value(
+				consumer -> {
+					for (Map.Entry<String, Object> entry : map.entrySet()) {
+						Locale curLocale = LocaleUtil.fromLanguageId(
+							entry.getKey());
+
+						consumer.accept(
+							curLocale,
+							_parseValue(
+								listTypeEntryLocalService, curLocale,
+								objectEntryLocalService, objectField,
+								objectRelationshipLocalService,
+								entry.getValue()));
+					}
+				}
+			).build();
 		}
 		else {
 			infoFieldValue = _parseValue(
@@ -258,13 +270,87 @@ public class ObjectEntryInfoItemValuesProviderUtil {
 		if (objectField.compareBusinessType(
 				ObjectFieldConstants.BUSINESS_TYPE_ATTACHMENT)) {
 
-			Long fileEntryId = (Long)infoFieldValue;
-
 			try {
-				FileEntry fileEntry = dlAppLocalService.getFileEntry(
-					GetterUtil.getLong(fileEntryId));
+				Object downloadURLInfoFieldValue = null;
+				Object fileNameInfoFieldValue = null;
+				Object mimeTypeInfoFieldValue = null;
+				Object previewURLInfoFieldValue = null;
+				Object sizeInfoFieldValue = null;
 
-				infoFieldValue = fileEntry.getFileEntryId();
+				if (infoFieldValue instanceof Long) {
+					Long fileEntryId = (Long)infoFieldValue;
+
+					FileEntry fileEntry = dlAppLocalService.getFileEntry(
+						GetterUtil.getLong(fileEntryId));
+
+					downloadURLInfoFieldValue = dlURLHelper.getDownloadURL(
+						fileEntry, fileEntry.getFileVersion(), null,
+						StringPool.BLANK);
+
+					fileNameInfoFieldValue = fileEntry.getFileName();
+					mimeTypeInfoFieldValue = fileEntry.getMimeType();
+					previewURLInfoFieldValue = dlURLHelper.getPreviewURL(
+						fileEntry, fileEntry.getFileVersion(), null,
+						StringPool.BLANK);
+					sizeInfoFieldValue = fileEntry.getSize();
+				}
+				else if (infoFieldValue instanceof InfoLocalizedValue) {
+					InfoLocalizedValue<Object> infoLocalizedValue =
+						(InfoLocalizedValue<Object>)infoFieldValue;
+
+					InfoLocalizedValue.Builder<Object>
+						downloadURLInfoFieldValueBuilder =
+							InfoLocalizedValue.builder();
+					InfoLocalizedValue.Builder<Object>
+						fileNameInfoFieldValueBuilder =
+							InfoLocalizedValue.builder();
+					InfoLocalizedValue.Builder<Object>
+						mimeTypeInfoFieldValueBuilder =
+							InfoLocalizedValue.builder();
+					InfoLocalizedValue.Builder<Object>
+						previewURLInfoFieldValueBuilder =
+							InfoLocalizedValue.builder();
+					InfoLocalizedValue.Builder<Object>
+						sizeInfoFieldValueBuilder =
+							InfoLocalizedValue.builder();
+
+					Map<Locale, Object> values = infoLocalizedValue.getValues();
+
+					for (Map.Entry<Locale, Object> entry : values.entrySet()) {
+						Long fileEntryId = (Long)entry.getValue();
+
+						FileEntry fileEntry = dlAppLocalService.getFileEntry(
+							GetterUtil.getLong(fileEntryId));
+
+						downloadURLInfoFieldValueBuilder.value(
+							entry.getKey(),
+							dlURLHelper.getDownloadURL(
+								fileEntry, fileEntry.getFileVersion(), null,
+								StringPool.BLANK));
+						fileNameInfoFieldValueBuilder.value(
+							entry.getKey(), fileEntry.getFileName());
+						mimeTypeInfoFieldValueBuilder.value(
+							entry.getKey(), fileEntry.getMimeType());
+						previewURLInfoFieldValueBuilder.value(
+							entry.getKey(),
+							dlURLHelper.getPreviewURL(
+								fileEntry, fileEntry.getFileVersion(), null,
+								StringPool.BLANK));
+						sizeInfoFieldValueBuilder.value(
+							entry.getKey(), fileEntry.getSize());
+					}
+
+					downloadURLInfoFieldValue =
+						downloadURLInfoFieldValueBuilder.build();
+
+					fileNameInfoFieldValue =
+						fileNameInfoFieldValueBuilder.build();
+					mimeTypeInfoFieldValue =
+						mimeTypeInfoFieldValueBuilder.build();
+					previewURLInfoFieldValue =
+						previewURLInfoFieldValueBuilder.build();
+					sizeInfoFieldValue = sizeInfoFieldValueBuilder.build();
+				}
 
 				infoFieldValues.add(
 					new InfoFieldValue<>(
@@ -279,9 +365,7 @@ public class ObjectEntryInfoItemValuesProviderUtil {
 							InfoLocalizedValue.localize(
 								ObjectEntryInfoItemFields.class, "download-url")
 						).build(),
-						dlURLHelper.getDownloadURL(
-							fileEntry, fileEntry.getFileVersion(), null,
-							StringPool.BLANK)));
+						downloadURLInfoFieldValue));
 				infoFieldValues.add(
 					new InfoFieldValue<>(
 						InfoField.builder(
@@ -295,7 +379,7 @@ public class ObjectEntryInfoItemValuesProviderUtil {
 							InfoLocalizedValue.localize(
 								ObjectEntryInfoItemFields.class, "file-name")
 						).build(),
-						fileEntry.getFileName()));
+						fileNameInfoFieldValue));
 				infoFieldValues.add(
 					new InfoFieldValue<>(
 						InfoField.builder(
@@ -309,7 +393,7 @@ public class ObjectEntryInfoItemValuesProviderUtil {
 							InfoLocalizedValue.localize(
 								ObjectEntryInfoItemFields.class, "mime-type")
 						).build(),
-						fileEntry.getMimeType()));
+						mimeTypeInfoFieldValue));
 				infoFieldValues.add(
 					new InfoFieldValue<>(
 						InfoField.builder(
@@ -323,9 +407,7 @@ public class ObjectEntryInfoItemValuesProviderUtil {
 							InfoLocalizedValue.localize(
 								ObjectEntryInfoItemFields.class, "preview-url")
 						).build(),
-						dlURLHelper.getPreviewURL(
-							fileEntry, fileEntry.getFileVersion(), null,
-							StringPool.BLANK)));
+						previewURLInfoFieldValue));
 				infoFieldValues.add(
 					new InfoFieldValue<>(
 						InfoField.builder(
@@ -339,7 +421,7 @@ public class ObjectEntryInfoItemValuesProviderUtil {
 							InfoLocalizedValue.localize(
 								ObjectEntryInfoItemFields.class, "size")
 						).build(),
-						fileEntry.getSize()));
+						sizeInfoFieldValue));
 			}
 			catch (Exception exception) {
 				if (_log.isDebugEnabled()) {

@@ -6,8 +6,10 @@
 package com.liferay.portal.vulcan.util;
 
 import com.liferay.petra.reflect.ReflectionUtil;
+import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.util.Http;
+import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.kernel.util.PropsUtil;
@@ -18,8 +20,12 @@ import java.lang.reflect.Field;
 
 import java.net.URI;
 
+import java.util.List;
+
 import javax.servlet.http.HttpServletRequest;
 
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 
@@ -66,25 +72,132 @@ public class UriInfoUtil {
 	public static UriBuilder getBaseUriBuilder(
 		String applicationPath, UriInfo uriInfo) {
 
-		String basePath = getBasePath(uriInfo);
+		String separator = Portal.PATH_MODULE + StringPool.SLASH;
 
-		if (basePath.endsWith(StringPool.FORWARD_SLASH)) {
-			basePath = basePath.substring(0, basePath.length() - 1);
-		}
-
-		basePath = basePath.substring(0, basePath.lastIndexOf("/") + 1);
-
-		if (basePath.endsWith("/c/")) {
-			basePath = StringUtil.removeLast(basePath, "c/");
-		}
-
-		basePath = basePath + applicationPath;
-
-		return UriBuilder.fromPath(basePath);
+		return UriBuilder.fromPath(
+			StringBundler.concat(
+				StringUtil.extractFirst(getBasePath(uriInfo), separator),
+				separator, applicationPath));
 	}
 
 	public static UriBuilder getBaseUriBuilder(UriInfo uriInfo) {
 		return _updateUriBuilder(uriInfo.getBaseUriBuilder());
+	}
+
+	public static UriInfo getVulcanUriInfo(
+		String applicationPath, UriInfo uriInfo) {
+
+		if ((applicationPath == null) || (uriInfo == null)) {
+			return uriInfo;
+		}
+
+		return new UriInfo() {
+
+			@Override
+			public URI getAbsolutePath() {
+				return _uriInfo.getAbsolutePath();
+			}
+
+			@Override
+			public UriBuilder getAbsolutePathBuilder() {
+				return _uriInfo.getAbsolutePathBuilder();
+			}
+
+			@Override
+			public URI getBaseUri() {
+				UriBuilder uriBuilder = UriInfoUtil.getBaseUriBuilder(
+					_applicationPath + StringPool.SLASH, _uriInfo);
+
+				return uriBuilder.build();
+			}
+
+			@Override
+			public UriBuilder getBaseUriBuilder() {
+				return UriInfoUtil.getBaseUriBuilder(
+					_applicationPath + StringPool.SLASH, _uriInfo);
+			}
+
+			@Override
+			public List<Object> getMatchedResources() {
+				return _uriInfo.getMatchedResources();
+			}
+
+			@Override
+			public List<String> getMatchedURIs() {
+				return _uriInfo.getMatchedURIs();
+			}
+
+			@Override
+			public List<String> getMatchedURIs(boolean b) {
+				return _uriInfo.getMatchedURIs(b);
+			}
+
+			@Override
+			public String getPath() {
+				return _uriInfo.getPath();
+			}
+
+			@Override
+			public String getPath(boolean b) {
+				return _uriInfo.getPath(b);
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters() {
+				return _uriInfo.getPathParameters();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters(boolean b) {
+				return _uriInfo.getPathParameters(b);
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments() {
+				return _uriInfo.getPathSegments();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments(boolean b) {
+				return _uriInfo.getPathSegments(b);
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters() {
+				return _uriInfo.getQueryParameters();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters(
+				boolean b) {
+
+				return _uriInfo.getQueryParameters(b);
+			}
+
+			@Override
+			public URI getRequestUri() {
+				return _uriInfo.getRequestUri();
+			}
+
+			@Override
+			public UriBuilder getRequestUriBuilder() {
+				return _uriInfo.getRequestUriBuilder();
+			}
+
+			@Override
+			public URI relativize(URI uri) {
+				return _uriInfo.relativize(uri);
+			}
+
+			@Override
+			public URI resolve(URI uri) {
+				return _uriInfo.resolve(uri);
+			}
+
+			private final String _applicationPath = applicationPath;
+			private final UriInfo _uriInfo = uriInfo;
+
+		};
 	}
 
 	private static String _getHost(UriBuilder uriBuilder) {
@@ -116,7 +229,11 @@ public class UriInfoUtil {
 		if (!Validator.isBlank(PortalUtil.getPathContext())) {
 			URI uri = uriBuilder.build();
 
-			uriBuilder.replacePath(PortalUtil.getPathContext(uri.getPath()));
+			String path = uri.getPath();
+
+			if (!path.startsWith(PortalUtil.getPathContext())) {
+				uriBuilder.replacePath(PortalUtil.getPathContext(path));
+			}
 		}
 
 		if (Validator.isNotNull(_getHost(uriBuilder)) && _isHttpsEnabled()) {

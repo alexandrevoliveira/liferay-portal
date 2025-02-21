@@ -72,6 +72,7 @@ public interface ObjectEntryFolderLocalService
 	public ObjectEntryFolder addObjectEntryFolder(
 		ObjectEntryFolder objectEntryFolder);
 
+	@Indexable(type = IndexableType.REINDEX)
 	public ObjectEntryFolder addObjectEntryFolder(
 			String externalReferenceCode, long userId, long groupId,
 			long parentObjectEntryFolderId, Map<Locale, String> labelMap,
@@ -122,6 +123,11 @@ public interface ObjectEntryFolderLocalService
 	@Indexable(type = IndexableType.DELETE)
 	public ObjectEntryFolder deleteObjectEntryFolder(
 			ObjectEntryFolder objectEntryFolder)
+		throws PortalException;
+
+	@Indexable(type = IndexableType.REINDEX)
+	public ObjectEntryFolder deleteObjectEntryFolder(
+			String externalReferenceCode, long groupId, long companyId)
 		throws PortalException;
 
 	/**
@@ -265,6 +271,11 @@ public interface ObjectEntryFolderLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<ObjectEntryFolder> getObjectEntryFolders(int start, int end);
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<ObjectEntryFolder> getObjectEntryFolders(
+		long groupId, long companyId, long parentObjectEntryFolderId, int start,
+		int end);
+
 	/**
 	 * Returns all the object entry folders matching the UUID and company.
 	 *
@@ -298,6 +309,10 @@ public interface ObjectEntryFolderLocalService
 	 */
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public int getObjectEntryFoldersCount();
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public int getObjectEntryFoldersCount(
+		long groupId, long companyId, long parentObjectEntryFolderId);
 
 	/**
 	 * Returns the OSGi service identifier.

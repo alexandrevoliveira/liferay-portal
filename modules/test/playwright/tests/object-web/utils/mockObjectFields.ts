@@ -5,7 +5,7 @@
 
 import {ObjectField} from '@liferay/object-admin-rest-client-js';
 
-import {ApiHelpers} from '../../../helpers/ApiHelpers';
+import {DataApiHelpers} from '../../../helpers/ApiHelpers';
 import {getRandomInt} from '../../../utils/getRandomInt';
 import getRandomString from '../../../utils/getRandomString';
 import {
@@ -14,8 +14,9 @@ import {
 } from './dateFormat';
 
 interface MockObjectFieldsReturn {
-	listTypeDefinition?: ListTypeDefinition;
-	objectEntry?: ObjectEntry;
+	listTypeDefinition: ListTypeDefinition;
+	listTypeDefinitionItems: string[];
+	objectEntry: ObjectEntry;
 	objectFields: Partial<ObjectField>[];
 	titleObjectFieldName?: string;
 }
@@ -137,6 +138,7 @@ function isLocalizable(businessType: ObjectFieldBusinessTypes) {
 		'decimal',
 		'integer',
 		'longInteger',
+		'multiselectPicklist',
 		'precisionDecimal',
 		'text',
 	];
@@ -228,7 +230,7 @@ export async function mockObjectFields({
 	objectFieldBusinessTypes,
 	titleObjectFieldName,
 }: {
-	apiHelpers: ApiHelpers;
+	apiHelpers: DataApiHelpers;
 	localizeAllLocalizable?: boolean;
 	objectEntryReturn?: {format: 'API' | 'UI'};
 	objectFieldBusinessTypes: ObjectFieldBusinessTypes[];
@@ -243,6 +245,11 @@ export async function mockObjectFields({
 	) {
 		listTypeDefinition =
 			await apiHelpers.listTypeAdmin.postRandomListTypeDefinition();
+
+		apiHelpers.data.push({
+			id: listTypeDefinition.id,
+			type: 'listTypeDefinition',
+		});
 
 		listTypeDefinitionItems = new Array(3)
 			.fill('')
@@ -375,6 +382,7 @@ export async function mockObjectFields({
 
 	return {
 		listTypeDefinition,
+		listTypeDefinitionItems,
 		objectEntry: objectEntryReturn ? objectEntry : undefined,
 		objectFields,
 		titleObjectFieldName: titleObjectFieldName

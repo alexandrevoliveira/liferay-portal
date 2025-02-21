@@ -51,10 +51,10 @@ public class SystemEventUADAnonymizerTest
 		throws Exception {
 
 		SystemEvent systemEvent = _systemEventLocalService.addSystemEvent(
-			userId, TestPropsValues.getGroupId(), Group.class.getName(),
-			RandomTestUtil.nextLong(), PortalUUIDUtil.generate(),
-			StringPool.BLANK, SystemEventConstants.TYPE_DELETE,
-			StringPool.BLANK);
+			userId, TestPropsValues.getGroupId(), StringPool.BLANK,
+			Group.class.getName(), RandomTestUtil.nextLong(),
+			PortalUUIDUtil.generate(), StringPool.BLANK,
+			SystemEventConstants.TYPE_DELETE, StringPool.BLANK);
 
 		if (deleteAfterTestRun) {
 			_systemEvents.add(systemEvent);

@@ -13,6 +13,10 @@ function get_property {
 }
 
 function main {
+	echo "This script is deprecated as of LPD-45794."
+
+	return
+
 	pushd $(git rev-parse --show-toplevel) > /dev/null
 
 	local branch=$(parse_git_current_branch)

@@ -6,8 +6,12 @@
 package com.liferay.asset.publisher.internal.display.context.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.asset.kernel.model.AssetCategory;
 import com.liferay.asset.kernel.model.AssetEntry;
+import com.liferay.asset.kernel.model.AssetVocabulary;
+import com.liferay.asset.kernel.service.AssetCategoryLocalService;
 import com.liferay.asset.kernel.service.AssetEntryLocalService;
+import com.liferay.asset.kernel.service.AssetVocabularyLocalService;
 import com.liferay.asset.publisher.constants.AssetPublisherPortletKeys;
 import com.liferay.asset.publisher.constants.AssetPublisherWebKeys;
 import com.liferay.asset.publisher.util.AssetEntryResult;
@@ -20,11 +24,13 @@ import com.liferay.portal.configuration.test.util.ConfigurationTestUtil;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
+import com.liferay.portal.kernel.model.LayoutConstants;
 import com.liferay.portal.kernel.portlet.LiferayPortletConfig;
 import com.liferay.portal.kernel.portlet.PortletConfigFactoryUtil;
 import com.liferay.portal.kernel.portlet.bridges.mvc.constants.MVCRenderConstants;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.service.CompanyLocalService;
+import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.service.PortletLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
@@ -108,15 +114,27 @@ public class AssetPublisherDisplayContextTest {
 		_group = GroupTestUtil.addGroup();
 
 		_company = _companyLocalService.getCompany(_group.getCompanyId());
-		_layout = LayoutTestUtil.addTypePortletLayout(_group);
 	}
 
 	@Test
-	public void testGetAssetEntryResultsFilterByAssetTags() throws Exception {
-		String assetTagName = RandomTestUtil.randomString();
+	public void testGetAssetEntryResultsFilterByAssetCategory()
+		throws Exception {
+
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext();
+
+		AssetVocabulary assetVocabulary =
+			_assetVocabularyLocalService.addVocabulary(
+				TestPropsValues.getUserId(), _group.getGroupId(),
+				RandomTestUtil.randomString(), serviceContext);
+
+		AssetCategory assetCategory = _assetCategoryLocalService.addCategory(
+			TestPropsValues.getUserId(), _group.getGroupId(),
+			RandomTestUtil.randomString(), assetVocabulary.getVocabularyId(),
+			serviceContext);
 
 		JournalArticle journalArticle = _addJournalArticle(
-			new String[] {assetTagName});
+			new long[] {assetCategory.getCategoryId()}, null);
 
 		AssetEntry expectedAssetEntry = _assetEntryLocalService.getEntry(
 			JournalArticle.class.getName(),
@@ -130,16 +148,46 @@ public class AssetPublisherDisplayContextTest {
 
 		portletPreferences.setValue("selectionStyle", "dynamic");
 
-		_testGetAssetEntryResultsFilterByAssetTags(
-			_getAssetEntryResults(portletPreferences), 2);
+		_testGetAssetEntryResults(_getAssetEntryResults(portletPreferences), 2);
+
+		portletPreferences.setValue("queryContains0", "true");
+		portletPreferences.setValue("queryName0", "assetCategories");
+		portletPreferences.setValue(
+			"queryValues0", String.valueOf(assetCategory.getCategoryId()));
+
+		List<AssetEntry> assetEntries = _testGetAssetEntryResults(
+			_getAssetEntryResults(portletPreferences), 1);
+
+		Assert.assertEquals(expectedAssetEntry, assetEntries.get(0));
+	}
+
+	@Test
+	public void testGetAssetEntryResultsFilterByAssetTags() throws Exception {
+		String assetTagName = RandomTestUtil.randomString();
+
+		JournalArticle journalArticle = _addJournalArticle(
+			null, new String[] {assetTagName});
+
+		AssetEntry expectedAssetEntry = _assetEntryLocalService.getEntry(
+			JournalArticle.class.getName(),
+			journalArticle.getResourcePrimKey());
+
+		JournalTestUtil.addArticle(
+			_group.getGroupId(),
+			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+
+		PortletPreferences portletPreferences = new PortletPreferencesImpl();
+
+		portletPreferences.setValue("selectionStyle", "dynamic");
+
+		_testGetAssetEntryResults(_getAssetEntryResults(portletPreferences), 2);
 
 		portletPreferences.setValue("queryContains0", "true");
 		portletPreferences.setValue("queryName0", "assetTags");
 		portletPreferences.setValue("queryValues0", assetTagName);
 
-		List<AssetEntry> assetEntries =
-			_testGetAssetEntryResultsFilterByAssetTags(
-				_getAssetEntryResults(portletPreferences), 1);
+		List<AssetEntry> assetEntries = _testGetAssetEntryResults(
+			_getAssetEntryResults(portletPreferences), 1);
 
 		Assert.assertEquals(expectedAssetEntry, assetEntries.get(0));
 	}
@@ -168,6 +216,28 @@ public class AssetPublisherDisplayContextTest {
 			Arrays.asList(assetEntry2, assetEntry3, assetEntry1));
 	}
 
+	@Test
+	public void testIsEnableSetAsDefaultAssetPublisher() throws Exception {
+		Assert.assertFalse(
+			ReflectionTestUtil.invoke(
+				_getAssetPublisherDisplayContext(
+					_addLayout(_group, LayoutConstants.TYPE_ASSET_DISPLAY),
+					new PortletPreferencesImpl()),
+				"isEnableSetAsDefaultAssetPublisher", new Class<?>[0]));
+		Assert.assertTrue(
+			ReflectionTestUtil.invoke(
+				_getAssetPublisherDisplayContext(
+					LayoutTestUtil.addTypeContentLayout(_group),
+					new PortletPreferencesImpl()),
+				"isEnableSetAsDefaultAssetPublisher", new Class<?>[0]));
+		Assert.assertTrue(
+			ReflectionTestUtil.invoke(
+				_getAssetPublisherDisplayContext(
+					LayoutTestUtil.addTypePortletLayout(_group),
+					new PortletPreferencesImpl()),
+				"isEnableSetAsDefaultAssetPublisher", new Class<?>[0]));
+	}
+
 	private AssetEntry _addAssetEntry(
 			Date createDate, Date modifiedDate, Date publishedDate,
 			double priority)
@@ -189,12 +259,14 @@ public class AssetPublisherDisplayContextTest {
 		return _assetEntryLocalService.updateAssetEntry(assetEntry);
 	}
 
-	private JournalArticle _addJournalArticle(String[] assetTagNames)
+	private JournalArticle _addJournalArticle(
+			long[] assetCategoryIds, String[] assetTagNames)
 		throws Exception {
 
 		ServiceContext serviceContext =
 			ServiceContextTestUtil.getServiceContext(_group.getGroupId());
 
+		serviceContext.setAssetCategoryIds(assetCategoryIds);
 		serviceContext.setAssetTagNames(assetTagNames);
 
 		return JournalTestUtil.addArticle(
@@ -202,8 +274,35 @@ public class AssetPublisherDisplayContextTest {
 			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID, serviceContext);
 	}
 
+	private Layout _addLayout(Group group, String type) throws Exception {
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext(
+				group, TestPropsValues.getUserId());
+
+		serviceContext.setAttribute(
+			"layout.instanceable.allowed", Boolean.TRUE);
+
+		return _layoutLocalService.addLayout(
+			null, TestPropsValues.getUserId(), group.getGroupId(), false,
+			LayoutConstants.DEFAULT_PARENT_LAYOUT_ID,
+			RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+			StringPool.BLANK, type, false, false, StringPool.BLANK,
+			serviceContext);
+	}
+
 	private List<AssetEntryResult> _getAssetEntryResults(
 			PortletPreferences portletPreferences)
+		throws Exception {
+
+		return ReflectionTestUtil.invoke(
+			_getAssetPublisherDisplayContext(
+				LayoutTestUtil.addTypePortletLayout(_group),
+				portletPreferences),
+			"getAssetEntryResults", new Class<?>[0]);
+	}
+
+	private Object _getAssetPublisherDisplayContext(
+			Layout layout, PortletPreferences portletPreferences)
 		throws Exception {
 
 		MockLiferayPortletRenderRequest mockLiferayPortletRenderRequest =
@@ -231,9 +330,12 @@ public class AssetPublisherDisplayContextTest {
 		mockLiferayPortletRenderRequest.setAttribute(
 			WebKeys.PORTLET_ID, AssetPublisherPortletKeys.ASSET_PUBLISHER);
 		mockLiferayPortletRenderRequest.setAttribute(
-			WebKeys.THEME_DISPLAY, _getThemeDisplay(portletPreferences));
+			WebKeys.THEME_DISPLAY,
+			_getThemeDisplay(layout, portletPreferences));
 
 		mockLiferayPortletRenderRequest.setParameter("mvcPath", path);
+		mockLiferayPortletRenderRequest.setParameter(
+			"portletResource", AssetPublisherPortletKeys.ASSET_PUBLISHER);
 
 		ReflectionTestUtil.invoke(
 			_portlet, "doDispatch",
@@ -241,13 +343,12 @@ public class AssetPublisherDisplayContextTest {
 			mockLiferayPortletRenderRequest,
 			new TestMockLiferayPortletRenderResponse());
 
-		return ReflectionTestUtil.invoke(
-			mockLiferayPortletRenderRequest.getAttribute(
-				AssetPublisherWebKeys.ASSET_PUBLISHER_DISPLAY_CONTEXT),
-			"getAssetEntryResults", new Class<?>[0]);
+		return mockLiferayPortletRenderRequest.getAttribute(
+			AssetPublisherWebKeys.ASSET_PUBLISHER_DISPLAY_CONTEXT);
 	}
 
-	private ThemeDisplay _getThemeDisplay(PortletPreferences portletPreferences)
+	private ThemeDisplay _getThemeDisplay(
+			Layout layout, PortletPreferences portletPreferences)
 		throws Exception {
 
 		ThemeDisplay themeDisplay = new ThemeDisplay();
@@ -259,18 +360,18 @@ public class AssetPublisherDisplayContextTest {
 		portletDisplay.setPortletPreferences(portletPreferences);
 
 		themeDisplay.setCompany(_company);
-		themeDisplay.setLayout(_layout);
+		themeDisplay.setLayout(layout);
 		themeDisplay.setPermissionChecker(
 			PermissionThreadLocal.getPermissionChecker());
 		themeDisplay.setRealUser(TestPropsValues.getUser());
-		themeDisplay.setScopeGroupId(_layout.getGroupId());
-		themeDisplay.setSiteGroupId(_layout.getGroupId());
+		themeDisplay.setScopeGroupId(_group.getGroupId());
+		themeDisplay.setSiteGroupId(_group.getGroupId());
 		themeDisplay.setUser(TestPropsValues.getUser());
 
 		return themeDisplay;
 	}
 
-	private List<AssetEntry> _testGetAssetEntryResultsFilterByAssetTags(
+	private List<AssetEntry> _testGetAssetEntryResults(
 		List<AssetEntryResult> assetEntryResults, int expectedAssetEntries) {
 
 		Assert.assertEquals(
@@ -296,10 +397,9 @@ public class AssetPublisherDisplayContextTest {
 		portletPreferences.setValue("orderByType1", "ASC");
 		portletPreferences.setValue("selectionStyle", "dynamic");
 
-		List<AssetEntry> assetEntries =
-			_testGetAssetEntryResultsFilterByAssetTags(
-				_getAssetEntryResults(portletPreferences),
-				expectedAssetEntries.size());
+		List<AssetEntry> assetEntries = _testGetAssetEntryResults(
+			_getAssetEntryResults(portletPreferences),
+			expectedAssetEntries.size());
 
 		for (int i = 0; i < assetEntries.size(); i++) {
 			Assert.assertEquals(
@@ -308,7 +408,7 @@ public class AssetPublisherDisplayContextTest {
 
 		portletPreferences.setValue("orderByType1", "DESC");
 
-		assetEntries = _testGetAssetEntryResultsFilterByAssetTags(
+		assetEntries = _testGetAssetEntryResults(
 			_getAssetEntryResults(portletPreferences),
 			expectedAssetEntries.size());
 
@@ -325,7 +425,13 @@ public class AssetPublisherDisplayContextTest {
 	private static ConfigurationAdmin _configurationAdmin;
 
 	@Inject
+	private AssetCategoryLocalService _assetCategoryLocalService;
+
+	@Inject
 	private AssetEntryLocalService _assetEntryLocalService;
+
+	@Inject
+	private AssetVocabularyLocalService _assetVocabularyLocalService;
 
 	private Company _company;
 
@@ -335,7 +441,8 @@ public class AssetPublisherDisplayContextTest {
 	@DeleteAfterTestRun
 	private Group _group;
 
-	private Layout _layout;
+	@Inject
+	private LayoutLocalService _layoutLocalService;
 
 	@Inject(
 		filter = "component.name=com.liferay.asset.publisher.web.internal.portlet.AssetPublisherPortlet"

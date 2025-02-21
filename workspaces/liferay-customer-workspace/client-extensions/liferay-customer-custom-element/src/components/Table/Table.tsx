@@ -4,296 +4,72 @@
  */
 
 import ClayTable from '@clayui/table';
-import classNames from 'classnames';
-import {useEffect, useState} from 'react';
-import i18n from '~/utils/I18n';
 
-import {FilterIcon} from '../../assets/FilterIcon';
-import TablePagination from './TablePagination';
-import TableSkeleton from './TableSkeleton';
-
-import './Table.css';
-
-interface IColumn {
-	accessor: string;
-	align?: 'center' | 'left' | 'right' | undefined;
-	bodyClass?: string;
-	disableCustomClickOnRow?: boolean;
-	expanded?: boolean;
-	filterIdentifier?: string;
-	header: {
-		description?: string;
-		name: string;
-		noWrap?: boolean;
-		styles?: string;
-	};
-	noWrap?: boolean;
-	truncate?: boolean;
+export interface IColumn {
+	columnKey: string;
+	label: string;
+	subLabel?: string;
 }
 
-interface IRow {
-	customClickOnRow?: () => void;
-	id: string | number;
-	[key: string]: any;
-}
-
-interface ICheckboxConfig {
-	checkboxesChecked: (string | number)[];
-	setCheckboxesChecked: React.Dispatch<
-		React.SetStateAction<(string | number)[]>
-	>;
-}
-
-interface IPaginationConfig {
-	activePage?: number;
-	itemsPerPage?: number;
-	labels?: any;
-	listItemsPerPage?: number[];
-	setActivePage: (page: number) => void;
-	setItemsPerPage: (itemsPerPage: number) => void;
-	showDeltasDropDown?: boolean;
-	totalCount?: number;
+export interface IRow {
+	link?: string;
+	[key: string]: string | number | JSX.Element | undefined;
 }
 
 interface IProps {
-	checkboxConfig: ICheckboxConfig;
+	className?: string;
 	columns: IColumn[];
-	handleSortChange: Function;
-	hasCheckbox: boolean;
-	hasPagination: boolean;
-	hasSorting?: boolean;
-	isLoading?: boolean;
-	paginationConfig: IPaginationConfig;
+	onRowClick?: (row: IRow) => void;
 	rows: IRow[];
 }
 
-const Table: React.FC<IProps> = ({
-	checkboxConfig,
-	columns,
-	handleSortChange,
-	hasCheckbox,
-	hasPagination,
-	hasSorting,
-	isLoading = false,
-	paginationConfig = {
-		activePage: 1,
-		itemsPerPage: 5,
-		labels: '',
-		listItemsPerPage: [],
-		setActivePage: () => {},
-		setItemsPerPage: () => {},
-		showDeltasDropDown: false,
-		totalCount: 1,
-	},
-	rows,
-	...props
-}) => {
-	const [isAllCheckboxsSelected, setIsAllCheckboxsSelected] = useState(false);
-	const {checkboxesChecked, setCheckboxesChecked} = checkboxConfig;
-
-	const {
-		activePage = 1,
-		itemsPerPage = 5,
-		labels,
-		listItemsPerPage = [],
-		setActivePage = () => {},
-		setItemsPerPage = () => {},
-		showDeltasDropDown = false,
-		totalCount = 1,
-	} = paginationConfig;
-
-	useEffect(() => {
-		if (
-			rows?.length &&
-			hasCheckbox &&
-			rows.every((row) => checkboxesChecked.includes(row.id))
-		) {
-			return setIsAllCheckboxsSelected(true);
-		}
-
-		return setIsAllCheckboxsSelected(false);
-	}, [checkboxesChecked, hasCheckbox, rows]);
-
-	const handleCheckboxClick = (
-		event: React.ChangeEvent<HTMLInputElement>,
-		id: string | number
-	) => {
-		const {checked} = event.target;
-
-		if (checked) {
-			return setCheckboxesChecked((previousCheckboxesChecked) => [
-				...previousCheckboxesChecked,
-				id,
-			]);
-		}
-
-		setCheckboxesChecked((previousCheckboxesChecked) =>
-			previousCheckboxesChecked.filter(
-				(checkboxChecked) => checkboxChecked !== id
-			)
-		);
-	};
-
-	const handleToggleAllCheckboxsSelected = () => {
-		setIsAllCheckboxsSelected(
-			(previousIsAllCheckboxsSelected) => !previousIsAllCheckboxsSelected
-		);
-
-		if (isAllCheckboxsSelected) {
-			setCheckboxesChecked([]);
-
-			return;
-		}
-		setCheckboxesChecked(rows.map((row) => row.id as string | number));
-	};
-
+const Table = ({className, columns, onRowClick, rows}: IProps) => {
 	return (
-		<>
-			<ClayTable borderless={true} {...props}>
-				<ClayTable.Head>
-					<ClayTable.Row>
-						{hasCheckbox && (
-							<ClayTable.Cell className="text-center">
-								<input
-									aria-label={i18n.translate('select-all')}
-									checked={isAllCheckboxsSelected}
-									onChange={handleToggleAllCheckboxsSelected}
-									type="checkbox"
-								/>
-							</ClayTable.Cell>
-						)}
+		<ClayTable
+			borderless
+			className={`${className}-table ${className}-structured-data table`}
+			noWrap
+			striped={false}
+		>
+			<ClayTable.Head align="left">
+				<ClayTable.Row>
+					{columns.map((column) => (
+						<ClayTable.Cell
+							className="font-weight-semi-bold text-neutral-10"
+							key={column.columnKey}
+						>
+							<div>
+								<div className="be-header-label">
+									{column.label}
+								</div>
 
-						{columns.map((column) => (
-							<ClayTable.Cell
-								align={column.align}
-								className={
-									column.header.styles ||
-									'bg-neutral-1 font-weight-bold text-neutral-8'
-								}
-								headingCell
-								key={column.accessor}
-								noWrap={column.header.noWrap}
-							>
-								{column.header.description ? (
-									<div>
-										<p className="font-weight-bold m-0 text-neutral-10">
-											{column.header.name}
-										</p>
-
-										<p className="font-weight-normal m-0 text-neutral-7 text-paragraph-sm">
-											{column.header.description}
-										</p>
-									</div>
-								) : (
-									<div className="d-flex">
-										{column.header.name}
-
-										{hasSorting &&
-											column.filterIdentifier && (
-												<FilterIcon
-													aria-label={i18n.translate(
-														'filter-items'
-													)}
-													columnName={
-														column.filterIdentifier
-													}
-													handleSortChange={
-														handleSortChange
-													}
-												/>
-											)}
+								{column.subLabel && (
+									<div className="be-header-sub-label color-neutral-7">
+										{column.subLabel}
 									</div>
 								)}
+							</div>
+						</ClayTable.Cell>
+					))}
+				</ClayTable.Row>
+			</ClayTable.Head>
+
+			<ClayTable.Body align="left">
+				{rows.map((row, index) => (
+					<ClayTable.Row
+						className={`${className}-row`}
+						key={index}
+						onClick={() => onRowClick && onRowClick(row)}
+					>
+						{columns.map((column) => (
+							<ClayTable.Cell key={column.columnKey}>
+								{row[column.columnKey]}
 							</ClayTable.Cell>
 						))}
 					</ClayTable.Row>
-				</ClayTable.Head>
-
-				{!isLoading ? (
-					<ClayTable.Body>
-						{rows.map((row, rowIndex) => (
-							<ClayTable.Row
-								className={classNames({
-									'cp-common-table-active-row':
-										checkboxesChecked.find(
-											(checkboxChecked) =>
-												checkboxChecked === row.id
-										),
-								})}
-								key={row.id || rowIndex}
-							>
-								{hasCheckbox && (
-									<ClayTable.Cell
-										align="center"
-										className="border-0"
-										key={`checkbox-${rowIndex}`}
-									>
-										<input
-											aria-label={i18n.translate(
-												'select-key'
-											)}
-											checked={checkboxesChecked.includes(
-												row.id
-											)}
-											onChange={(event) =>
-												handleCheckboxClick(
-													event,
-													row.id
-												)
-											}
-											type="checkbox"
-										/>
-									</ClayTable.Cell>
-								)}
-
-								{columns.map((column, columnIndex) => (
-									<ClayTable.Cell
-										align={column.align}
-										className={column.bodyClass}
-										columnTextAlignment={
-											column.align as any
-										}
-										expanded={column.expanded}
-										key={`${rowIndex}-${columnIndex}`}
-										noWrap={column.noWrap}
-										onClick={() => {
-											if (
-												!column.disableCustomClickOnRow &&
-												row.customClickOnRow
-											) {
-												return row.customClickOnRow();
-											}
-										}}
-										truncate={column.truncate}
-									>
-										{row[column.accessor]}
-									</ClayTable.Cell>
-								))}
-							</ClayTable.Row>
-						))}
-					</ClayTable.Body>
-				) : (
-					<TableSkeleton
-						hasCheckbox={hasCheckbox}
-						totalColumns={columns.length}
-						totalItems={itemsPerPage}
-					/>
-				)}
-			</ClayTable>
-
-			{!!hasPagination && !!totalCount && (
-				<TablePagination
-					activePage={activePage}
-					itemsPerPage={itemsPerPage}
-					labels={labels}
-					listItemsPerPage={listItemsPerPage}
-					setActivePage={setActivePage}
-					setItemsPerPage={setItemsPerPage}
-					showDeltasDropDown={showDeltasDropDown}
-					totalItems={totalCount}
-				/>
-			)}
-		</>
+				))}
+			</ClayTable.Body>
+		</ClayTable>
 	);
 };
 

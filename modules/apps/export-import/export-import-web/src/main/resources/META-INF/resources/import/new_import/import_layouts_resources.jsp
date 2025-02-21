@@ -156,43 +156,45 @@ ManifestSummary manifestSummary = ExportImportHelperUtil.getManifestSummary(user
 					</dl>
 				</aui:fieldset>
 
-				<aui:fieldset collapsible="<%= true %>" cssClass="options-group" label="pages">
-					<c:choose>
-						<c:when test="<%= !group.isDepot() && !group.isCompany() && !group.isLayoutPrototype() && !group.isLayoutSetPrototype() %>">
-							<c:choose>
-								<c:when test="<%= group.isPrivateLayoutsEnabled() %>">
-									<aui:input id="publicPages" label="public-pages" name="privateLayout" type="radio" value="<%= false %>" />
+				<c:if test="<%= !stagingGroupHelper.isCompanyGroup(group) %>">
+					<aui:fieldset collapsible="<%= true %>" cssClass="options-group" label="pages">
+						<c:choose>
+							<c:when test="<%= !group.isDepot() && !group.isCompany() && !group.isLayoutPrototype() && !group.isLayoutSetPrototype() %>">
+								<c:choose>
+									<c:when test="<%= group.isPrivateLayoutsEnabled() %>">
+										<aui:input id="publicPages" label="public-pages" name="privateLayout" type="radio" value="<%= false %>" />
 
-									<aui:input id="privatePages" label="private-pages" name="privateLayout" type="radio" value="<%= true %>" />
-								</c:when>
-								<c:otherwise>
-									<aui:input name="privateLayout" type="hidden" value="<%= false %>" />
-								</c:otherwise>
-							</c:choose>
+										<aui:input id="privatePages" label="private-pages" name="privateLayout" type="radio" value="<%= true %>" />
+									</c:when>
+									<c:otherwise>
+										<aui:input name="privateLayout" type="hidden" value="<%= false %>" />
+									</c:otherwise>
+								</c:choose>
 
-							<aui:input label="logo" name="<%= PortletDataHandlerKeys.LOGO %>" type="checkbox" value="<%= true %>" />
+								<aui:input label="logo" name="<%= PortletDataHandlerKeys.LOGO %>" type="checkbox" value="<%= true %>" />
 
-							<aui:input label="site-pages-settings" name="<%= PortletDataHandlerKeys.LAYOUT_SET_SETTINGS %>" type="checkbox" value="<%= true %>" />
+								<aui:input label="site-pages-settings" name="<%= PortletDataHandlerKeys.LAYOUT_SET_SETTINGS %>" type="checkbox" value="<%= true %>" />
 
-							<aui:input label="site-template-settings" name="<%= PortletDataHandlerKeys.LAYOUT_SET_PROTOTYPE_SETTINGS %>" type="checkbox" value="<%= true %>" />
+								<aui:input label="site-template-settings" name="<%= PortletDataHandlerKeys.LAYOUT_SET_PROTOTYPE_SETTINGS %>" type="checkbox" value="<%= true %>" />
 
-							<%
-							String taglibDeleteMissingLayoutsLabel = "<span style='font-weight: bold;'>" + LanguageUtil.get(request, "delete-missing-layouts") + ":</span> " + LanguageUtil.get(request, "delete-missing-layouts-help");
-							%>
+								<%
+								String taglibDeleteMissingLayoutsLabel = "<span style='font-weight: bold;'>" + LanguageUtil.get(request, "delete-missing-layouts") + ":</span> " + LanguageUtil.get(request, "delete-missing-layouts-help");
+								%>
 
-							<aui:input label="<%= taglibDeleteMissingLayoutsLabel %>" name="<%= PortletDataHandlerKeys.DELETE_MISSING_LAYOUTS %>" type="checkbox" value="<%= false %>" />
-						</c:when>
-						<c:otherwise>
-							<aui:input name="privateLayout" type="hidden" value="<%= true %>" />
-						</c:otherwise>
-					</c:choose>
+								<aui:input label="<%= taglibDeleteMissingLayoutsLabel %>" name="<%= PortletDataHandlerKeys.DELETE_MISSING_LAYOUTS %>" type="checkbox" value="<%= false %>" />
+							</c:when>
+							<c:otherwise>
+								<aui:input name="privateLayout" type="hidden" value="<%= true %>" />
+							</c:otherwise>
+						</c:choose>
 
-					<%
-					String taglibThemeSettingsLabel = "<span style='font-weight: bold;'>" + LanguageUtil.get(request, "theme-settings") + ":</span> " + LanguageUtil.get(request, "export-import-theme-settings-help");
-					%>
+						<%
+						String taglibThemeSettingsLabel = "<span style='font-weight: bold;'>" + LanguageUtil.get(request, "theme-settings") + ":</span> " + LanguageUtil.get(request, "export-import-theme-settings-help");
+						%>
 
-					<aui:input label="<%= taglibThemeSettingsLabel %>" name="<%= PortletDataHandlerKeys.THEME_REFERENCE %>" type="checkbox" value="<%= true %>" />
-				</aui:fieldset>
+						<aui:input label="<%= taglibThemeSettingsLabel %>" name="<%= PortletDataHandlerKeys.THEME_REFERENCE %>" type="checkbox" value="<%= true %>" />
+					</aui:fieldset>
+				</c:if>
 
 				<%
 				List<Portlet> dataPortlets = ListUtil.sort(manifestSummary.getDataPortlets(), new PortletTitleComparator(application, locale));
@@ -361,37 +363,39 @@ ManifestSummary manifestSummary = ExportImportHelperUtil.getManifestSummary(user
 
 										</ul>
 
-										<aui:fieldset cssClass="content-options" label="for-each-of-the-selected-content-types,-import-their">
-											<span class="selected-labels" id="<portlet:namespace />selectedContentOptions"></span>
+										<c:if test="<%= !stagingGroupHelper.isCompanyGroup(group) %>">
+											<aui:fieldset cssClass="content-options" label="for-each-of-the-selected-content-types,-import-their">
+												<span class="selected-labels" id="<portlet:namespace />selectedContentOptions"></span>
 
-											<clay:button
-												cssClass="modify-link options-link pr-1"
-												displayType="link"
-												id='<%= liferayPortletResponse.getNamespace() + "contentOptionsLink" %>'
-												label="change"
-											/>
-
-											<span id="<portlet:namespace />rightContentOptionsArrow">
-												<clay:icon
-													symbol="angle-right-small"
+												<clay:button
+													cssClass="modify-link options-link pr-1"
+													displayType="link"
+													id='<%= liferayPortletResponse.getNamespace() + "contentOptionsLink" %>'
+													label="change"
 												/>
-											</span>
-											<span class="hide" id="<portlet:namespace />downContentOptionsArrow">
-												<clay:icon
-													symbol="angle-down-small"
-												/>
-											</span>
 
-											<div class="hide" id="<portlet:namespace />contentOptions">
-												<ul class="lfr-tree list-unstyled">
-													<li class="tree-item">
-														<aui:input label="comments" name="<%= PortletDataHandlerKeys.COMMENTS %>" type="checkbox" value="<%= true %>" />
+												<span id="<portlet:namespace />rightContentOptionsArrow">
+													<clay:icon
+														symbol="angle-right-small"
+													/>
+												</span>
+												<span class="hide" id="<portlet:namespace />downContentOptionsArrow">
+													<clay:icon
+														symbol="angle-down-small"
+													/>
+												</span>
 
-														<aui:input label="ratings" name="<%= PortletDataHandlerKeys.RATINGS %>" type="checkbox" value="<%= true %>" />
-													</li>
-												</ul>
-											</div>
-										</aui:fieldset>
+												<div class="hide" id="<portlet:namespace />contentOptions">
+													<ul class="lfr-tree list-unstyled">
+														<li class="tree-item">
+															<aui:input label="comments" name="<%= PortletDataHandlerKeys.COMMENTS %>" type="checkbox" value="<%= true %>" />
+
+															<aui:input label="ratings" name="<%= PortletDataHandlerKeys.RATINGS %>" type="checkbox" value="<%= true %>" />
+														</li>
+													</ul>
+												</div>
+											</aui:fieldset>
+										</c:if>
 									</li>
 								</ul>
 							</li>

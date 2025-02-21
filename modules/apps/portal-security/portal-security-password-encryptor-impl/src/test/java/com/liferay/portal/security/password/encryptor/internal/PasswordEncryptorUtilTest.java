@@ -9,10 +9,12 @@ import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.exception.PwdEncryptorException;
 import com.liferay.portal.kernel.module.util.SystemBundleUtil;
 import com.liferay.portal.kernel.security.pwd.PasswordEncryptor;
 import com.liferay.portal.kernel.security.pwd.PasswordEncryptorUtil;
 import com.liferay.portal.kernel.test.util.PropsValuesTestUtil;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.util.DigesterUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
@@ -72,14 +74,14 @@ public class PasswordEncryptorUtilTest {
 
 	@Test
 	public void testCustomPasswordEncryptorWithParameters() throws Exception {
-		runTests(
+		_runTests(
 			_TYPE_CUSTOM_PASSWORD_ENCRYPTOR + "/ARGUMENT", "password",
 			"password:ARGUMENT", _TYPE_CUSTOM_PASSWORD_ENCRYPTOR);
 	}
 
 	@Test
 	public void testEncryptBCrypt() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_BCRYPT, "password",
 			"$2a$10$/ST7LsB.7AAHsn/tlK6hr.nudQaBbJhPX9KfRSSzsn.1ij45lVzaK",
 			PasswordEncryptor.TYPE_BCRYPT);
@@ -87,7 +89,7 @@ public class PasswordEncryptorUtilTest {
 
 	@Test
 	public void testEncryptBCryptWith10Rounds() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_BCRYPT + "/10", "password",
 			"$2a$10$JX0uYSs6pSrp05TlQxkmz.hkKGK6Av.KkNCzAYOFugO3qxjAiZleO",
 			PasswordEncryptor.TYPE_BCRYPT);
@@ -95,7 +97,7 @@ public class PasswordEncryptorUtilTest {
 
 	@Test
 	public void testEncryptBCryptWith12Rounds() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_BCRYPT + "/12", "password",
 			"$2a$12$2dD/NrqCEBlVgFEkkFCbzOll2a9vrdl8tTTqGosm26wJK1eCtsjnO",
 			PasswordEncryptor.TYPE_BCRYPT);
@@ -103,62 +105,62 @@ public class PasswordEncryptorUtilTest {
 
 	@Test
 	public void testEncryptCRYPT() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_UFC_CRYPT, "password", "SNbUMVY9kKQpY",
 			PasswordEncryptor.TYPE_UFC_CRYPT);
 	}
 
 	@Test
 	public void testEncryptFailure() throws Exception {
-		testEncryptFailure(
+		_testEncryptFailure(
 			"Some Nonexistent Algorithm", StringPool.BLANK, StringPool.BLANK);
 
-		testEncryptFailure(null, null, null);
+		_testEncryptFailure(null, null, null);
 
-		testEncryptFailure(null, null, StringPool.BLANK);
+		_testEncryptFailure(null, null, StringPool.BLANK);
 
-		testEncryptFailure(null, StringPool.BLANK, null);
+		_testEncryptFailure(null, StringPool.BLANK, null);
 
-		testEncryptFailure(StringPool.BLANK, null, null);
+		_testEncryptFailure(StringPool.BLANK, null, null);
 
-		testEncryptFailure(StringPool.BLANK, null, StringPool.BLANK);
+		_testEncryptFailure(StringPool.BLANK, null, StringPool.BLANK);
 
-		testEncryptFailure(StringPool.BLANK, StringPool.BLANK, null);
+		_testEncryptFailure(StringPool.BLANK, StringPool.BLANK, null);
 
-		testEncryptFailure(null, StringPool.BLANK, StringPool.BLANK);
+		_testEncryptFailure(null, StringPool.BLANK, StringPool.BLANK);
 
-		testEncryptFailure(
+		_testEncryptFailure(
 			StringPool.BLANK, StringPool.BLANK, StringPool.BLANK);
 
-		testEncryptFailure(
+		_testEncryptFailure(
 			PasswordEncryptor.TYPE_SHA, "password",
 			"W6ph5Mm5Pz8GgiULbPgzG37mj9g=");
 	}
 
 	@Test
 	public void testEncryptMD2() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_MD2, "password", "8DiBqIxuORNfDsxg79YJuQ==",
 			PasswordEncryptor.TYPE_MD2);
 	}
 
 	@Test
 	public void testEncryptMD5() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_MD5, "password", "X03MO1qnZdYdgyfeuILPmQ==",
 			PasswordEncryptor.TYPE_MD5);
 	}
 
 	@Test
 	public void testEncryptNONE() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_NONE, "password", "password",
 			PasswordEncryptor.TYPE_NONE);
 	}
 
 	@Test
 	public void testEncryptPBKDF2() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA1", "password",
 			"AAAAoAAB9ADJZ16OuMAPPHe2CUbP0HPyXvagoKHumh7iHU3c",
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA1");
@@ -166,7 +168,7 @@ public class PasswordEncryptorUtilTest {
 
 	@Test
 	public void testEncryptPBKDF2With8ByteSalt() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA1", "password",
 			"AAAAoAAK/IBDrUHgboU2XfC7pqk97rPAQEuRTknBTxehNard",
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA1");
@@ -174,7 +176,7 @@ public class PasswordEncryptorUtilTest {
 
 	@Test
 	public void testEncryptPBKDF2With16ByteSalt() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA1", "password",
 			"AAAAoAAK/IAwGhXn0y8iEgAAAAAAAAAA4zLIf9Yqr/EvCcKm3UJw4gc2KBQ=",
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA1");
@@ -182,7 +184,7 @@ public class PasswordEncryptorUtilTest {
 
 	@Test
 	public void testEncryptPBKDF2With50000Rounds() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA1/50000", "password",
 			"AAAAoAAAw1B+jxO3UiVsWdBk4B9xGd/Ko3GKHW2afYhuit49",
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA1");
@@ -190,7 +192,7 @@ public class PasswordEncryptorUtilTest {
 
 	@Test
 	public void testEncryptPBKDF2With50000RoundsAnd128Key() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA1/128/50000",
 			"password", "AAAAoAAAw1AbW1e1Str9wSLWIX5X9swLn+j5/5+m6auSPdva",
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA1");
@@ -198,7 +200,7 @@ public class PasswordEncryptorUtilTest {
 
 	@Test
 	public void testEncryptPBKDF2With720000RoundsAnd128Key() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA1/128/720000",
 			"password", "AAAAoAAB9ADyaBP3fTtsBh8YlRn1CU7VLYR/mnH7ADMNMz2o",
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA1");
@@ -206,7 +208,7 @@ public class PasswordEncryptorUtilTest {
 
 	@Test
 	public void testEncryptPBKDF2With1300000RoundsAnd128Key() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA1/128/1300000",
 			"password", "AAAAoAAK/IAeIrZ3b+oVv6of6xGPeOIsIhRyCH+h/VX2qMgK",
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA1");
@@ -214,7 +216,7 @@ public class PasswordEncryptorUtilTest {
 
 	@Test
 	public void testEncryptPBKDF2WithHmacSHA256() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA256", "password",
 			"AAAAoAAB9ADJZ16OuMAPPFrcmsgO+rKUjwKOeJbdcZ6PKNxE",
 			PasswordEncryptor.TYPE_PBKDF2 + "WithHmacSHA256");
@@ -222,19 +224,19 @@ public class PasswordEncryptorUtilTest {
 
 	@Test
 	public void testEncryptSHA() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_SHA, "password",
 			"W6ph5Mm5Pz8GgiULbPgzG37mj9g=", PasswordEncryptor.TYPE_SHA);
 	}
 
 	@Test
 	public void testEncryptSHA1() throws Exception {
-		runTests("SHA-1", "password", "W6ph5Mm5Pz8GgiULbPgzG37mj9g=", "SHA-1");
+		_runTests("SHA-1", "password", "W6ph5Mm5Pz8GgiULbPgzG37mj9g=", "SHA-1");
 	}
 
 	@Test
 	public void testEncryptSHA256() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_SHA_256, "password",
 			"XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg=",
 			PasswordEncryptor.TYPE_SHA_256);
@@ -242,7 +244,7 @@ public class PasswordEncryptorUtilTest {
 
 	@Test
 	public void testEncryptSHA384() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_SHA_384, "password",
 			"qLZLq9CsqRpZvbt3YbQh1PK7OCgNOnW6DyHyvrxFWD1EbFmGYMlM5oDEfRnDB4On",
 			PasswordEncryptor.TYPE_SHA_384);
@@ -250,7 +252,7 @@ public class PasswordEncryptorUtilTest {
 
 	@Test
 	public void testEncryptSSHA() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_SSHA, "password",
 			"2EWEKeVpSdd79PkTX5vaGXH5uQ028Smy/H1NmA==",
 			PasswordEncryptor.TYPE_SSHA);
@@ -258,37 +260,44 @@ public class PasswordEncryptorUtilTest {
 
 	@Test
 	public void testEncryptUFCCRYPT() throws Exception {
-		runTests(
+		_runTests(
 			PasswordEncryptor.TYPE_UFC_CRYPT, "password", "2lrTlR/pWPUOQ",
 			PasswordEncryptor.TYPE_UFC_CRYPT);
 	}
 
-	protected void runTests(
+	@Test(expected = PwdEncryptorException.MustSetLegacyAlgorithmProperty.class)
+	public void testEncryptWithLegacyAlgorithm() throws Exception {
+		_testEncryptWithLegacyAlgorithm(
+			null, RandomTestUtil.randomString(), RandomTestUtil.randomString());
+	}
+
+	private void _runTests(
 			String algorithm, String plainPassword, String encryptedPassword,
 			String prependedAlgorithm)
 		throws Exception {
 
-		testEncrypt(algorithm);
+		_testEncrypt(algorithm);
 
-		testEncrypt(
+		_testEncrypt(
 			plainPassword,
 			StringBundler.concat(
 				CharPool.OPEN_CURLY_BRACE, prependedAlgorithm,
 				CharPool.CLOSE_CURLY_BRACE, encryptedPassword));
 
-		testLegacyEncrypt(algorithm, plainPassword, encryptedPassword);
+		_testEncryptWithLegacyAlgorithm(
+			algorithm, plainPassword, encryptedPassword);
 	}
 
-	protected void testEncrypt(String algorithm) throws Exception {
+	private void _testEncrypt(String algorithm) throws Exception {
 		String plainPassword = "password";
 
 		String expectedPassword = PasswordEncryptorUtil.encrypt(
 			algorithm, plainPassword, null);
 
-		testEncrypt(plainPassword, expectedPassword);
+		_testEncrypt(plainPassword, expectedPassword);
 	}
 
-	protected void testEncrypt(String plainPassword, String expectedPassword)
+	private void _testEncrypt(String plainPassword, String expectedPassword)
 		throws Exception {
 
 		Assert.assertEquals(
@@ -296,7 +305,7 @@ public class PasswordEncryptorUtilTest {
 			PasswordEncryptorUtil.encrypt(plainPassword, expectedPassword));
 	}
 
-	protected void testEncryptFailure(
+	private void _testEncryptFailure(
 		String algorithm, String plainTextPassword, String encryptedPassword) {
 
 		try {
@@ -309,7 +318,7 @@ public class PasswordEncryptorUtilTest {
 		}
 	}
 
-	protected void testLegacyEncrypt(
+	private void _testEncryptWithLegacyAlgorithm(
 			String legacyAlgorithm, String plainPassword,
 			String expectedPassword)
 		throws Exception {

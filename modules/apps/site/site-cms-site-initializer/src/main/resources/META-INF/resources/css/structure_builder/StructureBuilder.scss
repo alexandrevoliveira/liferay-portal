@@ -1,0 +1,27 @@
+@import 'cadmin-variables';
+
+$structureFieldsWidth: 448px;
+
+.structure-builder {
+	&__wrapper {
+		height: calc(100vh - (var(--control-menu-container-height)));
+	}
+
+	&__structure-fields {
+		background-color: $cadmin-light-l1;
+		border-radius: 8px;
+		width: $structureFieldsWidth;
+
+		&-empty-state.c-empty-state-sm .c-empty-state-image {
+			max-width: 190px;
+
+			.c-empty-state-aspect-ratio {
+				padding-bottom: 50%;
+			}
+		}
+	}
+
+	&__title-input {
+		font-size: 28px;
+	}
+}

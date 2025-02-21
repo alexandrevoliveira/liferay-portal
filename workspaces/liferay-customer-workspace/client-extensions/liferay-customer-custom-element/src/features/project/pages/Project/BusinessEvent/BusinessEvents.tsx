@@ -10,32 +10,32 @@ import './BusinessEvents.css';
 import {ButtonWithIcon} from '@clayui/core';
 import {useEffect, useMemo, useState} from 'react';
 import {ButtonDropDown} from '~/components';
-import {IRow} from '~/components/DataTable';
+import {IFilterOption} from '~/components/Filter/Filter';
+import Table, {IRow} from '~/components/Table';
+import TableHeader from '~/components/Table/TableHeader';
 import {hasAdminUserAccount} from '~/features/project/containers/ActivationKeysTable/utils/hasAdminUserAccount';
-import BEActionsHeader from '~/features/project/pages/Project/BusinessEvent/components/BEActionsHeader';
-import BETable from '~/features/project/pages/Project/BusinessEvent/components/BETable';
 import {getFormattedDate} from '~/features/project/utils/getFormattedDate';
 import useCurrentKoroneikiAccount from '~/hooks/useCurrentKoroneikiAccount';
 import {getBusinessEvents} from '~/services/liferay/api';
 import {getFormattedTime} from '~/utils/getFormattedTime';
+import {IOrganizationBrief} from '~/utils/types';
 
 import useMyUserAccountByAccountExternalReferenceCode from '../TeamMembers/components/TeamMembersTable/hooks/useMyUserAccountByAccountExternalReferenceCode';
+import {INITIAL_FILTER} from './utils/constants/initialFilter';
 
 interface IBusinessEventTicket {
 	associatedTickets: string;
 	description: string;
-	eventStatus: IEventStatusOrType;
-	eventType: IEventStatusOrType;
+	eventStatus: Record<string, string>;
+	eventType: Record<string, string>;
 	name: string;
 	targetGoLiveDateTime: string;
 }
 
-interface IEventStatusOrType {
-	name: string;
-}
-
-interface IOrganizationBrief {
-	name: string;
+export interface IState {
+	availableFilters?: IFilterOption[];
+	searchTerm?: string;
+	selectedFilters?: IFilterOption[];
 }
 
 const columns = [
@@ -71,6 +71,12 @@ const BusinessEvents = () => {
 		IBusinessEventTicket[]
 	>([]);
 
+	const [filters, setFilters] = useState<IState>({
+		availableFilters: INITIAL_FILTER,
+		searchTerm: '',
+		selectedFilters: [],
+	});
+
 	const {data, loading} = useCurrentKoroneikiAccount();
 	const koroneikiAccount = data?.koroneikiAccountByExternalReferenceCode;
 
@@ -100,10 +106,47 @@ const BusinessEvents = () => {
 		isLiferayStaff ||
 		hasFLSOrganizationAssociated;
 
+	const generateFilterQuery = (filters: IState) => {
+		const queryParams = Object.entries(filters)
+			.map(([key, {value}]) => {
+				if (Array.isArray(value) && !!value.length) {
+					return `(${value
+						.map((item) => `${key} eq '${item}'`)
+						.join(' or ')})`;
+				}
+
+				return '';
+			})
+			.filter(Boolean);
+
+		if (filters.searchTerm?.trim()) {
+			queryParams.push(`(contains(name, '${filters.searchTerm}'))`);
+		}
+
+		return queryParams.length ? `filter=${queryParams.join(' and ')}` : '';
+	};
+
+	const filterQuery = generateFilterQuery(filters);
+
+	const handleFilterChange = (selectedFilters: IFilterOption[]) => {
+		setFilters((prevFilters) => ({
+			...prevFilters,
+			selectedFilters,
+		}));
+	};
+
+	const handleSearchChange = (searchTerm: string) => {
+		setFilters((prevFilters) => ({
+			...prevFilters,
+			searchTerm,
+		}));
+	};
+
 	useEffect(() => {
 		const fetchBusinessEvents = async () => {
 			try {
-				const businessEventsResponse = await getBusinessEvents();
+				const businessEventsResponse =
+					await getBusinessEvents(filterQuery);
 
 				setBusinessEventsTickets(businessEventsResponse.items);
 			}
@@ -113,7 +156,7 @@ const BusinessEvents = () => {
 		};
 
 		fetchBusinessEvents();
-	}, []);
+	}, [filterQuery]);
 
 	const rows = useMemo(() => {
 		const userOptions = [
@@ -231,13 +274,19 @@ const BusinessEvents = () => {
 			</div>
 
 			<div className="mb-1">
-				<BEActionsHeader
-					hasAllEventsPermissions={hasAllEventsPermissions}
+				<TableHeader
+					availableFilters={filters.availableFilters || []}
+					hasCreatePermissions={hasAllEventsPermissions}
+					onFilterChange={handleFilterChange}
+					onSearchChange={handleSearchChange}
+					searchResultsCount={businessEventsTickets.length}
+					searchTerm={filters.searchTerm || ''}
+					selectedFilters={filters.selectedFilters || []}
 				/>
 			</div>
 
 			<div>
-				<BETable columns={columns} rows={rows as unknown as IRow[]} />
+				<Table columns={columns} rows={rows as unknown as IRow[]} />
 			</div>
 		</div>
 	);

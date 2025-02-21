@@ -37,7 +37,11 @@ export function LocalizationSelect({
 				document.querySelectorAll(
 					`[type="hidden"][name$="_${languageId}"]`
 				)
-			).filter((input) => input.getAttribute('value') !== null).length;
+			).filter(
+				(input) =>
+					input.getAttribute('value') !== null &&
+					!input.getAttribute('data-multiselect')
+			).length;
 
 			const label = locales.find(
 				(locale) => locale.id === languageId
@@ -83,7 +87,7 @@ export function LocalizationSelect({
 		<LanguagePicker
 			active={active}
 			defaultLocaleId={defaultLanguageId}
-			hideLanguageLabel={hideLanguageLabel}
+			hideTriggerText={hideLanguageLabel}
 			locales={locales}
 			messages={{
 				default: Liferay.Language.get('default'),

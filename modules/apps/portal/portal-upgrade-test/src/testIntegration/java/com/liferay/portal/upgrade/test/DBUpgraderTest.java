@@ -51,8 +51,16 @@ public class DBUpgraderTest {
 
 		_currentBuildNumber = PortalUpgradeProcess.getCurrentBuildNumber(
 			_connection);
-
 		_currentState = PortalUpgradeProcess.getCurrentState(_connection);
+
+		_moduleServiceLifecyclePortalInitialized =
+			ReflectionTestUtil.getAndSetFieldValue(
+				DBUpgrader.class, "moduleServiceLifecyclePortalInitialized",
+				"test");
+		_moduleServiceLifecyclePortletsInitialized =
+			ReflectionTestUtil.getAndSetFieldValue(
+				DBUpgrader.class, "moduleServiceLifecyclePortletsInitialized",
+				"test");
 
 		_upgrading = ReflectionTestUtil.getAndSetFieldValue(
 			StartupHelperUtil.class, "_upgrading", true);
@@ -61,6 +69,13 @@ public class DBUpgraderTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		DataAccess.cleanUp(_connection);
+
+		ReflectionTestUtil.setFieldValue(
+			DBUpgrader.class, "moduleServiceLifecyclePortalInitialized",
+			_moduleServiceLifecyclePortalInitialized);
+		ReflectionTestUtil.setFieldValue(
+			DBUpgrader.class, "moduleServiceLifecyclePortletsInitialized",
+			_moduleServiceLifecyclePortletsInitialized);
 
 		ReflectionTestUtil.setFieldValue(
 			StartupHelperUtil.class, "_upgrading", _upgrading);
@@ -171,6 +186,8 @@ public class DBUpgraderTest {
 	private static Connection _connection;
 	private static int _currentBuildNumber;
 	private static int _currentState;
+	private static String _moduleServiceLifecyclePortalInitialized;
+	private static String _moduleServiceLifecyclePortletsInitialized;
 	private static boolean _upgrading;
 
 }

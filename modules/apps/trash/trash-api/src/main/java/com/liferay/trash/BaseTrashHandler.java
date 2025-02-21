@@ -57,9 +57,9 @@ public abstract class BaseTrashHandler implements TrashHandler {
 		JSONObject extraDataJSONObject = JSONUtil.put("inTrash", true);
 
 		return SystemEventLocalServiceUtil.addSystemEvent(
-			userId, groupId, getSystemEventClassName(), classPK, classUuid,
-			referrerClassName, SystemEventConstants.TYPE_DELETE,
-			extraDataJSONObject.toString());
+			userId, groupId, StringPool.BLANK, getSystemEventClassName(),
+			classPK, classUuid, referrerClassName,
+			SystemEventConstants.TYPE_DELETE, extraDataJSONObject.toString());
 	}
 
 	@Override

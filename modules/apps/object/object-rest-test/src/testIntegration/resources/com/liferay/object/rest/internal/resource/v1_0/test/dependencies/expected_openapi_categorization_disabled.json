@@ -41,6 +41,9 @@
 					"name": {
 						"type": "string"
 					},
+					"newValue": {
+						"type": "object"
+					},
 					"oldValue": {
 						"type": "object"
 					},
@@ -191,6 +194,9 @@
 					"dateModified": {
 						"format": "date-time",
 						"readOnly": true,
+						"type": "string"
+					},
+					"defaultLanguageId": {
 						"type": "string"
 					},
 					"externalReferenceCode": {
@@ -540,8 +546,6 @@
 			},
 			"post": {
 				"operationId": "postObject9",
-				"parameters": [
-				],
 				"requestBody": {
 					"content": {
 						"application/json": {
@@ -926,6 +930,7 @@
 						"name": "type",
 						"required": true,
 						"schema": {
+							"pattern": "json|yaml",
 							"type": "string"
 						}
 					}

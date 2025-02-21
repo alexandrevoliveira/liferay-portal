@@ -83,7 +83,8 @@ public class UndoFormItemConfigMVCActionCommand
 
 				stepperFragmentEntryLink =
 					_formItemManager.updateNumberOfStepps(
-						actionRequest, actionResponse,
+						_portal.getHttpServletRequest(actionRequest),
+						_portal.getHttpServletResponse(actionResponse),
 						configJSONObject.getInt("numberOfSteps"),
 						stepperFragmentEntryLink);
 
@@ -122,7 +123,8 @@ public class UndoFormItemConfigMVCActionCommand
 
 						layoutStructure.moveLayoutStructureItem(
 							jsonObject.getString("itemId"),
-							jsonObject.getString("parentId"), -1);
+							jsonObject.getString("parentId"),
+							jsonObject.getInt("position"));
 					}
 
 					layoutStructure.markLayoutStructureItemForDeletion(

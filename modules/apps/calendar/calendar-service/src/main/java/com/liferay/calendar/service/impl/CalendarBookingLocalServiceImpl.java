@@ -1197,7 +1197,7 @@ public class CalendarBookingLocalServiceImpl
 			(calendar.getGroupId() != calendarBooking.getGroupId())) {
 
 			systemEventLocalService.addSystemEvent(
-				userId, calendarBooking.getGroupId(),
+				userId, calendarBooking.getGroupId(), StringPool.BLANK,
 				CalendarBooking.class.getName(),
 				calendarBooking.getCalendarBookingId(),
 				calendarBooking.getUuid(), null,

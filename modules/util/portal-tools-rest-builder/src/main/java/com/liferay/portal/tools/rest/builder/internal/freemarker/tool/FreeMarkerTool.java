@@ -126,6 +126,37 @@ public class FreeMarkerTool {
 		return false;
 	}
 
+	public boolean generateCRUD(
+		ConfigYAML configYAML, List<JavaMethodSignature> javaMethodSignatures,
+		String schemaName) {
+
+		if (!configYAML.isGenerateCRUD() ||
+			!isVersionCompatible(configYAML, 7)) {
+
+			return false;
+		}
+
+		JavaMethodSignature javaMethodSignature = getJavaMethodSignature(
+			javaMethodSignatures, "get" + schemaName);
+
+		if (javaMethodSignature == null) {
+			return false;
+		}
+
+		for (JavaMethodParameter javaMethodParameter :
+				javaMethodSignature.getPathJavaMethodParameters()) {
+
+			if (isIdParameter(javaMethodParameter, schemaName) &&
+				StringUtil.equals(
+					javaMethodParameter.getParameterType(), "java.lang.Long")) {
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	public String getActionName(String propertyName) {
 		if (StringUtil.equals(propertyName, "delete")) {
 			return ActionKeys.DELETE;
@@ -1105,6 +1136,20 @@ public class FreeMarkerTool {
 		}
 
 		return true;
+	}
+
+	public boolean isIdParameter(
+		JavaMethodParameter javaMethodParameter, String schemaName) {
+
+		if (StringUtil.equals(javaMethodParameter.getParameterName(), "id") ||
+			StringUtil.equals(
+				javaMethodParameter.getParameterName(),
+				StringUtil.lowerCaseFirstLetter(schemaName) + "Id")) {
+
+			return true;
+		}
+
+		return false;
 	}
 
 	public boolean isParameter(

@@ -331,6 +331,24 @@ public class PortalHotfixReleasePortalTopLevelBuild
 				return null;
 			}
 
+			portalBranchUsername = "liferay";
+
+			Matcher patcherPortalVersionDXPMatcher =
+				_patcherPortalVersionDXPPattern.matcher(patcherPortalVersion);
+
+			if (patcherPortalVersionDXPMatcher.find()) {
+				StringBuilder sb = new StringBuilder();
+
+				sb.append("https://github.com/");
+				sb.append(portalBranchUsername);
+				sb.append("/");
+				sb.append(getReleaseRepositoryName());
+				sb.append("/tree/");
+				sb.append(patcherPortalVersion);
+
+				return sb.toString();
+			}
+
 			Matcher patcherPortalVersionMatcher =
 				_patcherPortalVersionPattern.find(patcherPortalVersion);
 
@@ -355,7 +373,6 @@ public class PortalHotfixReleasePortalTopLevelBuild
 				}
 			}
 
-			portalBranchUsername = "liferay";
 			portalBranchName = sb.toString();
 		}
 

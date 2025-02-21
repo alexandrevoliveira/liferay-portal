@@ -6,15 +6,16 @@
 package com.liferay.frontend.data.set.taglib.servlet.taglib;
 
 import com.liferay.frontend.data.set.filter.FDSFilter;
-import com.liferay.frontend.data.set.filter.FDSFilterSerializer;
 import com.liferay.frontend.data.set.model.FDSActionDropdownItem;
 import com.liferay.frontend.data.set.model.FDSSortItem;
 import com.liferay.frontend.data.set.model.FDSSortItemList;
+import com.liferay.frontend.data.set.serializer.FDSSerializer;
 import com.liferay.frontend.data.set.taglib.internal.servlet.ServletContextUtil;
 import com.liferay.frontend.data.set.view.FDSViewSerializer;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.CreationMenu;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.DropdownItem;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.portlet.PortalPreferences;
@@ -50,8 +51,8 @@ public class HeadlessDisplayTag extends BaseDisplayTag {
 			}
 
 			_setActiveViewSettingsJSON();
-			_setFDSViewsContext();
-			_setFDSFiltersContext();
+			_setFiltersJSONArray();
+			_setViewsJSONArray();
 		}
 		catch (Exception exception) {
 			_log.error(exception);
@@ -197,9 +198,8 @@ public class HeadlessDisplayTag extends BaseDisplayTag {
 
 	@Override
 	public void setPageContext(PageContext pageContext) {
+		_fdsSerializer = ServletContextUtil.getFDSSerializer();
 		_fdsViewSerializer = ServletContextUtil.getFDSViewSerializer();
-
-		_fdsFilterSerializer = ServletContextUtil.getFDSFilterSerializer();
 
 		super.setPageContext(pageContext);
 
@@ -256,11 +256,10 @@ public class HeadlessDisplayTag extends BaseDisplayTag {
 		_customViewsEnabled = false;
 		_fdsActionDropdownItems = new ArrayList<>();
 		_fdsFilters = new ArrayList<>();
-		_fdsFiltersContext = null;
-		_fdsFilterSerializer = null;
+		_fdsSerializer = null;
 		_fdsSortItemList = new FDSSortItemList();
-		_fdsViewsContext = null;
 		_fdsViewSerializer = null;
+		_filtersJSONArray = null;
 		_formId = null;
 		_formName = null;
 		_nestedItemsKey = null;
@@ -273,6 +272,7 @@ public class HeadlessDisplayTag extends BaseDisplayTag {
 		_showPagination = true;
 		_showSearch = true;
 		_style = "default";
+		_viewsJSONArray = null;
 	}
 
 	@Override
@@ -298,7 +298,7 @@ public class HeadlessDisplayTag extends BaseDisplayTag {
 			).put(
 				"customViewsEnabled", _customViewsEnabled
 			).put(
-				"filters", _fdsFiltersContext
+				"filters", _filtersJSONArray
 			).put(
 				"formId", _validateDataAttribute(_formId)
 			).put(
@@ -334,7 +334,7 @@ public class HeadlessDisplayTag extends BaseDisplayTag {
 			).put(
 				"style", _validateDataAttribute(_style)
 			).put(
-				"views", _fdsViewsContext
+				"views", _viewsJSONArray
 			).build());
 	}
 
@@ -351,13 +351,13 @@ public class HeadlessDisplayTag extends BaseDisplayTag {
 			"activeViewSettingsJSON");
 	}
 
-	private void _setFDSFiltersContext() {
-		_fdsFiltersContext = _fdsFilterSerializer.serialize(
-			getId(), getFdsFilters(), PortalUtil.getLocale(getRequest()));
+	private void _setFiltersJSONArray() {
+		_filtersJSONArray = _fdsSerializer.serializeFilters(
+			getFdsFilters(), getId(), getRequest());
 	}
 
-	private void _setFDSViewsContext() {
-		_fdsViewsContext = _fdsViewSerializer.serialize(
+	private void _setViewsJSONArray() {
+		_viewsJSONArray = _fdsViewSerializer.serialize(
 			getId(), PortalUtil.getLocale(getRequest()));
 	}
 
@@ -382,11 +382,10 @@ public class HeadlessDisplayTag extends BaseDisplayTag {
 	private List<FDSActionDropdownItem> _fdsActionDropdownItems =
 		new ArrayList<>();
 	private List<FDSFilter> _fdsFilters = new ArrayList<>();
-	private Object _fdsFiltersContext;
-	private FDSFilterSerializer _fdsFilterSerializer;
+	private FDSSerializer _fdsSerializer;
 	private FDSSortItemList _fdsSortItemList = new FDSSortItemList();
-	private Object _fdsViewsContext;
 	private FDSViewSerializer _fdsViewSerializer;
+	private JSONArray _filtersJSONArray;
 	private String _formId;
 	private String _formName;
 	private String _nestedItemsKey;
@@ -399,5 +398,6 @@ public class HeadlessDisplayTag extends BaseDisplayTag {
 	private boolean _showPagination = true;
 	private boolean _showSearch = true;
 	private String _style = "default";
+	private JSONArray _viewsJSONArray;
 
 }

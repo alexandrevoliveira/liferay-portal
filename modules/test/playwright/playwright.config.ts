@@ -55,7 +55,9 @@ import {config as fragmentWebConfig} from './tests/fragment-web/config';
 import {config as frontendDataSetAdminWebConfig} from './tests/frontend-data-set-admin-web/config';
 import {config as frontendDataSetWebConfig} from './tests/frontend-data-set-web/config';
 import {config as frontendEditorCKEditorWebConfig} from './tests/frontend-editor-ckeditor-web/config';
+import {config as frontendJsComponentsWebConfig} from './tests/frontend-js-components-web/config';
 import {config as frontendJsSpaWebConfig} from './tests/frontend-js-spa-web/config';
+import {config as frontendJsWebConfig} from './tests/frontend-js-web/config';
 import {config as frontendTaglibClayConfig} from './tests/frontend-taglib-clay/config';
 import {config as frontendTaglibConfig} from './tests/frontend-taglib/config';
 import {config as frontendTheme} from './tests/frontend-theme/config';
@@ -73,6 +75,7 @@ import {config as layoutSetPrototypeWebConfig} from './tests/layout-set-prototyp
 import {config as lockedItemsWebConfig} from './tests/locked-items-web/config';
 import {config as loginWebConfig} from './tests/login-web/config';
 import {config as messageBoardsWebConfig} from './tests/message-boards-web/config';
+import {config as multifactorAuthenticationConfig} from './tests/multi-factor-authentication-timebased-otp/config';
 import {config as nestedPortletsWebConfig} from './tests/nested-portlets-web/config';
 import {config as notificationWebConfig} from './tests/notification-web/config';
 import {config as notificationsWebConfig} from './tests/notifications-web/config';
@@ -122,7 +125,6 @@ import {config as customerConfig} from './tests/workspaces/liferay-customer-work
 import {config as commerceWorkspaceConfig} from './tests/workspaces/liferay-workspace-commerce/config';
 import {config as jethr0Config} from './tests/workspaces/liferay-workspace-jethr0/config';
 import {config as marketplaceConfig} from './tests/workspaces/liferay-workspace-marketplace/config';
-
 const setupProjects = [pageManagementSiteSetup, pageManagementSiteTeardown];
 
 export default defineConfig({
@@ -182,7 +184,9 @@ export default defineConfig({
 		frontendDataSetAdminWebConfig,
 		frontendDataSetWebConfig,
 		frontendEditorCKEditorWebConfig,
+		frontendJsComponentsWebConfig,
 		frontendJsSpaWebConfig,
+		frontendJsWebConfig,
 		frontendTaglibClayConfig,
 		frontendTaglibConfig,
 		frontendTheme,
@@ -202,6 +206,7 @@ export default defineConfig({
 		loginWebConfig,
 		marketplaceConfig,
 		messageBoardsWebConfig,
+		multifactorAuthenticationConfig,
 		nestedPortletsWebConfig,
 		notificationWebConfig,
 		notificationsWebConfig,

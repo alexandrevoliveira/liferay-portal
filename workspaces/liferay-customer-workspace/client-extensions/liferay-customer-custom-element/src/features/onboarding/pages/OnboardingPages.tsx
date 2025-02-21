@@ -9,13 +9,13 @@ import InviteTeamMembersForm from '~/features/project/containers/InviteTeamMembe
 import SetupAnalyticsCloudForm from '~/features/project/containers/SetupAnalyticsCloudForm';
 import SetupDXPCloudForm from '~/features/project/containers/SetupDXPCloudForm';
 import useUserAccountsByAccountExternalReferenceCode from '~/features/project/pages/Project/TeamMembers/components/TeamMembersTable/hooks/useUserAccountsByAccountExternalReferenceCode';
-import IAccountSubscriptionGroup from '~/interfaces/accountSubscriptionGroup';
 import {getOrRequestToken} from '~/services/liferay/security/auth/getOrRequestToken';
 import i18n from '~/utils/I18n';
 import {PAGE_ROUTER_TYPES} from '~/utils/constants';
+import {IAccountSubscriptionGroup} from '~/utils/types';
 
-import ConfirmationMessageModal from '../../project/components/ActivationStatus/LiferayExperienceCloud/components/ConfirmationMessageModal';
-import SetupLiferayExperienceCloudForm from '../../project/components/ActivationStatus/LiferayExperienceCloud/components/SetupLXCForm';
+import ConfirmationMessageModal from '../../project/containers/ActivationStatus/LiferayExperienceCloud/components/ConfirmationMessageModal';
+import SetupLiferayExperienceCloudForm from '../../project/containers/ActivationStatus/LiferayExperienceCloud/components/SetupLXCForm';
 import {LIST_TYPES, PRODUCT_TYPES} from '../../project/utils/constants';
 import {useOnboarding} from '../context';
 import {ActionPayload, actionTypes} from '../context/reducer';

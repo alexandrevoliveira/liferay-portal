@@ -35,6 +35,24 @@ function download_hotfix {
 	done
 }
 
+function download_license {
+	if command -v op &> /dev/null
+	then
+		echo "Downloading license from 1Password."
+
+		op read --force "op://Customer Solutions/license.xml/notesPlain" --out-file ./liferay/deploy/license.xml
+
+		if [[ $? -eq 0 ]]
+		then
+			echo "Downloaded license successfully."
+		else
+			echo "Unable to download license from 1Password."
+		fi
+	else
+		echo "Skipping the download of ./liferay/deploy/license.xml because the 1Password CLI is not available."
+	fi
+}
+
 function get_container_id {
 	local container_id=$(docker compose ps --quiet "${1}")
 
@@ -52,6 +70,8 @@ function get_container_id {
 
 function main {
 	download_hotfix
+
+	download_license
 
 	pushd .. > /dev/null
 

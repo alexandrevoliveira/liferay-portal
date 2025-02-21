@@ -65,7 +65,7 @@ public class PortalContextImpl implements PortalContext {
 
 	@Override
 	public String getPortalInfo() {
-		return ReleaseInfo.getReleaseInfo();
+		return ReleaseInfo.getServerInfo();
 	}
 
 	@Override

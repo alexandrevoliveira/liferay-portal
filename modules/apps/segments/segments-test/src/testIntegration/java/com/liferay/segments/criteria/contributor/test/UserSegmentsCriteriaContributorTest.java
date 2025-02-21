@@ -14,18 +14,30 @@ import com.liferay.expando.kernel.service.ExpandoColumnLocalService;
 import com.liferay.expando.test.util.ExpandoTestUtil;
 import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.petra.function.transform.TransformUtil;
+import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
+import com.liferay.portal.kernel.model.Organization;
+import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.model.UserGroup;
+import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.service.CompanyLocalService;
+import com.liferay.portal.kernel.service.OrganizationLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
+import com.liferay.portal.kernel.service.UserGroupLocalService;
 import com.liferay.portal.kernel.servlet.PortletServlet;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.OrganizationTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.RoleTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
+import com.liferay.portal.kernel.test.util.UserGroupTestUtil;
+import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
@@ -121,24 +133,48 @@ public class UserSegmentsCriteriaContributorTest {
 	public void setUp() throws Exception {
 		_expandoTable = ExpandoTestUtil.addTable(
 			PortalUtil.getClassNameId(User.class), "CUSTOM_FIELDS");
-
 		_group = GroupTestUtil.addGroup();
+
+		_organization = OrganizationTestUtil.addOrganization(true);
+		_user = UserTestUtil.addUser();
+
+		_organizationLocalService.addUserOrganization(
+			_user.getUserId(), _organization.getOrganizationId());
+
+		_role1 = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+
+		_roleLocalService.addGroupRole(
+			_organization.getGroupId(), _role1.getRoleId());
+
+		_role2 = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+		_userGroup = UserGroupTestUtil.addUserGroup();
+
+		_roleLocalService.addGroupRole(
+			_userGroup.getGroupId(), _role2.getRoleId());
+		_userGroupLocalService.addUserUserGroup(
+			_user.getUserId(), _userGroup.getUserGroupId());
 	}
 
 	@Test
 	public void testContribute() throws Exception {
-		Criteria criteria = new Criteria();
-
 		SegmentsCriteriaContributor segmentsCriteriaContributor =
 			_getSegmentsCriteriaContributor();
 
+		Criteria criteria = new Criteria();
+
 		segmentsCriteriaContributor.contribute(
-			criteria, "(roleIds eq '33916' and (not (roleIds eq '20101')))",
+			criteria,
+			StringBundler.concat(
+				"(roleIds eq '", _role1.getRoleId(), "' or roleIds eq '",
+				_role2.getRoleId(), "')"),
 			Criteria.Conjunction.AND);
 
 		Assert.assertEquals(
-			"((roleIds eq '33916' or inheritedRoleIds eq '33916') and (not " +
-				"((roleIds eq '20101' or inheritedRoleIds eq '20101'))))",
+			StringBundler.concat(
+				"((roleIds eq '", _role1.getRoleId(),
+				"' or organizationIds eq '", _organization.getOrganizationId(),
+				"') or (roleIds eq '", _role2.getRoleId(),
+				"' or userGroupIds eq '", _userGroup.getUserGroupId(), "'))"),
 			criteria.getFilterString(Criteria.Type.MODEL));
 	}
 
@@ -364,5 +400,29 @@ public class UserSegmentsCriteriaContributorTest {
 
 	@DeleteAfterTestRun
 	private Group _group;
+
+	@DeleteAfterTestRun
+	private Organization _organization;
+
+	@Inject
+	private OrganizationLocalService _organizationLocalService;
+
+	@DeleteAfterTestRun
+	private Role _role1;
+
+	@DeleteAfterTestRun
+	private Role _role2;
+
+	@Inject
+	private RoleLocalService _roleLocalService;
+
+	@DeleteAfterTestRun
+	private User _user;
+
+	@DeleteAfterTestRun
+	private UserGroup _userGroup;
+
+	@Inject
+	private UserGroupLocalService _userGroupLocalService;
 
 }

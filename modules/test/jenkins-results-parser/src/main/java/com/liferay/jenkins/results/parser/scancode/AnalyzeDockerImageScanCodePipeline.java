@@ -7,12 +7,13 @@ package com.liferay.jenkins.results.parser.scancode;
 
 import com.liferay.jenkins.results.parser.JenkinsResultsParserUtil;
 
-import java.io.File;
 import java.io.IOException;
 
 import java.text.SimpleDateFormat;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,31 +28,6 @@ public class AnalyzeDockerImageScanCodePipeline extends BaseScanCodePipeline {
 	@Override
 	public void execute() throws IOException, TimeoutException {
 		invokeScan(getJSONObject());
-
-		File tempDir = new File(System.getProperty("java.io.tmpdir"));
-
-		File dockerConfigFile = new File(tempDir, "scancode-config.yml");
-
-		try {
-			JenkinsResultsParserUtil.write(
-				dockerConfigFile,
-				"ignored_patterns:\n - \'*opt/liferay/license/versions.html\'");
-
-			addFileInput(dockerConfigFile.toString());
-
-			startPipeline(_pipelineName);
-		}
-		catch (IOException ioException) {
-			throw new RuntimeException(ioException);
-		}
-		catch (Exception exception) {
-			exception.printStackTrace();
-		}
-		finally {
-			if (dockerConfigFile != null) {
-				dockerConfigFile.delete();
-			}
-		}
 
 		waitForScan(_pipelineName);
 
@@ -78,12 +54,22 @@ public class AnalyzeDockerImageScanCodePipeline extends BaseScanCodePipeline {
 
 		JSONObject jsonObject = new JSONObject();
 
+		List<String> inputURLs = new ArrayList<>();
+
+		inputURLs.add("docker://liferay/" + _dockerTag);
+		inputURLs.add(
+			JenkinsResultsParserUtil.getBuildProperty(
+				"scancode.config.file.url"));
+		inputURLs.add(
+			JenkinsResultsParserUtil.getBuildProperty(
+				"scancode.policies.file.url"));
+
 		SimpleDateFormat simpleDateFormat = getSimpleDateFormat();
 
 		jsonObject.put(
-			"execute_now", false
+			"execute_now", true
 		).put(
-			"input_urls", "docker://liferay/" + _dockerTag
+			"input_urls", inputURLs
 		).put(
 			"labels",
 			getLabels(

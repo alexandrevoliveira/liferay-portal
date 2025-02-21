@@ -9,15 +9,19 @@ import {ManagementToolbar} from 'frontend-js-components-web';
 import PropTypes from 'prop-types';
 import React, {useContext, useState} from 'react';
 
+import FrontendDataSetContext from '../../FrontendDataSetContext';
 import ViewsContext from '../../views/ViewsContext';
 import ActiveViewSelector from './ActiveViewSelector';
 import CreationMenu from './CreationMenu';
 import CustomViewsControls from './CustomViewsControls';
 import MainSearch from './MainSearch';
+import SelectionCheckbox from './SelectionCheckbox';
 import SortDropdown from './SortDropdown';
 import FiltersDropdown from './filters/FiltersDropdown';
 
-function NavBar({creationMenu, showSearch}) {
+function NavBar({creationMenu, handleCheckboxClick, items, showSearch}) {
+	const {selectable} = useContext(FrontendDataSetContext);
+
 	const [{customViewsEnabled, filters, sorts, views}] =
 		useContext(ViewsContext);
 
@@ -29,6 +33,18 @@ function NavBar({creationMenu, showSearch}) {
 			data-qa-id="management-toolbar"
 		>
 			<ManagementToolbar.ItemList>
+				{!!items.length && selectable && (
+					<ManagementToolbar.Item>
+						{Liferay.FeatureFlags['LPD-42570'] && (
+							<SelectionCheckbox
+								handleCheckboxClick={handleCheckboxClick}
+								items={items}
+								selectedItemsValue={[]}
+							/>
+						)}
+					</ManagementToolbar.Item>
+				)}
+
 				{!!filters.length && (
 					<ManagementToolbar.Item>
 						<FiltersDropdown />
@@ -96,14 +112,9 @@ NavBar.propTypes = {
 		primaryItems: PropTypes.array,
 		secondaryItems: PropTypes.array,
 	}),
-	setActiveView: PropTypes.func,
+	handleCheckboxClick: PropTypes.func.isRequired,
+	items: PropTypes.array.isRequired,
 	showSearch: PropTypes.bool,
-	views: PropTypes.arrayOf(
-		PropTypes.shape({
-			label: PropTypes.string.isRequired,
-			thumbnail: PropTypes.string.isRequired,
-		})
-	),
 };
 
 NavBar.defaultProps = {

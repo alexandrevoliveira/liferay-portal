@@ -72,8 +72,7 @@ public class SegmentsExperienceLocalServiceImpl
 			SegmentsExperienceConstants.KEY_DEFAULT, layout.getPlid(),
 			Collections.singletonMap(
 				LocaleUtil.getSiteDefault(),
-				_language.get(
-					LocaleUtil.getSiteDefault(), "default-experience-name")),
+				_language.get(LocaleUtil.getSiteDefault(), "default")),
 			0, true, new UnicodeProperties(true), serviceContext);
 	}
 
@@ -304,6 +303,18 @@ public class SegmentsExperienceLocalServiceImpl
 			segmentsExperienceLocalService.deleteSegmentsExperience(
 				segmentsExperience);
 		}
+	}
+
+	@Override
+	public SegmentsExperience fetchDefaultSegmentsExperience(long plid) {
+		Layout layout = _layoutLocalService.fetchLayout(plid);
+
+		if (layout == null) {
+			return null;
+		}
+
+		return fetchSegmentsExperience(
+			layout.getGroupId(), SegmentsExperienceConstants.KEY_DEFAULT, plid);
 	}
 
 	@Override

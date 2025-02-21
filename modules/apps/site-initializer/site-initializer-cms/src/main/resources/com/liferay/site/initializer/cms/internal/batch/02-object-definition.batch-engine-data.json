@@ -1,0 +1,182 @@
+{
+	"configuration": {
+		"className": "com.liferay.object.admin.rest.dto.v1_0.ObjectDefinition",
+		"multiCompany": true,
+		"parameters": {
+			"containsHeaders": "true",
+			"createStrategy": "UPSERT",
+			"featureFlag": "LPD-17809",
+			"importStrategy": "ON_ERROR_FAIL",
+			"updateStrategy": "UPDATE"
+		},
+		"taskItemDelegateName": "DEFAULT"
+	},
+	"items": [
+		{
+			"defaultLanguageId": "en_US",
+			"enableCategorization": true,
+			"enableComments": true,
+			"enableIndexSearch": true,
+			"enableLocalization": true,
+			"enableObjectEntryDraft": true,
+			"enableObjectEntryHistory": true,
+			"externalReferenceCode": "L_BASIC_DOCUMENT",
+			"label": {
+				"en_US": "Basic Document"
+			},
+			"modifiable": false,
+			"name": "BasicDocument",
+			"objectActions": [
+			],
+			"objectFields": [
+				{
+					"DBType": "Long",
+					"businessType": "Attachment",
+					"defaultValue": "null",
+					"externalReferenceCode": "FILE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"indexedLanguageId": "en_US",
+					"label": {
+						"en_US": "File"
+					},
+					"localized": false,
+					"name": "file",
+					"objectFieldSettings": [
+						{
+							"name": "acceptedFileExtensions",
+							"value": "jpeg, jpg, pdf, png"
+						},
+						{
+							"name": "maximumFileSize",
+							"value": 100
+						},
+						{
+							"name": "fileSource",
+							"value": "userComputer"
+						},
+						{
+							"name": "showFilesInDocumentsAndMedia",
+							"value": false
+						}
+					],
+					"readOnly": "false",
+					"readOnlyConditionExpression": "",
+					"required": true,
+					"state": false,
+					"system": false,
+					"type": "Long",
+					"unique": false
+				},
+				{
+					"DBType": "String",
+					"businessType": "Text",
+					"defaultValue": "null",
+					"externalReferenceCode": "TITLE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"indexedLanguageId": "en_US",
+					"label": {
+						"en_US": "Title"
+					},
+					"localized": true,
+					"name": "title",
+					"objectFieldSettings": [
+					],
+					"readOnly": "false",
+					"readOnlyConditionExpression": "",
+					"required": false,
+					"state": false,
+					"system": false,
+					"type": "String",
+					"unique": false
+				}
+			],
+			"objectFolderExternalReferenceCode": "L_CMS_FILE_TYPES",
+			"panelCategoryKey": "",
+			"parameterRequired": false,
+			"pluralLabel": {
+				"en_US": "BasicDocuments"
+			},
+			"portlet": false,
+			"scope": "site",
+			"status": {
+				"code": 0
+			},
+			"system": true,
+			"titleObjectFieldName": "title"
+		},
+		{
+			"defaultLanguageId": "en_US",
+			"enableCategorization": true,
+			"enableComments": true,
+			"enableIndexSearch": true,
+			"enableLocalization": true,
+			"enableObjectEntryDraft": true,
+			"enableObjectEntryHistory": true,
+			"externalReferenceCode": "L_BASIC_WEB_CONTENT",
+			"label": {
+				"en_US": "Basic Web Content"
+			},
+			"modifiable": false,
+			"name": "BasicWebContent",
+			"objectFields": [
+				{
+					"DBType": "Clob",
+					"businessType": "RichText",
+					"defaultValue": "null",
+					"externalReferenceCode": "BODY",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"indexedLanguageId": "en_US",
+					"label": {
+						"en_US": "Body"
+					},
+					"localized": true,
+					"name": "body",
+					"readOnly": "false",
+					"readOnlyConditionExpression": "",
+					"required": false,
+					"state": false,
+					"system": false,
+					"type": "Clob",
+					"unique": false
+				},
+				{
+					"DBType": "String",
+					"businessType": "Text",
+					"defaultValue": "null",
+					"externalReferenceCode": "TITLE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"indexedLanguageId": "en_US",
+					"label": {
+						"en_US": "Title"
+					},
+					"localized": true,
+					"name": "title",
+					"readOnly": "false",
+					"readOnlyConditionExpression": "",
+					"required": false,
+					"state": false,
+					"system": false,
+					"type": "String",
+					"unique": false
+				}
+			],
+			"objectFolderExternalReferenceCode": "L_CMS_CONTENT_STRUCTURES",
+			"panelCategoryKey": "",
+			"parameterRequired": false,
+			"pluralLabel": {
+				"en_US": "BasicWebContents"
+			},
+			"portlet": true,
+			"scope": "site",
+			"status": {
+				"code": 0
+			},
+			"system": true,
+			"titleObjectFieldName": "title"
+		}
+	]
+}
