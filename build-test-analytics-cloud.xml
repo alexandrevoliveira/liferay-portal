@@ -753,7 +753,7 @@ OSB_FARO_FRONTEND_URL=${analytics.cloud.faro.frontend.url}</echo>
 	<macrodef name="start-analytics-cloud">
 		<sequential>
 			<if>
-				<equals arg1="${env.TESTRAY_ROUTINE_NAME}" arg2="[master] ci:test:analytics-cloud-release" />
+				<contains string="${env.JOB_NAME}" substring="release" />
 				<then>
 					<echo>Release!</echo>
 				</then>
@@ -929,7 +929,7 @@ if (Os.isFamily(Os.FAMILY_WINDOWS)) {
 	<macrodef name="stop-analytics-cloud">
 		<sequential>
 			<if>
-				<equals arg1="${env.TESTRAY_ROUTINE_NAME}" arg2="[master] ci:test:analytics-cloud-release" />
+				<contains string="${env.JOB_NAME}" substring="release" />
 				<then>
 					<echo>Release!</echo>
 				</then>

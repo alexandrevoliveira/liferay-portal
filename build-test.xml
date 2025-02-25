@@ -3490,7 +3490,7 @@ tell application "Safari" to quit
 					<equals arg1="${analytics.cloud.enabled}" arg2="true" />
 					<then>
 						<if>
-							<equals arg1="${env.TESTRAY_ROUTINE_NAME}" arg2="[master] ci:test:analytics-cloud-release" />
+							<contains string="${env.JOB_NAME}" substring="release" />
 							<then>
 								<echo append="true" file="${test.ext.properties.file}">
 							analytics.cloud.url=${analytics.cloud.staging.url}
