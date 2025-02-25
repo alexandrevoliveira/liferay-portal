@@ -11,6 +11,7 @@ import com.liferay.oauth2.provider.redirect.OAuth2RedirectURIInterpolator;
 import com.liferay.oauth2.provider.service.OAuth2ApplicationLocalService;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.content.security.policy.ContentSecurityPolicyNonceProviderUtil;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.servlet.taglib.DynamicInclude;
@@ -40,10 +41,11 @@ public class OAuth2ProviderTopJSPDynamicInclude implements DynamicInclude {
 			HttpServletResponse httpServletResponse, String key)
 		throws IOException {
 
-		PrintWriter printWriter = httpServletResponse.getWriter();
+		if (!FeatureFlagManagerUtil.isEnabled("LPD-48862")) {
+			return;
+		}
 
-		String url =
-			_portal.getPortalURL(httpServletRequest) + _portal.getPathContext();
+		PrintWriter printWriter = httpServletResponse.getWriter();
 
 		JSONObject jsonObject = _jsonFactory.createJSONObject();
 
@@ -70,6 +72,9 @@ public class OAuth2ProviderTopJSPDynamicInclude implements DynamicInclude {
 								_portal))
 				));
 		}
+
+		String url =
+			_portal.getPortalURL(httpServletRequest) + _portal.getPathContext();
 
 		String string = StringBundler.concat(
 			"<script",

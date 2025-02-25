@@ -10,7 +10,7 @@
  */
 
 module.exports = {
-	hash: 'db83cd744a1b2647152cd06089c667fcac37bd796adae202afb7fe59f294982d',
+	hash: '3c6a6857aa1877f385424e720d0063b3cc106764518d4147d6dafa336f299846',
 	imports: {
 		'@liferay/accessibility-settings-state-web': [],
 		'@liferay/address-web': [],
@@ -82,8 +82,10 @@ module.exports = {
 			'react-dnd-html5-backend',
 			'react-dnd',
 			'react-dom',
+			'react-dom/client',
 			'react-dom-16',
 			'react-dom-18',
+			'react-dom-18/client',
 		],
 		'@liferay/frontend-js-state-web': [],
 		'@liferay/frontend-js-walkthrough-web': [],
@@ -92,6 +94,7 @@ module.exports = {
 		'@liferay/map-google-maps': [],
 		'@liferay/map-openstreetmap': [],
 		'@liferay/marketplace-js-components-web': [],
+		'@liferay/oauth2-provider-web': ['./client', './global'],
 		'@liferay/object-js-components-web': [],
 		'@liferay/portal-workflow-instance-tracker-web': [],
 		'@liferay/template-web': [],

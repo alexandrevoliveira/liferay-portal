@@ -2261,12 +2261,27 @@ public class UserLocalServiceImpl extends UserLocalServiceBaseImpl {
 	 * @param      facebookId the user's Facebook ID
 	 * @return     the user with the Facebook ID, or <code>null</code> if a user
 	 *             with the Facebook ID could not be found
-	 * @deprecated As of Athanasius (7.3.x), with no direct replacement
 	 */
-	@Deprecated
 	@Override
 	public User fetchUserByFacebookId(long companyId, long facebookId) {
-		return userPersistence.fetchByC_FID(companyId, facebookId);
+		if (facebookId == 0) {
+			return null;
+		}
+
+		List<User> users = userPersistence.findByC_FID(companyId, facebookId);
+
+		if (users.isEmpty()) {
+			return null;
+		}
+
+		if ((users.size() > 1) && _log.isWarnEnabled()) {
+			_log.warn(
+				StringBundler.concat(
+					"Multiple users exist with company ID ", companyId,
+					" and facebook ID ", facebookId));
+		}
+
+		return users.get(users.size() - 1);
 	}
 
 	/**
@@ -2886,22 +2901,6 @@ public class UserLocalServiceImpl extends UserLocalServiceBaseImpl {
 		emailAddress = getLogin(emailAddress);
 
 		return userPersistence.findByC_EA(companyId, emailAddress);
-	}
-
-	/**
-	 * Returns the user with the Facebook ID.
-	 *
-	 * @param      companyId the primary key of the user's company
-	 * @param      facebookId the user's Facebook ID
-	 * @return     the user with the Facebook ID
-	 * @deprecated As of Athanasius (7.3.x), with no direct replacement
-	 */
-	@Deprecated
-	@Override
-	public User getUserByFacebookId(long companyId, long facebookId)
-		throws PortalException {
-
-		return userPersistence.findByC_FID(companyId, facebookId);
 	}
 
 	/**
@@ -4650,26 +4649,6 @@ public class UserLocalServiceImpl extends UserLocalServiceBaseImpl {
 		user.setExternalReferenceCode(externalReferenceCode);
 
 		return updateUser(user);
-	}
-
-	/**
-	 * Updates the user's Facebook ID.
-	 *
-	 * @param      userId the primary key of the user
-	 * @param      facebookId the user's new Facebook ID
-	 * @return     the user
-	 * @deprecated As of Athanasius (7.3.x), with no direct replacement
-	 */
-	@Deprecated
-	@Override
-	public User updateFacebookId(long userId, long facebookId)
-		throws PortalException {
-
-		User user = userPersistence.findByPrimaryKey(userId);
-
-		user.setFacebookId(facebookId);
-
-		return userPersistence.update(user);
 	}
 
 	/**

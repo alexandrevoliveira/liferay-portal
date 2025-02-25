@@ -9,35 +9,19 @@ import ClayLink from '@clayui/link';
 import {API} from '@liferay/object-js-components-web';
 import {ManagementToolbar} from 'frontend-js-components-web';
 import {openToast} from 'frontend-js-web';
-import React, {useContext} from 'react';
+import React from 'react';
 
-import {StructureSettingsContext} from '../contexts/StructureSettingsContext';
+import {
+	useStateDispatch,
+	useStructureFields,
+	useStructureId,
+	useStructureLabel,
+	useStructureName,
+	useStructureStatus,
+} from '../contexts/StateContext';
 import StructureService from '../services/StructureService';
 
 export default function ManagementBar() {
-	const {name, setError} = useContext(StructureSettingsContext);
-
-	const onSave = async () => {
-		try {
-			await StructureService.saveStructure({name});
-
-			openToast({
-				message: Liferay.Util.sub(
-					Liferay.Language.get('x-was-created-successfully'),
-					name
-				),
-				type: 'success',
-			});
-
-			setError(null);
-		}
-		catch (error) {
-			const {message} = error as API.ErrorDetails;
-
-			setError(message);
-		}
-	};
-
 	return (
 		<ManagementToolbar.Container className="border">
 			<ManagementToolbar.ItemList className="c-gap-3" expand>
@@ -67,21 +51,129 @@ export default function ManagementBar() {
 				</ManagementToolbar.Item>
 
 				<ManagementToolbar.Item>
-					<ClayButton
-						displayType="secondary"
-						onClick={onSave}
-						size="sm"
-					>
-						{Liferay.Language.get('save')}
-					</ClayButton>
+					<SaveButton />
 				</ManagementToolbar.Item>
 
 				<ManagementToolbar.Item>
-					<ClayButton displayType="primary" size="sm">
-						{Liferay.Language.get('publish')}
-					</ClayButton>
+					<PublishButton />
 				</ManagementToolbar.Item>
 			</ManagementToolbar.ItemList>
 		</ManagementToolbar.Container>
+	);
+}
+
+function SaveButton() {
+	const dispatch = useStateDispatch();
+	const fields = useStructureFields();
+	const label = useStructureLabel();
+	const status = useStructureStatus();
+	const structureId = useStructureId();
+	const structureName = useStructureName();
+
+	const create = async () => {
+		const {id, name, objectFields} = await StructureService.createStructure(
+			{
+				fields,
+				label,
+			}
+		);
+
+		openToast({
+			message: Liferay.Util.sub(
+				Liferay.Language.get('x-was-created-successfully'),
+				label
+			),
+			type: 'success',
+		});
+
+		dispatch({id, name, objectFields, type: 'create-structure'});
+	};
+
+	const update = async () => {
+		const {objectFields} = await StructureService.updateStructure({
+			fields,
+			id: structureId,
+			label,
+			name: structureName,
+		});
+
+		openToast({
+			message: Liferay.Util.sub(
+				Liferay.Language.get('x-was-updated-successfully'),
+				label
+			),
+			type: 'success',
+		});
+
+		dispatch({objectFields, type: 'update-structure'});
+	};
+
+	const onSave = async () => {
+		try {
+			if (status === 'new') {
+				await create();
+			}
+			else {
+				await update();
+			}
+		}
+		catch (error) {
+			const {message} = error as API.ErrorDetails;
+
+			dispatch({error: message, type: 'set-error'});
+		}
+	};
+
+	return (
+		<ClayButton
+			displayType={status === 'published' ? 'primary' : 'secondary'}
+			onClick={onSave}
+			size="sm"
+		>
+			{Liferay.Language.get('save')}
+		</ClayButton>
+	);
+}
+
+function PublishButton() {
+	const dispatch = useStateDispatch();
+	const id = useStructureId();
+	const label = useStructureLabel();
+	const status = useStructureStatus();
+
+	if (status === 'published') {
+		return null;
+	}
+
+	const onPublish = async () => {
+		try {
+			await StructureService.publishStructure({id});
+
+			openToast({
+				message: Liferay.Util.sub(
+					Liferay.Language.get('x-was-published-successfully'),
+					label
+				),
+				type: 'success',
+			});
+
+			dispatch({type: 'publish-structure'});
+		}
+		catch (error) {
+			const {message} = error as API.ErrorDetails;
+
+			dispatch({error: message, type: 'set-error'});
+		}
+	};
+
+	return (
+		<ClayButton
+			disabled={status === 'new'}
+			displayType="primary"
+			onClick={onPublish}
+			size="sm"
+		>
+			{Liferay.Language.get('publish')}
+		</ClayButton>
 	);
 }

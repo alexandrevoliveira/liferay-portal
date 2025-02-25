@@ -5,21 +5,53 @@
 
 import {API, objectDefinitionUtils} from '@liferay/object-js-components-web';
 
-async function saveStructure({name}: {name: string}) {
-	const objectDefinition = {
-		label: {
-			en_US: name,
-		},
-		name: objectDefinitionUtils.normalizeName(name),
-		pluralLabel: {
-			en_US: name,
-		},
-		scope: 'company',
-	};
+import {Field, State} from '../contexts/StateContext';
+import buildObjectDefinition from '../utils/buildObjectDefinition';
 
-	await API.postObjectDefinition(objectDefinition);
+async function createStructure({
+	fields,
+	label,
+	name = objectDefinitionUtils.normalizeName(label),
+}: {
+	fields: Field[];
+	label: State['label'];
+	name?: State['name'];
+}) {
+	const objectDefinition = buildObjectDefinition({
+		fields,
+		label,
+		name,
+	});
+
+	return await API.postObjectDefinition(objectDefinition);
+}
+
+async function publishStructure({id}: {id: State['id']}) {
+	if (!id) {
+		return;
+	}
+
+	return await API.postObjectDefinitionPublish(id);
+}
+
+async function updateStructure({
+	fields,
+	id,
+	label,
+	name,
+}: {
+	fields: Field[];
+	id: State['id'];
+	label: State['label'];
+	name: State['name'];
+}) {
+	const objectDefinition = buildObjectDefinition({fields, id, label, name});
+
+	return await API.putObjectDefinition(objectDefinition);
 }
 
 export default {
-	saveStructure,
+	createStructure,
+	publishStructure,
+	updateStructure,
 };

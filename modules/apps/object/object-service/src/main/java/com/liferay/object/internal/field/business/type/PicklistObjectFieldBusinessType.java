@@ -77,6 +77,19 @@ public class PicklistObjectFieldBusinessType
 	}
 
 	@Override
+	public Object getDisplayContextValue(
+			ObjectField objectField, long userId, Map<String, Object> values)
+		throws PortalException {
+
+		if (objectField.isLocalized()) {
+			return getLocalizedValues(objectField, userId, values);
+		}
+
+		return ObjectFieldBusinessType.super.getDisplayContextValue(
+			objectField, userId, values);
+	}
+
+	@Override
 	public String getLabel(Locale locale) {
 		return _language.get(locale, "picklist");
 	}
@@ -132,6 +145,9 @@ public class PicklistObjectFieldBusinessType
 
 				return localizedValue;
 			}
+		).putAll(
+			ObjectFieldBusinessType.super.getProperties(
+				objectField, objectFieldRenderingContext)
 		).build();
 	}
 

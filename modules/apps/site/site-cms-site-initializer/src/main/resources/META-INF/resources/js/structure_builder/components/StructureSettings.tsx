@@ -7,12 +7,20 @@ import ClayAlert from '@clayui/alert';
 import ClayForm, {ClayInput} from '@clayui/form';
 import ClayLabel from '@clayui/label';
 import ClayLayout from '@clayui/layout';
-import React, {useContext} from 'react';
+import React from 'react';
 
-import {StructureSettingsContext} from '../contexts/StructureSettingsContext';
+import {
+	useSelectedItem,
+	useStateDispatch,
+	useStructureError,
+	useStructureLabel,
+} from '../contexts/StateContext';
+import StructureFieldSettings from './StructureFieldSettings';
 
-export default function StructureSettings() {
-	const {error, name, setName} = useContext(StructureSettingsContext);
+export function StructureSettings() {
+	const dispatch = useStateDispatch();
+	const error = useStructureError();
+	const label = useStructureLabel();
 
 	return (
 		<ClayLayout.ContainerFluid view>
@@ -32,13 +40,26 @@ export default function StructureSettings() {
 
 			<ClayForm.Group>
 				<ClayInput
+					aria-label={Liferay.Language.get('structure-label')}
 					className="form-control-inline structure-builder__title-input"
-					onChange={(event) => setName(event.target.value)}
+					onChange={(event) =>
+						dispatch({label: event.target.value, type: 'set-label'})
+					}
 					sizing="lg"
 					type="text"
-					value={name}
+					value={label}
 				/>
 			</ClayForm.Group>
 		</ClayLayout.ContainerFluid>
 	);
+}
+
+export default function () {
+	const selectedItem = useSelectedItem();
+
+	if (selectedItem.type === 'structure') {
+		return <StructureSettings />;
+	}
+
+	return <StructureFieldSettings fieldERC={selectedItem.erc} />;
 }

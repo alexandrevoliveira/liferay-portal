@@ -21,6 +21,18 @@ $structureFieldsWidth: 448px;
 		}
 	}
 
+	&__fields-tree {
+		&-node {
+			&--field-icon {
+				color: $cadmin-blue-l1;
+			}
+
+			&--structure-icon {
+				color: $cadmin-orange-l1;
+			}
+		}
+	}
+
 	&__title-input {
 		font-size: 28px;
 	}

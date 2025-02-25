@@ -63,6 +63,11 @@ const ClassicEditor = ({config}: {config?: EditorConfig}) => {
 			Underline,
 		],
 		toolbar: ['undo', 'redo', '|', 'bold', 'italic', 'underline'],
+		ui: {
+			viewportOffset: {
+				top: 56,
+			},
+		},
 	};
 
 	if (!Liferay.FeatureFlags['LPD-11235']) {
@@ -76,6 +81,15 @@ const ClassicEditor = ({config}: {config?: EditorConfig}) => {
 				...config,
 			}}
 			editor={BaseClassicEditor}
+			onReady={(editor: BaseClassicEditor) => {
+				editor.ui.view.toolbar.items.map((item: any) => {
+					if (item.buttonView) {
+						item.buttonView.tooltipPosition = 'n';
+					}
+
+					item.tooltipPosition = 'n';
+				});
+			}}
 		/>
 	);
 };

@@ -19,6 +19,10 @@ import com.liferay.frontend.data.set.filter.FDSFilterContextContributorRegistry;
 import com.liferay.frontend.data.set.filter.FDSFilterRegistry;
 import com.liferay.frontend.data.set.model.FDSActionDropdownItem;
 import com.liferay.frontend.data.set.serializer.FDSSerializer;
+import com.liferay.frontend.data.set.view.FDSView;
+import com.liferay.frontend.data.set.view.FDSViewContextContributor;
+import com.liferay.frontend.data.set.view.FDSViewContextContributorRegistry;
+import com.liferay.frontend.data.set.view.FDSViewRegistry;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.CreationMenu;
 import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONObject;
@@ -133,6 +137,61 @@ public class SystemFDSSerializer
 		return fdsItemsActions.getFDSActionDropdownItems(httpServletRequest);
 	}
 
+	@Override
+	public JSONArray serializeViews(
+		String fdsName, HttpServletRequest httpServletRequest) {
+
+		JSONArray jsonArray = JSONUtil.putAll();
+
+		for (FDSView fdsView : fdsViewRegistry.getFDSViews(fdsName)) {
+			JSONObject jsonObject = JSONUtil.put(
+				"contentRenderer", fdsView.getContentRenderer()
+			).put(
+				"contentRendererModuleURL",
+				fdsView.getContentRendererModuleURL()
+			).put(
+				"default", fdsView.isDefault()
+			).put(
+				"label",
+				LanguageUtil.get(
+					ResourceBundleUtil.getBundle(
+						"content.Language",
+						PortalUtil.getLocale(httpServletRequest), getClass()),
+					fdsView.getLabel())
+			).put(
+				"name", fdsView.getName()
+			).put(
+				"thumbnail", fdsView.getThumbnail()
+			);
+
+			List<FDSViewContextContributor> fdsViewContextContributors =
+				fdsViewContextContributorRegistry.getFDSViewContextContributors(
+					fdsView.getContentRenderer());
+
+			for (FDSViewContextContributor fdsViewContextContributor :
+					fdsViewContextContributors) {
+
+				Map<String, Object> fdsViewContext =
+					fdsViewContextContributor.getFDSViewContext(
+						fdsView, PortalUtil.getLocale(httpServletRequest));
+
+				if (fdsViewContext == null) {
+					continue;
+				}
+
+				for (Map.Entry<String, Object> entry :
+						fdsViewContext.entrySet()) {
+
+					jsonObject.put(entry.getKey(), entry.getValue());
+				}
+			}
+
+			jsonArray.put(jsonObject);
+		}
+
+		return jsonArray;
+	}
+
 	@Reference
 	protected FDSBulkActionsRegistry fdsBulkActionsRegistry;
 
@@ -148,6 +207,13 @@ public class SystemFDSSerializer
 
 	@Reference
 	protected FDSItemsActionsRegistry fdsItemsActionsRegistry;
+
+	@Reference
+	protected FDSViewContextContributorRegistry
+		fdsViewContextContributorRegistry;
+
+	@Reference
+	protected FDSViewRegistry fdsViewRegistry;
 
 	@Reference
 	protected SystemFDSEntryRegistry systemFDSEntryRegistry;

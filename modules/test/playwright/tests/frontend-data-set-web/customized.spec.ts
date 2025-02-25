@@ -42,6 +42,75 @@ test.beforeEach(async ({fdsSamplePage, page, site}) => {
 });
 
 test(
+	'Check FDS initial state',
+	{
+		tag: ['@LPS-150047'],
+	},
+	async ({fdsSamplePage, page}) => {
+		await test.step('Check filter is preloaded when entering on an FDS page for first time', async () => {
+			await test.step('Check the active filters button displays with "Blue, Green, Yellow"', async () => {
+				await expect
+					.soft(
+						page.getByRole('button', {
+							name: 'Color: Blue, Green, Yellow',
+						})
+					)
+					.toBeVisible();
+			});
+
+			await test.step('Check the results only show results with colors Blue, Green, and Yellow', async () => {
+				const blueCells = page.getByRole('cell', {name: 'Blue'});
+				const greenCells = page.getByRole('cell', {name: '🍏'});
+				const yellowCells = page.getByRole('cell', {name: 'Yellow'});
+				const redCells = page.getByRole('cell', {name: 'Red'});
+
+				expect.soft(await blueCells.count()).toBeGreaterThan(0);
+				expect.soft(await greenCells.count()).toBeGreaterThan(0);
+				expect.soft(await yellowCells.count()).toBeGreaterThan(0);
+				expect.soft(await redCells.count()).toEqual(0);
+			});
+		});
+
+		await test.step('Check bulk actions', async () => {
+			const firstItemCheckbox = fdsSamplePage.table.container
+				.locator('tbody .cell-select-item')
+				.first()
+				.getByRole('checkbox');
+
+			await test.step('Select one of the items in the table', async () => {
+				await firstItemCheckbox.check();
+			});
+
+			await test.step('Open ellipsis actions menu', async () => {
+				await page
+					.locator('.bulk-actions')
+					.getByLabel('Actions')
+					.click();
+			});
+
+			await test.step('Check the bulk actions are listed', async () => {
+				await expect(
+					page.locator('.dropdown-menu.show').getByRole('menuitem')
+				).toHaveText('Label');
+			});
+
+			await test.step('Close ellipsis actions menu', async () => {
+				await page
+					.locator('.bulk-actions')
+					.getByLabel('Actions')
+					.click();
+
+				await expect(page.locator('.dropdown-menu.show')).toBeHidden();
+			});
+
+			await test.step('Deselect the item to reset to original state', async () => {
+				await firstItemCheckbox.uncheck();
+			});
+		});
+	}
+);
+
+test(
 	'Check behavior of custom views',
 	{
 		tag: ['@LPS-130101'],
@@ -439,26 +508,6 @@ test('Check behavior of item actions', async ({fdsSamplePage, page}) => {
 		await page.keyboard.press('Escape');
 
 		await expect(fdsSamplePage.sidePanel).toHaveClass(/is-hidden/);
-	});
-});
-
-test('Check bulk actions', async ({fdsSamplePage, page}) => {
-	await test.step('Select one of the items in the table', async () => {
-		await fdsSamplePage.table.container
-			.locator('tbody .cell-select-item')
-			.first()
-			.getByRole('checkbox')
-			.setChecked(true);
-	});
-
-	await test.step('Open ellipsis actions menu', async () => {
-		await page.locator('.bulk-actions').getByLabel('Actions').click();
-	});
-
-	await test.step('Check the bulk actions are listed', async () => {
-		await expect(
-			page.locator('.dropdown-menu.show').getByRole('menuitem')
-		).toHaveText('Label');
 	});
 });
 

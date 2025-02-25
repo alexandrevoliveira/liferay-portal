@@ -5,6 +5,7 @@
 
 package com.liferay.frontend.data.set.internal.serializer;
 
+import com.liferay.client.extension.type.FDSCellRendererCET;
 import com.liferay.client.extension.type.FDSFilterCET;
 import com.liferay.client.extension.type.manager.CETManager;
 import com.liferay.frontend.data.set.constants.FDSEntityFieldTypes;
@@ -33,6 +34,7 @@ import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
+import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
@@ -40,7 +42,7 @@ import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.MapUtil;
-import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
@@ -255,6 +257,138 @@ public class CustomFDSSerializer
 			});
 	}
 
+	@Override
+	public JSONArray serializeViews(
+		String fdsName, HttpServletRequest httpServletRequest) {
+
+		JSONArray jsonArray = _jsonFactory.createJSONArray();
+
+		Map<String, Object> dataSetObjectEntryProperties =
+			getDataSetObjectEntryProperties(fdsName, httpServletRequest);
+
+		String defaultVisualizationMode = String.valueOf(
+			dataSetObjectEntryProperties.get("defaultVisualizationMode"));
+
+		jsonArray.put(
+			() -> {
+				List<ObjectEntry> objectEntries = getRelatedObjectEntries(
+					fdsName, httpServletRequest, (Predicate)null,
+					"dataSetToDataSetCardsSections");
+
+				if (objectEntries.isEmpty()) {
+					return null;
+				}
+
+				return JSONUtil.put(
+					"contentRenderer", "cards"
+				).put(
+					"default", defaultVisualizationMode.equals("cards")
+				).put(
+					"label", LanguageUtil.get(httpServletRequest, "cards")
+				).put(
+					"name", "cards"
+				).put(
+					"schema", _serializeViewSchema(objectEntries)
+				).put(
+					"thumbnail", "cards2"
+				);
+			}
+		).put(
+			() -> {
+				List<ObjectEntry> objectEntries = getRelatedObjectEntries(
+					fdsName, httpServletRequest, (Predicate)null,
+					"dataSetToDataSetListSections");
+
+				if (objectEntries.isEmpty()) {
+					return null;
+				}
+
+				return JSONUtil.put(
+					"contentRenderer", "list"
+				).put(
+					"default", defaultVisualizationMode.equals("list")
+				).put(
+					"label", LanguageUtil.get(httpServletRequest, "list")
+				).put(
+					"name", "list"
+				).put(
+					"schema", _serializeViewSchema(objectEntries)
+				).put(
+					"thumbnail", "list"
+				);
+			}
+		).put(
+			() -> {
+				List<ObjectEntry> objectEntries = getSortedRelatedObjectEntries(
+					fdsName, httpServletRequest, (Predicate)null,
+					"tableSectionsOrder", "dataSetToDataSetTableSections");
+
+				if (objectEntries.isEmpty()) {
+					return null;
+				}
+
+				JSONArray fieldsJSONArray = JSONUtil.toJSONArray(
+					objectEntries,
+					(ObjectEntry objectEntry) -> {
+						Map<String, Object> properties =
+							objectEntry.getProperties();
+
+						JSONObject jsonObject = JSONUtil.put(
+							"contentRenderer",
+							String.valueOf(properties.get("renderer"))
+						).put(
+							"fieldName",
+							String.valueOf(properties.get("fieldName"))
+						).put(
+							"label",
+							MapUtil.getWithFallbackKey(
+								properties, "label", "fieldName")
+						).put(
+							"sortable", (boolean)properties.get("sortable")
+						);
+
+						String rendererType = String.valueOf(
+							properties.get("rendererType"));
+
+						if (!Objects.equals(rendererType, "clientExtension")) {
+							return jsonObject;
+						}
+
+						FDSCellRendererCET fdsCellRendererCET =
+							(FDSCellRendererCET)cetManager.getCET(
+								PortalUtil.getCompanyId(httpServletRequest),
+								String.valueOf(properties.get("renderer")));
+
+						return jsonObject.put(
+							"contentRendererClientExtension", true
+						).put(
+							"contentRendererModuleURL",
+							"default from " + fdsCellRendererCET.getURL()
+						);
+					});
+
+				return JSONUtil.put(
+					"contentRenderer", "table"
+				).put(
+					"default", defaultVisualizationMode.equals("table")
+				).put(
+					"label", LanguageUtil.get(httpServletRequest, "table")
+				).put(
+					"name", "table"
+				).put(
+					"schema",
+					JSONUtil.put(
+						"fields", fieldsJSONArray
+					).put(
+						"thumbnail", "table"
+					)
+				);
+			}
+		);
+
+		return jsonArray;
+	}
+
 	protected Map<String, Object> getDataSetObjectEntryProperties(
 		String externalReferenceCode, HttpServletRequest httpServletRequest) {
 
@@ -268,10 +402,9 @@ public class CustomFDSSerializer
 		return Collections.emptyMap();
 	}
 
-	protected List<ObjectEntry> getSortedRelatedObjectEntries(
+	protected List<ObjectEntry> getRelatedObjectEntries(
 		String externalReferenceCode, HttpServletRequest httpServletRequest,
-		Predicate<ObjectEntry> predicate, String propertyKey,
-		String... relationshipNames) {
+		Predicate<ObjectEntry> predicate, String... relationshipNames) {
 
 		List<ObjectEntry> objectEntries = new ArrayList<>();
 
@@ -287,6 +420,21 @@ public class CustomFDSSerializer
 					objectDefinition, objectEntry, predicate,
 					relationshipName));
 		}
+
+		return objectEntries;
+	}
+
+	protected List<ObjectEntry> getSortedRelatedObjectEntries(
+		String externalReferenceCode, HttpServletRequest httpServletRequest,
+		Predicate<ObjectEntry> predicate, String propertyKey,
+		String... relationshipNames) {
+
+		ObjectEntry objectEntry = _getObjectEntry(
+			externalReferenceCode, _getObjectDefinition(httpServletRequest));
+
+		List<ObjectEntry> objectEntries = getRelatedObjectEntries(
+			externalReferenceCode, httpServletRequest, predicate,
+			relationshipNames);
 
 		objectEntries.sort(
 			new ObjectEntryComparator(
@@ -325,7 +473,7 @@ public class CustomFDSSerializer
 		HttpServletRequest httpServletRequest) {
 
 		return _objectDefinitionLocalService.fetchObjectDefinition(
-			_portal.getCompanyId(httpServletRequest), "DataSet");
+			PortalUtil.getCompanyId(httpServletRequest), "DataSet");
 	}
 
 	private ObjectEntry _getObjectEntry(
@@ -665,6 +813,23 @@ public class CustomFDSSerializer
 		);
 	}
 
+	private JSONObject _serializeViewSchema(
+			Collection<ObjectEntry> objectEntries)
+		throws Exception {
+
+		JSONObject jsonObject = _jsonFactory.createJSONObject();
+
+		for (ObjectEntry objectEntry : objectEntries) {
+			Map<String, Object> properties = objectEntry.getProperties();
+
+			jsonObject.put(
+				String.valueOf(properties.get("name")),
+				String.valueOf(properties.get("fieldName")));
+		}
+
+		return jsonObject;
+	}
+
 	private static final Log _log = LogFactoryUtil.getLog(
 		CustomFDSSerializer.class);
 
@@ -682,9 +847,6 @@ public class CustomFDSSerializer
 
 	@Reference
 	private ObjectEntryManagerRegistry _objectEntryManagerRegistry;
-
-	@Reference
-	private Portal _portal;
 
 	private static class ObjectEntryComparator
 		implements Comparator<ObjectEntry> {

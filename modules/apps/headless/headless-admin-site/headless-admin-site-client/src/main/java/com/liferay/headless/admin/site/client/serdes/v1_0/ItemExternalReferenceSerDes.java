@@ -85,20 +85,6 @@ public class ItemExternalReferenceSerDes {
 			sb.append(String.valueOf(itemExternalReference.getScope()));
 		}
 
-		if (itemExternalReference.getCollectionType() != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"collectionType\": ");
-
-			sb.append("\"");
-
-			sb.append(itemExternalReference.getCollectionType());
-
-			sb.append("\"");
-		}
-
 		sb.append("}");
 
 		return sb.toString();
@@ -146,15 +132,6 @@ public class ItemExternalReferenceSerDes {
 			map.put("scope", String.valueOf(itemExternalReference.getScope()));
 		}
 
-		if (itemExternalReference.getCollectionType() == null) {
-			map.put("collectionType", null);
-		}
-		else {
-			map.put(
-				"collectionType",
-				String.valueOf(itemExternalReference.getCollectionType()));
-		}
-
 		return map;
 	}
 
@@ -184,9 +161,6 @@ public class ItemExternalReferenceSerDes {
 			else if (Objects.equals(jsonParserFieldName, "scope")) {
 				return false;
 			}
-			else if (Objects.equals(jsonParserFieldName, "collectionType")) {
-				return false;
-			}
 
 			return false;
 		}
@@ -214,13 +188,6 @@ public class ItemExternalReferenceSerDes {
 				if (jsonParserFieldValue != null) {
 					itemExternalReference.setScope(
 						ScopeSerDes.toDTO((String)jsonParserFieldValue));
-				}
-			}
-			else if (Objects.equals(jsonParserFieldName, "collectionType")) {
-				if (jsonParserFieldValue != null) {
-					itemExternalReference.setCollectionType(
-						ItemExternalReference.CollectionType.create(
-							(String)jsonParserFieldValue));
 				}
 			}
 		}
