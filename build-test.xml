@@ -3490,9 +3490,19 @@ tell application "Safari" to quit
 				<elseif>
 					<equals arg1="${analytics.cloud.enabled}" arg2="true" />
 					<then>
-						<echo append="true" file="${test.ext.properties.file}">
+						<if>
+							<contains string="${env.JOB_NAME}" substring="release" />
+							<then>
+								<echo append="true" file="${test.ext.properties.file}">
+							analytics.cloud.url=${analytics.cloud.staging.url}
+								</echo>
+							</then>
+							<else>
+								<echo append="true" file="${test.ext.properties.file}">
 							analytics.cloud.url=${analytics.cloud.faro.frontend.url}
-						</echo>
+								</echo>
+							</else>
+						</if>
 					</then>
 				</elseif>
 			</if>
