@@ -23,7 +23,7 @@ export type FieldType = 'text';
 type Status = 'new' | 'draft' | 'published';
 
 export type Field = {
-	erc?: number;
+	erc: string;
 	label: string;
 	name: string;
 	type: FieldType;
@@ -35,6 +35,7 @@ export type State = {
 	id: number | null;
 	label: string;
 	name: string;
+	selectedItem: {type: 'structure'} | {erc: string; type: 'field'};
 	status: Status;
 };
 
@@ -44,6 +45,7 @@ const INITIAL_STATE: State = {
 	id: null,
 	label: DEFAULT_STRUCTURE_LABEL,
 	name: objectDefinitionUtils.normalizeName(DEFAULT_STRUCTURE_LABEL),
+	selectedItem: {type: 'structure'},
 	status: 'new',
 };
 
@@ -56,24 +58,33 @@ type CreateStructureAction = {
 	type: 'create-structure';
 };
 
+type DeleteFieldAction = {fieldName: Field['name']; type: 'delete-field'};
+
 type PublishStructureAction = {type: 'publish-structure'};
+
+type SelectItemAction = {
+	item: {type: 'structure'} | {erc: string; type: 'field'};
+	type: 'select-item';
+};
 
 type SetErrorAction = {error: string | null; type: 'set-error'};
 
-type setLabelAction = {label: string; type: 'set-label'};
+type SetLabelAction = {label: string; type: 'set-label'};
 
 type UpdateStructureAction = {
 	objectFields: ObjectField[];
 	type: 'update-structure';
 };
 
-type Action =
+export type Action =
 	| AddFieldAction
 	| CreateStructureAction
+	| DeleteFieldAction
 	| PublishStructureAction
-	| UpdateStructureAction
+	| SelectItemAction
 	| SetErrorAction
-	| setLabelAction;
+	| SetLabelAction
+	| UpdateStructureAction;
 
 function reducer(state: State, action: Action) {
 	switch (action.type) {
@@ -100,6 +111,15 @@ function reducer(state: State, action: Action) {
 				status: 'draft' as Status,
 			};
 		}
+		case 'delete-field': {
+			const {fieldName} = action;
+
+			const nextFields = new Map(state.fields);
+
+			nextFields.delete(fieldName);
+
+			return {...state, fields: nextFields};
+		}
 		case 'publish-structure':
 			return {...state, error: null, status: 'published' as Status};
 		case 'update-structure': {
@@ -110,6 +130,11 @@ function reducer(state: State, action: Action) {
 				error: null,
 				fields,
 			};
+		}
+		case 'select-item': {
+			const {item} = action;
+
+			return {...state, selectedItem: item};
 		}
 		case 'set-error':
 			return {...state, error: action.error};
@@ -140,6 +165,12 @@ export default function StateContextProvider({
 			{children}
 		</StateContext.Provider>
 	);
+}
+
+function useSelectedItem() {
+	const {state} = useContext(StateContext);
+
+	return state.selectedItem;
 }
 
 function useStateDispatch() {
@@ -183,7 +214,9 @@ function useStructureStatus() {
 }
 
 export {
+	StateContext,
 	StateContextProvider,
+	useSelectedItem,
 	useStateDispatch,
 	useStructureError,
 	useStructureFields,

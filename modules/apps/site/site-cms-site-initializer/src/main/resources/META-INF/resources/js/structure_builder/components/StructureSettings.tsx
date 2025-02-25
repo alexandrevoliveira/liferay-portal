@@ -10,12 +10,14 @@ import ClayLayout from '@clayui/layout';
 import React from 'react';
 
 import {
+	useSelectedItem,
 	useStateDispatch,
 	useStructureError,
 	useStructureLabel,
 } from '../contexts/StateContext';
+import StructureFieldSettings from './StructureFieldSettings';
 
-export default function StructureSettings() {
+export function StructureSettings() {
 	const dispatch = useStateDispatch();
 	const error = useStructureError();
 	const label = useStructureLabel();
@@ -38,6 +40,7 @@ export default function StructureSettings() {
 
 			<ClayForm.Group>
 				<ClayInput
+					aria-label={Liferay.Language.get('structure-label')}
 					className="form-control-inline structure-builder__title-input"
 					onChange={(event) =>
 						dispatch({label: event.target.value, type: 'set-label'})
@@ -49,4 +52,14 @@ export default function StructureSettings() {
 			</ClayForm.Group>
 		</ClayLayout.ContainerFluid>
 	);
+}
+
+export default function () {
+	const selectedItem = useSelectedItem();
+
+	if (selectedItem.type === 'structure') {
+		return <StructureSettings />;
+	}
+
+	return <StructureFieldSettings fieldERC={selectedItem.erc} />;
 }

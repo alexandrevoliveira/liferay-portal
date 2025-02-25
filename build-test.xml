@@ -3479,7 +3479,6 @@ tell application "Safari" to quit
 	<macrodef name="prepare-selenium-analytics-cloud-properties">
 		<sequential>
 			<get-testcase-property property.name="analytics.cloud.enabled" />
-
 			<if>
 				<isset property="test.analytics.cloud.url" />
 				<then>

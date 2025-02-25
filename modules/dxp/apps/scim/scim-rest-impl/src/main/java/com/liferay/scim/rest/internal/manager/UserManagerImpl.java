@@ -41,6 +41,7 @@ import com.liferay.portal.kernel.transaction.TransactionInvokerUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.CalendarFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
@@ -73,6 +74,7 @@ import org.wso2.charon3.core.objects.Group;
 import org.wso2.charon3.core.objects.User;
 import org.wso2.charon3.core.objects.plainobjects.GroupsGetResponse;
 import org.wso2.charon3.core.objects.plainobjects.UsersGetResponse;
+import org.wso2.charon3.core.utils.codeutils.ExpressionNode;
 import org.wso2.charon3.core.utils.codeutils.Node;
 import org.wso2.charon3.core.utils.codeutils.SearchRequest;
 
@@ -285,10 +287,23 @@ public class UserManagerImpl implements UserManager {
 				count
 			).withSearchContext(
 				searchContext -> {
+					searchContext.setAndSearch(true);
 					searchContext.setAttribute(Field.GROUP_ID, 0L);
 					searchContext.setAttribute(
 						"expando__keyword__custom_fields__scimClientId",
 						scimClientId);
+
+					ExpressionNode expressionNode = (ExpressionNode)node;
+
+					if ((expressionNode != null) &&
+						StringUtil.contains(
+							expressionNode.getAttributeValue(), "displayName",
+							StringPool.COLON)) {
+
+						searchContext.setAttribute(
+							"name", expressionNode.getValue());
+					}
+
 					searchContext.setUserId(serviceContext.getUserId());
 				}
 			).build();
@@ -363,12 +378,34 @@ public class UserManagerImpl implements UserManager {
 				count
 			).withSearchContext(
 				searchContext -> {
+					searchContext.setAndSearch(true);
 					searchContext.setAttribute(Field.GROUP_ID, 0L);
 					searchContext.setAttribute(
 						Field.STATUS, WorkflowConstants.STATUS_APPROVED);
 					searchContext.setAttribute(
 						"expando__keyword__custom_fields__scimClientId",
 						scimClientId);
+
+					ExpressionNode expressionNode = (ExpressionNode)node;
+
+					if (expressionNode != null) {
+						if (StringUtil.contains(
+								expressionNode.getAttributeValue(),
+								"externalId", StringPool.COLON)) {
+
+							searchContext.setAttribute(
+								"externalReferenceCode",
+								expressionNode.getValue());
+						}
+						else if (StringUtil.contains(
+									expressionNode.getAttributeValue(),
+									"userName", StringPool.COLON)) {
+
+							searchContext.setAttribute(
+								"screenName", expressionNode.getValue());
+						}
+					}
+
 					searchContext.setUserId(serviceContext.getUserId());
 				}
 			).build();

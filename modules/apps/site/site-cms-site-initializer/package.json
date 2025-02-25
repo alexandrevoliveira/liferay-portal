@@ -1,6 +1,7 @@
 {
 	"dependencies": {
 		"@clayui/alert": "3.128.0",
+		"@clayui/breadcrumb": "3.128.0",
 		"@clayui/button": "3.128.0",
 		"@clayui/core": "3.128.0",
 		"@clayui/drop-down": "3.128.0",
@@ -16,7 +17,13 @@
 		"classnames": "2.3.1",
 		"frontend-js-components-web": "*",
 		"frontend-js-web": "*",
-		"react": "18.2.0"
+		"react": "18.2.0",
+		"uuid": "^9.0.1"
+	},
+	"jest": {
+		"testPathIgnorePatterns": [
+			"<rootDir>/.*/mocks"
+		]
 	},
 	"main": "js/index.ts",
 	"name": "@liferay/site-cms-site-initializer",

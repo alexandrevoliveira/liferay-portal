@@ -956,15 +956,23 @@ if (Os.isFamily(Os.FAMILY_WINDOWS)) {
 
 	<macrodef name="stop-analytics-cloud-integration">
 		<sequential>
-			<fail message="Please set the property ${env.DOCKER_ENABLED}." unless="env.DOCKER_ENABLED" />
+			<if>
+				<equals arg1="${env.TESTRAY_ROUTINE_NAME}" arg2="[master] ci:test:analytics-cloud-release" />
+				<then>
+					<echo>Release!</echo>
+				</then>
+				<else>
+					<fail message="Please set the property ${env.DOCKER_ENABLED}." unless="env.DOCKER_ENABLED" />
 
-			<execute dir="${analytics.cloud.asah.dir}">
+					<execute dir="${analytics.cloud.asah.dir}">
 				docker ps -a
 
 				docker-compose -f docker-compose.integration-test.yml down --volumes
 
 				docker system df
-			</execute>
+					</execute>
+				</else>
+			</if>
 		</sequential>
 	</macrodef>
 
