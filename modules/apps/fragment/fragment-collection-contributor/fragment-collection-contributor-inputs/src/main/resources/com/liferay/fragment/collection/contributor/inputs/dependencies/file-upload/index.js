@@ -13,7 +13,9 @@ const hiddenFileInput = document.getElementById(
 const removeButton = document.getElementById(
 	`${fragmentNamespace}-file-upload-remove-button`
 );
-const selectButton = wrapper.querySelector('.btn-secondary');
+const selectButton = document.getElementById(
+	`${fragmentNamespace}-file-upload-button-label`
+);
 
 function showRemoveButton() {
 	removeButton.classList.remove('d-none');
@@ -52,12 +54,16 @@ function onRemoveFile() {
 	removeButton.removeEventListener('click', onRemoveFile);
 }
 
-function onSelectFile(event) {
+function onSelectFile(event, onChange) {
 	event.preventDefault();
 
 	Liferay.Util.openSelectionModal({
 		onSelect(selectedItem) {
 			const {fileEntryId, title} = JSON.parse(selectedItem.value);
+
+			if (onChange) {
+				onChange(fileEntryId, title);
+			}
 
 			fileInput.value = fileEntryId;
 			fileName.innerText = title;
@@ -69,24 +75,170 @@ function onSelectFile(event) {
 	});
 }
 
+const onSelectFromUserComputer = () => {
+	previousFiles = fileInput.files[0] || null;
+
+	fileInput.click();
+};
+
 if (layoutMode === 'edit') {
 	selectButton.classList.add('disabled');
 }
 else {
-	fileInput.addEventListener('change', onInputChange);
+	let selectFileEvent = onSelectFromUserComputer;
 
 	if (input.attributes.selectFromDocumentLibrary) {
-		selectButton.addEventListener('click', onSelectFile);
+		selectFileEvent = onSelectFile;
 	}
-	else {
-		selectButton.addEventListener('click', () => {
-			previousFiles = fileInput.files[0] || null;
 
-			fileInput.click();
-		});
-	}
+	fileInput.addEventListener('change', onInputChange);
 
 	if (fileName.innerText !== '') {
 		showRemoveButton();
+	}
+
+	if (Liferay.FeatureFlags['LPD-37927']) {
+		const defaultLanguageId = themeDisplay.getDefaultLanguageId();
+		const inputElement = fileInput;
+
+		import('@liferay/fragment-impl').then(
+			({registerLocalizedFileInput, registerUnlocalizedInput}) => {
+				if (input.localizable) {
+					const initialValues = Object.fromEntries(
+						Object.keys(input.valueI18n).map((key) => [
+							key,
+							{
+								fileEntryId: input.valueI18n[key],
+								name: input.attributes.fileNameI18n[key] || '',
+							},
+						])
+					);
+
+					const isFromDocumentLibrary =
+						input.attributes.selectFromDocumentLibrary;
+
+					const {onChange, onRemoveFile} = registerLocalizedFileInput(
+						{
+							defaultLanguageId,
+							initialValues,
+							inputName: input.name,
+							isFromDocumentLibrary,
+							localizationInputsContainer:
+								inputElement.parentNode,
+							namespace: fragmentNamespace,
+							onLocaleChange: (input) => {
+								if (!input) {
+									fileName.innerText = '';
+								}
+								else {
+									fileName.innerText =
+										input.dataset.fileName || '';
+								}
+
+								if (fileName.innerText) {
+									removeButton.classList.remove('d-none');
+								}
+								else {
+									removeButton.classList.add('d-none');
+								}
+							},
+						}
+					);
+
+					if (isFromDocumentLibrary) {
+						selectButton.addEventListener('click', (event) =>
+							onSelectFile(event, onChange)
+						);
+					}
+					else {
+						inputElement.addEventListener('change', (event) => {
+							onChange(event.target.files);
+						});
+
+						selectButton.addEventListener(
+							'click',
+							onSelectFromUserComputer
+						);
+					}
+
+					removeButton.addEventListener('click', () => {
+						fileName.innerText = '';
+
+						removeButton.classList.add('d-none');
+
+						onRemoveFile();
+					});
+				}
+				else {
+					const unlocalizedFieldsState =
+						input.attributes.unlocalizedFieldsState;
+
+					registerUnlocalizedInput({
+						defaultLanguageId,
+						inputElement,
+						onLocaleChange: (languageId) => {
+							if (defaultLanguageId !== languageId) {
+								if (unlocalizedFieldsState === 'read-only') {
+									selectButton.classList.add('d-none');
+
+									fileName.setAttribute('readonly', 'true');
+									fileName.setAttribute('tabindex', '0');
+									fileName.classList.add('form-control');
+
+									if (!fileName.innerText) {
+										fileName.innerText =
+											fileName.dataset.placeholder;
+									}
+								}
+								else {
+									selectButton.setAttribute('disabled', true);
+
+									fileName.classList.add('text-secondary');
+								}
+
+								removeButton.classList.add('d-none');
+							}
+							else {
+								if (unlocalizedFieldsState === 'read-only') {
+									selectButton.classList.remove('d-none');
+
+									fileName.removeAttribute('readonly');
+									fileName.removeAttribute('tabindex');
+									fileName.classList.remove('form-control');
+
+									if (
+										fileName.innerText ===
+										fileName.dataset.placeholder
+									) {
+										fileName.innerText = '';
+									}
+								}
+								else {
+									selectButton.removeAttribute('disabled');
+
+									fileName.classList.remove('text-secondary');
+								}
+
+								if (fileName.innerText) {
+									removeButton.classList.remove('d-none');
+								}
+							}
+						},
+						readOnlyInputLabel: document.getElementById(
+							`${fragmentNamespace}-file-upload-read-only`
+						),
+						unlocalizedFieldsState,
+						unlocalizedMessageContainer: document.getElementById(
+							`${fragmentNamespace}-unlocalized-info`
+						),
+					});
+
+					selectButton.addEventListener('click', selectFileEvent);
+				}
+			}
+		);
+	}
+	else {
+		selectButton.addEventListener('click', selectFileEvent);
 	}
 }

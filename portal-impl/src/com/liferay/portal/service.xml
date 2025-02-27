@@ -670,11 +670,11 @@
 			<finder-column name="companyId" />
 			<finder-column name="layoutPrototypeUuid" />
 		</finder>
-		<finder name="P_I" return-type="Layout">
+		<finder name="P_I" return-type="Collection">
 			<finder-column name="privateLayout" />
 			<finder-column name="iconImageId" />
 		</finder>
-		<finder name="C_C" return-type="Layout">
+		<finder name="C_C" return-type="Collection">
 			<finder-column name="classNameId" />
 			<finder-column name="classPK" />
 		</finder>
@@ -1015,7 +1015,7 @@
 			<finder-column name="companyId" />
 			<finder-column name="layoutSetPrototypeUuid" />
 		</finder>
-		<finder name="P_L" return-type="Layout">
+		<finder name="P_L" return-type="Collection">
 			<finder-column name="privateLayout" />
 			<finder-column name="logoId" />
 		</finder>
@@ -3014,11 +3014,6 @@
 		<finder name="NotL_H" return-type="Collection">
 			<finder-column comparator="!=" name="layoutSetId" />
 			<finder-column arrayable-operator="OR" name="hostname" />
-		</finder>
-		<finder name="C_L_D" return-type="VirtualHost">
-			<finder-column name="companyId" />
-			<finder-column name="layoutSetId" />
-			<finder-column name="defaultVirtualHost" />
 		</finder>
 	</entity>
 	<entity local-service="true" name="WebDAVProps" remote-service="false">

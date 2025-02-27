@@ -5,6 +5,7 @@
 
 package com.liferay.frontend.data.set.sample.web.internal.frontend.data.set.action;
 
+import com.liferay.frontend.data.set.FDSEntryItemImportPolicy;
 import com.liferay.frontend.data.set.action.FDSItemsActions;
 import com.liferay.frontend.data.set.model.FDSActionDropdownItem;
 import com.liferay.frontend.data.set.sample.web.internal.constants.FDSSampleFDSNames;
@@ -37,6 +38,11 @@ public class CustomizedFDSItemsActions implements FDSItemsActions {
 				null, "#", "home", "navigateHome",
 				_language.get(httpServletRequest, "nav-link"), null, null,
 				"view", null, null, "link", null, "item"));
+	}
+
+	@Override
+	public FDSEntryItemImportPolicy getFDSEntryItemImportPolicy() {
+		return FDSEntryItemImportPolicy.DETACHED;
 	}
 
 	@Reference

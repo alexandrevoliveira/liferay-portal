@@ -21,6 +21,7 @@ import com.liferay.portal.kernel.model.UserGroup;
 import com.liferay.portal.kernel.util.CalendarFactoryUtil;
 import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.FileUtil;
+import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.PrefsPropsUtil;
@@ -101,7 +102,11 @@ public class ScimUtil {
 
 		ScimUser scimUser = new ScimUser();
 
-		scimUser.setActive(user.getActive());
+		SimpleAttribute simpleAttribute = (SimpleAttribute)user.getAttribute(
+			"active");
+
+		scimUser.setActive(GetterUtil.getBoolean(simpleAttribute.getValue()));
+
 		scimUser.setAutoScreenName(
 			PrefsPropsUtil.getBoolean(
 				companyId, PropsKeys.USERS_SCREEN_NAME_ALWAYS_AUTOGENERATE));
@@ -175,7 +180,7 @@ public class ScimUtil {
 		user.replaceEmails(
 			Collections.singletonList(
 				new MultiValuedComplexType(
-					"default", true, null, scimUser.getEmailAddress(), null)));
+					"work", true, null, scimUser.getEmailAddress(), null)));
 
 		ScimName scimName = new ScimName();
 

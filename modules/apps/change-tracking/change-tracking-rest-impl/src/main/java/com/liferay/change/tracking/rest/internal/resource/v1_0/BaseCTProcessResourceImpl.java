@@ -376,8 +376,25 @@ public abstract class BaseCTProcessResourceImpl
 			Map<String, Serializable> parameters)
 		throws Exception {
 
-		for (CTProcess ctProcess : ctProcesses) {
-			deleteCTProcess(ctProcess.getId());
+		UnsafeFunction<CTProcess, CTProcess, Exception>
+			ctProcessUnsafeFunction = ctProcess -> {
+				deleteCTProcess(ctProcess.getId());
+
+				return ctProcess;
+			};
+
+		if (contextBatchUnsafeBiConsumer != null) {
+			contextBatchUnsafeBiConsumer.accept(
+				ctProcesses, ctProcessUnsafeFunction);
+		}
+		else if (contextBatchUnsafeConsumer != null) {
+			contextBatchUnsafeConsumer.accept(
+				ctProcesses, ctProcessUnsafeFunction::apply);
+		}
+		else {
+			for (CTProcess ctProcess : ctProcesses) {
+				ctProcessUnsafeFunction.apply(ctProcess);
+			}
 		}
 	}
 

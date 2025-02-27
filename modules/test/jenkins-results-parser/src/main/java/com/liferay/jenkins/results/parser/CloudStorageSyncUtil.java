@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author Kenji Heigel
@@ -20,6 +22,9 @@ public class CloudStorageSyncUtil {
 
 	public static final String GCP_BUCKET_PATH_JENKINS_CI_DATA =
 		"gs://jenkins-ci-data";
+
+	public static final String GCP_BUCKET_PATH_LIFERAY_RELEASE_CANDIDATES =
+		"gs://liferay-releases-candidates";
 
 	public static final String GCP_BUCKET_PATH_PATCHER_SHARED =
 		"gs://patcher-shared";
@@ -44,6 +49,44 @@ public class CloudStorageSyncUtil {
 		commands.add(sb.toString());
 
 		_executeCommands(commands.toArray(new String[0]));
+	}
+
+	public static String getSignedURL(String url, String file, int duration)
+		throws IOException, TimeoutException {
+
+		if (JenkinsResultsParserUtil.isNullOrEmpty(url) ||
+			JenkinsResultsParserUtil.isNullOrEmpty(file)) {
+
+			return null;
+		}
+
+		List<String> commands = new ArrayList<>();
+
+		commands.add(_getGCPAuthenticationCommand(url, url));
+
+		StringBuilder sb = new StringBuilder();
+
+		sb.append("gcloud storage sign-url ");
+		sb.append(url);
+		sb.append(" --private-key-file=");
+		sb.append(file);
+		sb.append(" --duration=");
+		sb.append(duration);
+		sb.append("m");
+
+		commands.add(sb.toString());
+
+		Process process = JenkinsResultsParserUtil.executeBashCommands(
+			true, commands.toArray(new String[0]));
+
+		Matcher matcher = _signedURLPattern.matcher(
+			JenkinsResultsParserUtil.readInputStream(process.getInputStream()));
+
+		if (matcher.find()) {
+			return matcher.group(0);
+		}
+
+		return null;
 	}
 
 	public static void syncGCPFiles(String source, String destination)
@@ -99,20 +142,23 @@ public class CloudStorageSyncUtil {
 
 		String gcpApplicationCredentialFilePath = null;
 
-		if (source.startsWith(GCP_BUCKET_PATH_JENKINS_CI_DATA) ||
-			destination.startsWith(GCP_BUCKET_PATH_JENKINS_CI_DATA)) {
+		if (destination.startsWith(GCP_BUCKET_PATH_JENKINS_CI_DATA) ||
+			destination.startsWith(
+				GCP_BUCKET_PATH_LIFERAY_RELEASE_CANDIDATES) ||
+			source.startsWith(GCP_BUCKET_PATH_JENKINS_CI_DATA) ||
+			source.startsWith(GCP_BUCKET_PATH_LIFERAY_RELEASE_CANDIDATES)) {
 
 			gcpApplicationCredentialFilePath = _buildProperties.getProperty(
 				"google.application.crendential.file[jenkins]");
 		}
-		else if (source.startsWith(GCP_BUCKET_PATH_PATCHER_SHARED) ||
-				 destination.startsWith(GCP_BUCKET_PATH_PATCHER_SHARED)) {
+		else if (destination.startsWith(GCP_BUCKET_PATH_PATCHER_SHARED) ||
+				 source.startsWith(GCP_BUCKET_PATH_PATCHER_SHARED)) {
 
 			gcpApplicationCredentialFilePath = _buildProperties.getProperty(
 				"google.application.crendential.file[patcher]");
 		}
-		else if (source.startsWith(GCP_BUCKET_PATH_TESTRAY_RESULTS) ||
-				 destination.startsWith(GCP_BUCKET_PATH_TESTRAY_RESULTS)) {
+		else if (destination.startsWith(GCP_BUCKET_PATH_TESTRAY_RESULTS) ||
+				 source.startsWith(GCP_BUCKET_PATH_TESTRAY_RESULTS)) {
 
 			gcpApplicationCredentialFilePath = _buildProperties.getProperty(
 				"google.application.crendential.file[testray]");
@@ -133,6 +179,8 @@ public class CloudStorageSyncUtil {
 	}
 
 	private static final Properties _buildProperties;
+	private static final Pattern _signedURLPattern = Pattern.compile(
+		"https:\\/\\/storage.googleapis.com\\/.*");
 
 	static {
 		_buildProperties = new Properties() {

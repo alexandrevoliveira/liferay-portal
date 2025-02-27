@@ -107,36 +107,26 @@ public class LayoutLocalServiceWrapper
 	public Layout copyLayoutContent(Layout sourceLayout, Layout targetLayout)
 		throws Exception {
 
-		return copyLayoutContent(
+		long[] sourceSegmentsExperiencesIds =
 			TransformUtil.transformToLongArray(
 				_segmentsExperienceLocalService.getSegmentsExperiences(
 					sourceLayout.getGroupId(), sourceLayout.getPlid()),
-				SegmentsExperienceModel::getSegmentsExperienceId),
-			sourceLayout, targetLayout);
+				SegmentsExperienceModel::getSegmentsExperienceId);
+
+		return _copyLayoutContent(
+			false, sourceLayout, sourceSegmentsExperiencesIds, targetLayout,
+			sourceSegmentsExperiencesIds);
 	}
 
 	@Override
 	public Layout copyLayoutContent(
-			long segmentsExperienceId, Layout sourceLayout, Layout targetLayout)
+			long sourceSegmentsExperienceId, Layout sourceLayout,
+			long targetSegmentsExperienceId, Layout targetLayout)
 		throws Exception {
 
 		return _copyLayoutContent(
-			true, sourceLayout, new long[] {segmentsExperienceId}, targetLayout,
-			new long[] {
-				_segmentsExperienceLocalService.
-					fetchDefaultSegmentsExperienceId(targetLayout.getPlid())
-			});
-	}
-
-	@Override
-	public Layout copyLayoutContent(
-			long[] segmentsExperiencesIds, Layout sourceLayout,
-			Layout targetLayout)
-		throws Exception {
-
-		return _copyLayoutContent(
-			false, sourceLayout, segmentsExperiencesIds, targetLayout,
-			segmentsExperiencesIds);
+			true, sourceLayout, new long[] {sourceSegmentsExperienceId},
+			targetLayout, new long[] {targetSegmentsExperienceId});
 	}
 
 	@Override
@@ -762,7 +752,7 @@ public class LayoutLocalServiceWrapper
 			newSegmentsExperience.setModifiedDate(
 				serviceContext.getModifiedDate(new Date()));
 			newSegmentsExperience.setSegmentsExperienceKey(
-				String.valueOf(_counterLocalService.increment()));
+				segmentsExperience.getSegmentsExperienceKey());
 			newSegmentsExperience.setPlid(targetLayout.getPlid());
 
 			_segmentsExperienceLocalService.addSegmentsExperience(

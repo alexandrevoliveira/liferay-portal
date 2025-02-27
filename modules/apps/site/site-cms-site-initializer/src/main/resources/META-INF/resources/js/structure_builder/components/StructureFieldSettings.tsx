@@ -8,17 +8,20 @@ import ClayLayout from '@clayui/layout';
 import React from 'react';
 
 import {
+	Field,
 	useStateDispatch,
-	useStructureFields,
+	useStructureField,
 	useStructureLabel,
 } from '../contexts/StateContext';
 
-export default function StructureFieldSettings({fieldERC}: {fieldERC: string}) {
+export default function StructureFieldSettings({
+	fieldName,
+}: {
+	fieldName: Field['name'];
+}) {
 	const dispatch = useStateDispatch();
 	const structureLabel = useStructureLabel();
-	const fields = useStructureFields();
-
-	const field = fields.find((field) => field.erc === fieldERC);
+	const field = useStructureField(fieldName);
 
 	return (
 		<ClayLayout.ContainerFluid view>

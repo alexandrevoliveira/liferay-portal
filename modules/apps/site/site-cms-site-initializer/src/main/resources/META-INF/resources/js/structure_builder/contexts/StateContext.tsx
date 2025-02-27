@@ -35,7 +35,7 @@ export type State = {
 	id: number | null;
 	label: string;
 	name: string;
-	selectedItem: {type: 'structure'} | {erc: string; type: 'field'};
+	selectedItem: {type: 'structure'} | {name: string; type: 'field'};
 	status: Status;
 };
 
@@ -63,7 +63,7 @@ type DeleteFieldAction = {fieldName: Field['name']; type: 'delete-field'};
 type PublishStructureAction = {type: 'publish-structure'};
 
 type SelectItemAction = {
-	item: {type: 'structure'} | {erc: string; type: 'field'};
+	item: {type: 'structure'} | {name: string; type: 'field'};
 	type: 'select-item';
 };
 
@@ -118,7 +118,19 @@ function reducer(state: State, action: Action) {
 
 			nextFields.delete(fieldName);
 
-			return {...state, fields: nextFields};
+			let nextState = {...state, fields: nextFields};
+
+			if (
+				'name' in state.selectedItem &&
+				state.selectedItem.name === fieldName
+			) {
+				nextState = {
+					...nextState,
+					selectedItem: INITIAL_STATE.selectedItem,
+				};
+			}
+
+			return nextState;
 		}
 		case 'publish-structure':
 			return {...state, error: null, status: 'published' as Status};
@@ -183,6 +195,12 @@ function useStructureError() {
 	return state.error;
 }
 
+function useStructureField(name: Field['name']) {
+	const {state} = useContext(StateContext);
+
+	return state.fields.get(name);
+}
+
 function useStructureFields() {
 	const {state} = useContext(StateContext);
 
@@ -219,6 +237,7 @@ export {
 	useSelectedItem,
 	useStateDispatch,
 	useStructureError,
+	useStructureField,
 	useStructureFields,
 	useStructureId,
 	useStructureLabel,

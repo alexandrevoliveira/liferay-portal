@@ -16,6 +16,7 @@ import com.liferay.headless.admin.site.dto.v1_0.PageExperience;
 import com.liferay.headless.admin.site.dto.v1_0.PageSpecification;
 import com.liferay.headless.admin.site.dto.v1_0.Settings;
 import com.liferay.headless.admin.site.dto.v1_0.WidgetPageSpecification;
+import com.liferay.headless.admin.site.internal.resource.v1_0.util.LayoutUtil;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.layout.page.template.model.LayoutPageTemplateStructure;
 import com.liferay.layout.page.template.model.LayoutPageTemplateStructureRel;
@@ -342,7 +343,15 @@ public class PageSpecificationDTOConverter
 				setSettings(() -> _setSettings(layout));
 				setStatus(
 					() -> {
-						if (!layout.isDraftLayout()) {
+						if (layout.isDraftLayout()) {
+							if (layout.isApproved()) {
+								return Status.APPROVED;
+							}
+
+							return Status.DRAFT;
+						}
+
+						if (LayoutUtil.isPublished(layout)) {
 							return Status.APPROVED;
 						}
 

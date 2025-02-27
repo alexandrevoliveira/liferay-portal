@@ -5,6 +5,7 @@
 
 package com.liferay.frontend.data.set.sample.web.internal.frontend.data.set.action;
 
+import com.liferay.frontend.data.set.FDSEntryItemImportPolicy;
 import com.liferay.frontend.data.set.action.FDSCreationMenu;
 import com.liferay.frontend.data.set.sample.web.internal.constants.FDSSampleFDSNames;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.CreationMenu;
@@ -50,6 +51,11 @@ public class CustomizedFDSCreationMenu implements FDSCreationMenu {
 				"modal"
 			).build()
 		).build();
+	}
+
+	@Override
+	public FDSEntryItemImportPolicy getFDSEntryItemImportPolicy() {
+		return FDSEntryItemImportPolicy.DETACHED;
 	}
 
 	@Reference

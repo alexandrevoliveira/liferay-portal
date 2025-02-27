@@ -36,6 +36,7 @@ import com.liferay.list.type.service.ListTypeDefinitionLocalService;
 import com.liferay.object.constants.ObjectActionExecutorConstants;
 import com.liferay.object.constants.ObjectActionTriggerConstants;
 import com.liferay.object.constants.ObjectDefinitionConstants;
+import com.liferay.object.constants.ObjectDefinitionSettingConstants;
 import com.liferay.object.constants.ObjectFieldConstants;
 import com.liferay.object.constants.ObjectFieldSettingConstants;
 import com.liferay.object.constants.ObjectRelationshipConstants;
@@ -43,6 +44,7 @@ import com.liferay.object.constants.ObjectValidationRuleConstants;
 import com.liferay.object.constants.ObjectValidationRuleSettingConstants;
 import com.liferay.object.entry.util.ObjectEntryThreadLocal;
 import com.liferay.object.exception.DuplicateObjectEntryExternalReferenceCodeException;
+import com.liferay.object.exception.NoSuchObjectDefinitionException;
 import com.liferay.object.exception.NoSuchObjectEntryException;
 import com.liferay.object.exception.ObjectDefinitionScopeException;
 import com.liferay.object.exception.ObjectEntryStatusException;
@@ -67,6 +69,7 @@ import com.liferay.object.field.setting.builder.ObjectFieldSettingBuilder;
 import com.liferay.object.field.util.ObjectFieldUtil;
 import com.liferay.object.model.ObjectAction;
 import com.liferay.object.model.ObjectDefinition;
+import com.liferay.object.model.ObjectDefinitionSetting;
 import com.liferay.object.model.ObjectEntry;
 import com.liferay.object.model.ObjectField;
 import com.liferay.object.model.ObjectFieldSetting;
@@ -80,6 +83,7 @@ import com.liferay.object.scope.CompanyScoped;
 import com.liferay.object.scope.ObjectDefinitionScoped;
 import com.liferay.object.service.ObjectActionLocalService;
 import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.service.ObjectDefinitionSettingLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
 import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.object.service.ObjectFieldSettingLocalService;
@@ -2073,6 +2077,91 @@ public class ObjectEntryLocalServiceTest {
 				new ServiceContext()));
 	}
 
+	@FeatureFlags("LPD-31149")
+	@Test
+	public void testAddObjectEntryWithObjectRelationshipInScopeDepot()
+		throws Exception {
+
+		ObjectDefinition objectDefinition1 =
+			ObjectDefinitionTestUtil.publishObjectDefinition(
+				Collections.singletonList(
+					new TextObjectFieldBuilder(
+					).labelMap(
+						RandomTestUtil.randomLocaleStringMap()
+					).name(
+						"a" + RandomTestUtil.randomString()
+					).build()),
+				ObjectDefinitionConstants.SCOPE_DEPOT);
+
+		_objectDefinitionSettingLocalService.addObjectDefinitionSetting(
+			objectDefinition1.getUserId(),
+			objectDefinition1.getObjectDefinitionId(),
+			ObjectDefinitionSettingConstants.NAME_ACCEPT_ALL_GROUPS,
+			StringPool.TRUE);
+
+		ObjectDefinition objectDefinition2 =
+			ObjectDefinitionTestUtil.publishObjectDefinition(
+				Collections.singletonList(
+					new TextObjectFieldBuilder(
+					).labelMap(
+						RandomTestUtil.randomLocaleStringMap()
+					).name(
+						"a" + RandomTestUtil.randomString()
+					).build()),
+				ObjectDefinitionConstants.SCOPE_DEPOT);
+
+		_objectDefinitionSettingLocalService.addObjectDefinitionSetting(
+			objectDefinition2.getUserId(),
+			objectDefinition2.getObjectDefinitionId(),
+			ObjectDefinitionSettingConstants.NAME_ACCEPT_ALL_GROUPS,
+			StringPool.TRUE);
+
+		ObjectRelationship objectRelationship =
+			ObjectRelationshipTestUtil.addObjectRelationship(
+				_objectRelationshipLocalService, objectDefinition1,
+				objectDefinition2,
+				ObjectRelationshipConstants.DELETION_TYPE_CASCADE,
+				"objectRelationship");
+
+		DepotEntry depotEntry1 = _depotEntryLocalService.addDepotEntry(
+			RandomTestUtil.randomLocaleStringMap(),
+			RandomTestUtil.randomLocaleStringMap(),
+			ServiceContextTestUtil.getServiceContext());
+
+		ObjectEntry objectEntry1 = _addObjectEntry(
+			depotEntry1.getGroupId(), objectDefinition1.getObjectDefinitionId(),
+			Collections.emptyMap());
+
+		ObjectField relationshipObjectField =
+			_objectFieldLocalService.fetchObjectField(
+				objectRelationship.getObjectFieldId2());
+
+		Map<String, Serializable> values = Collections.singletonMap(
+			relationshipObjectField.getName(), objectEntry1.getObjectEntryId());
+
+		ObjectEntry objectEntry2 = _addObjectEntry(
+			depotEntry1.getGroupId(), objectDefinition2.getObjectDefinitionId(),
+			values);
+
+		_assertObjectEntryValues(
+			4, values,
+			_objectEntryLocalService.getValues(
+				objectEntry2.getObjectEntryId()));
+
+		DepotEntry depotEntry2 = _depotEntryLocalService.addDepotEntry(
+			RandomTestUtil.randomLocaleStringMap(),
+			RandomTestUtil.randomLocaleStringMap(),
+			ServiceContextTestUtil.getServiceContext());
+
+		AssertUtils.assertFailure(
+			ObjectEntryValuesException.InvalidValue.class,
+			"The value is invalid for object field \"" +
+				relationshipObjectField.getName() + "\"",
+			() -> _addObjectEntry(
+				depotEntry2.getGroupId(),
+				objectDefinition2.getObjectDefinitionId(), values));
+	}
+
 	@Test
 	public void testAddObjectEntryWithObjectValidationRule() throws Exception {
 
@@ -3297,6 +3386,43 @@ public class ObjectEntryLocalServiceTest {
 	}
 
 	@Test
+	public void testDeleteObjectEntryWithLongExternalReferenceCode()
+		throws Exception {
+
+		ObjectEntry objectEntry1 = _addObjectEntry(
+			HashMapBuilder.<String, Serializable>put(
+				"emailAddressRequired", "peter@liferay.com"
+			).put(
+				"firstName", "Peter"
+			).put(
+				"listTypeEntryKeyRequired", "listTypeEntryKey1"
+			).build());
+
+		objectEntry1.setExternalReferenceCode(
+			RandomTestUtil.randomString(1000));
+
+		objectEntry1 = _objectEntryLocalService.updateObjectEntry(objectEntry1);
+
+		_assertCount(1);
+
+		_objectEntryLocalService.deleteObjectEntry(
+			objectEntry1.getObjectEntryId());
+
+		List<SystemEvent> systemEvents =
+			_systemEventLocalService.getSystemEvents(
+				0, _portal.getClassNameId(objectEntry1.getModelClassName()),
+				objectEntry1.getPrimaryKey());
+
+		SystemEvent systemEvent = systemEvents.get(0);
+
+		Assert.assertEquals(
+			objectEntry1.getExternalReferenceCode(),
+			systemEvent.getClassExternalReferenceCode());
+		Assert.assertEquals(
+			SystemEventConstants.TYPE_DELETE, systemEvent.getType());
+	}
+
+	@Test
 	public void testDeleteObjectEntryWithObjectDefinitionTree()
 		throws Exception {
 
@@ -3864,12 +3990,13 @@ public class ObjectEntryLocalServiceTest {
 			23, values3, valuesList.get(2), selectedObjectFieldNames);
 	}
 
+	@FeatureFlags("LPD-31149")
 	@Test
 	public void testScope() throws Exception {
 
 		// Scope by company
 
-		DepotEntry depotEntry = _depotEntryLocalService.addDepotEntry(
+		DepotEntry depotEntry1 = _depotEntryLocalService.addDepotEntry(
 			HashMapBuilder.put(
 				LocaleUtil.getDefault(), RandomTestUtil.randomString()
 			).build(),
@@ -3880,7 +4007,7 @@ public class ObjectEntryLocalServiceTest {
 
 		_testScope(0, ObjectDefinitionConstants.SCOPE_COMPANY, true);
 		_testScope(
-			depotEntry.getGroupId(), ObjectDefinitionConstants.SCOPE_COMPANY,
+			depotEntry1.getGroupId(), ObjectDefinitionConstants.SCOPE_COMPANY,
 			false);
 		_testScope(
 			TestPropsValues.getGroupId(),
@@ -3888,18 +4015,85 @@ public class ObjectEntryLocalServiceTest {
 
 		// Scope by depot
 
-		// TODO Turn on theses tests once depot is reenabled
-
-		/*_testScope(0, ObjectDefinitionConstants.SCOPE_DEPOT, false);
+		_testScope(0, ObjectDefinitionConstants.SCOPE_DEPOT, false);
 		_testScope(
-			depotEntryGroupId, ObjectDefinitionConstants.SCOPE_DEPOT, true);
-		_testScope(siteGroupId, ObjectDefinitionConstants.SCOPE_DEPOT, false);*/
+			depotEntry1.getGroupId(), ObjectDefinitionConstants.SCOPE_DEPOT,
+			true);
+		_testScope(
+			TestPropsValues.getGroupId(), ObjectDefinitionConstants.SCOPE_DEPOT,
+			false);
+
+		ObjectDefinition depotObjectDefinition =
+			ObjectDefinitionTestUtil.publishObjectDefinition(
+				Collections.singletonList(
+					new TextObjectFieldBuilder(
+					).labelMap(
+						RandomTestUtil.randomLocaleStringMap()
+					).name(
+						"a" + RandomTestUtil.randomString()
+					).build()),
+				ObjectDefinitionConstants.SCOPE_DEPOT);
+
+		AssertUtils.assertFailure(
+			NoSuchObjectDefinitionException.class,
+			"This object definition does not exist",
+			() -> _objectEntryLocalService.addObjectEntry(
+				TestPropsValues.getUserId(), depotEntry1.getGroupId(),
+				depotObjectDefinition.getObjectDefinitionId(), null,
+				Collections.emptyMap(),
+				ServiceContextTestUtil.getServiceContext()));
+
+		ObjectDefinitionSetting objectDefinitionSetting =
+			_objectDefinitionSettingLocalService.addObjectDefinitionSetting(
+				depotObjectDefinition.getUserId(),
+				depotObjectDefinition.getObjectDefinitionId(),
+				ObjectDefinitionSettingConstants.NAME_ACCEPTED_GROUP_IDS,
+				String.valueOf(depotEntry1.getGroupId()));
+
+		ObjectEntry objectEntry = _objectEntryLocalService.addObjectEntry(
+			TestPropsValues.getUserId(), depotEntry1.getGroupId(),
+			depotObjectDefinition.getObjectDefinitionId(), null,
+			Collections.emptyMap(), ServiceContextTestUtil.getServiceContext());
+
+		Assert.assertEquals(depotEntry1.getGroupId(), objectEntry.getGroupId());
+
+		DepotEntry depotEntry2 = _depotEntryLocalService.addDepotEntry(
+			RandomTestUtil.randomLocaleStringMap(),
+			RandomTestUtil.randomLocaleStringMap(),
+			ServiceContextTestUtil.getServiceContext());
+
+		AssertUtils.assertFailure(
+			NoSuchObjectDefinitionException.class,
+			"This object definition does not exist",
+			() -> _objectEntryLocalService.addObjectEntry(
+				TestPropsValues.getUserId(), depotEntry2.getGroupId(),
+				depotObjectDefinition.getObjectDefinitionId(), null,
+				Collections.emptyMap(),
+				ServiceContextTestUtil.getServiceContext()));
+
+		objectDefinitionSetting.setValue(
+			StringBundler.concat(
+				depotEntry1.getGroupId(), StringPool.COMMA,
+				depotEntry2.getGroupId()));
+
+		_objectDefinitionSettingLocalService.updateObjectDefinitionSetting(
+			objectDefinitionSetting);
+
+		objectEntry = _objectEntryLocalService.addObjectEntry(
+			TestPropsValues.getUserId(), depotEntry2.getGroupId(),
+			depotObjectDefinition.getObjectDefinitionId(), null,
+			Collections.emptyMap(), ServiceContextTestUtil.getServiceContext());
+
+		Assert.assertEquals(depotEntry2.getGroupId(), objectEntry.getGroupId());
+
+		_objectDefinitionLocalService.deleteObjectDefinition(
+			depotObjectDefinition);
 
 		// Scope by site
 
 		_testScope(0, ObjectDefinitionConstants.SCOPE_SITE, false);
 		_testScope(
-			depotEntry.getGroupId(), ObjectDefinitionConstants.SCOPE_SITE,
+			depotEntry1.getGroupId(), ObjectDefinitionConstants.SCOPE_SITE,
 			false);
 		_testScope(
 			TestPropsValues.getGroupId(), ObjectDefinitionConstants.SCOPE_SITE,
@@ -5490,6 +5684,14 @@ public class ObjectEntryLocalServiceTest {
 
 		_objectDefinitionLocalService.updateObjectDefinition(objectDefinition);
 
+		if (scope.equals(ObjectDefinitionConstants.SCOPE_DEPOT)) {
+			_objectDefinitionSettingLocalService.addObjectDefinitionSetting(
+				objectDefinition.getUserId(),
+				objectDefinition.getObjectDefinitionId(),
+				ObjectDefinitionSettingConstants.NAME_ACCEPT_ALL_GROUPS,
+				StringPool.TRUE);
+		}
+
 		Assert.assertEquals(
 			0,
 			_objectEntryLocalService.getObjectEntriesCount(
@@ -5783,6 +5985,10 @@ public class ObjectEntryLocalServiceTest {
 
 	@Inject
 	private ObjectDefinitionLocalService _objectDefinitionLocalService;
+
+	@Inject
+	private ObjectDefinitionSettingLocalService
+		_objectDefinitionSettingLocalService;
 
 	@Inject
 	private ObjectEntryLocalService _objectEntryLocalService;

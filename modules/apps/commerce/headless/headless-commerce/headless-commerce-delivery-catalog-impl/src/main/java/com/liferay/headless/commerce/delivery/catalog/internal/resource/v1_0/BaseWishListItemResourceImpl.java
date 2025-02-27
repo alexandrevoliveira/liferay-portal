@@ -290,8 +290,25 @@ public abstract class BaseWishListItemResourceImpl
 			Map<String, Serializable> parameters)
 		throws Exception {
 
-		for (WishListItem wishListItem : wishListItems) {
-			deleteWishListItem(wishListItem.getId());
+		UnsafeFunction<WishListItem, WishListItem, Exception>
+			wishListItemUnsafeFunction = wishListItem -> {
+				deleteWishListItem(wishListItem.getId());
+
+				return wishListItem;
+			};
+
+		if (contextBatchUnsafeBiConsumer != null) {
+			contextBatchUnsafeBiConsumer.accept(
+				wishListItems, wishListItemUnsafeFunction);
+		}
+		else if (contextBatchUnsafeConsumer != null) {
+			contextBatchUnsafeConsumer.accept(
+				wishListItems, wishListItemUnsafeFunction::apply);
+		}
+		else {
+			for (WishListItem wishListItem : wishListItems) {
+				wishListItemUnsafeFunction.apply(wishListItem);
+			}
 		}
 	}
 

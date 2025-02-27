@@ -12,6 +12,8 @@ import com.liferay.frontend.data.set.constants.FDSEntityFieldTypes;
 import com.liferay.frontend.data.set.filter.FDSFilter;
 import com.liferay.frontend.data.set.internal.url.FDSAPIURLBuilder;
 import com.liferay.frontend.data.set.model.FDSActionDropdownItem;
+import com.liferay.frontend.data.set.model.FDSSortItem;
+import com.liferay.frontend.data.set.model.FDSSortItemBuilder;
 import com.liferay.frontend.data.set.serializer.FDSSerializer;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.CreationMenu;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.DropdownItem;
@@ -20,6 +22,7 @@ import com.liferay.list.type.model.ListTypeDefinition;
 import com.liferay.list.type.model.ListTypeEntry;
 import com.liferay.list.type.service.ListTypeDefinitionLocalService;
 import com.liferay.list.type.service.ListTypeEntryLocalService;
+import com.liferay.object.entry.util.ObjectEntryThreadLocal;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.rest.dto.v1_0.ObjectEntry;
 import com.liferay.object.rest.manager.v1_0.DefaultObjectEntryManager;
@@ -258,6 +261,39 @@ public class CustomFDSSerializer
 	}
 
 	@Override
+	public List<FDSSortItem> serializeSorts(
+		String fdsName, HttpServletRequest httpServletRequest) {
+
+		return TransformUtil.transform(
+			getSortedRelatedObjectEntries(
+				fdsName, httpServletRequest, (Predicate<ObjectEntry>)null,
+				"sortsOrder", "dataSetToDataSetSorts"),
+			objectEntry -> {
+				Map<String, Object> properties = objectEntry.getProperties();
+
+				String label = (String)properties.get("label");
+
+				if (Validator.isNull(label)) {
+					Map<String, String> labelI18n =
+						(Map<String, String>)properties.get("label_i18n");
+
+					label = labelI18n.get(
+						LocaleUtil.toLanguageId(LocaleUtil.getSiteDefault()));
+				}
+
+				return FDSSortItemBuilder.setActive(
+					Boolean.valueOf(String.valueOf(properties.get("default")))
+				).setDirection(
+					String.valueOf(properties.get("orderType"))
+				).setKey(
+					String.valueOf(properties.get("fieldName"))
+				).setLabel(
+					label
+				).build();
+			});
+	}
+
+	@Override
 	public JSONArray serializeViews(
 		String fdsName, HttpServletRequest httpServletRequest) {
 
@@ -485,11 +521,12 @@ public class CustomFDSSerializer
 			new DefaultDTOConverterContext(
 				false, null, null, null, null,
 				LocaleUtil.getMostRelevantLocale(), null, null);
-
 		DefaultObjectEntryManager defaultObjectEntryManager =
 			DefaultObjectEntryManagerProvider.provide(
 				_objectEntryManagerRegistry.getObjectEntryManager(
 					objectDefinition.getStorageType()));
+
+		ObjectEntryThreadLocal.setSkipObjectEntryResourcePermission(true);
 
 		try {
 			objectEntry = defaultObjectEntryManager.getObjectEntry(
@@ -503,6 +540,9 @@ public class CustomFDSSerializer
 						"reference code " + externalReferenceCode,
 					exception);
 			}
+		}
+		finally {
+			ObjectEntryThreadLocal.setSkipObjectEntryResourcePermission(false);
 		}
 
 		return objectEntry;
@@ -518,6 +558,8 @@ public class CustomFDSSerializer
 			DefaultObjectEntryManagerProvider.provide(
 				_objectEntryManagerRegistry.getObjectEntryManager(
 					objectDefinition.getStorageType()));
+
+		ObjectEntryThreadLocal.setSkipObjectEntryResourcePermission(true);
 
 		try {
 			Page<ObjectEntry> relatedObjectEntriesPage =
@@ -543,6 +585,9 @@ public class CustomFDSSerializer
 						relationshipName,
 					exception);
 			}
+		}
+		finally {
+			ObjectEntryThreadLocal.setSkipObjectEntryResourcePermission(false);
 		}
 
 		return objectEntries;

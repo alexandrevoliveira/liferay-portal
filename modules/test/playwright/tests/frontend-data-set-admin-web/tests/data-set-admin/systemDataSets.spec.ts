@@ -27,10 +27,20 @@ export const test = mergeTests(
 	loginTest()
 );
 
+const dataSetERCs: string[] = [];
+
+test.afterEach(async ({dataSetManagerApiHelpers}) => {
+	for (const erc of dataSetERCs) {
+		await dataSetManagerApiHelpers.deleteDataSet({
+			erc,
+		});
+	}
+});
+
 test(
 	'Import a system data set to customize',
-	{tag: ['@LPD-37531', '@LPD-40949']},
-	async ({actionsPage, fdsSamplePage, site, systemDataSetsPage}) => {
+	{tag: ['@LPD-37531', '@LPD-40949', '@LPD-49128']},
+	async ({actionsPage, fdsSamplePage, page, site, systemDataSetsPage}) => {
 		await test.step('Add FDS Sample Widget for object definition generation', async () => {
 			await fdsSamplePage.setupFDSSampleWidget({site});
 		});
@@ -46,6 +56,9 @@ test(
 		});
 		const customizedSampleListItem = creationModal.listItems.filter({
 			hasText: 'Customized Sample',
+		});
+		const reactSampleListItem = creationModal.listItems.filter({
+			hasText: 'React Sample',
 		});
 
 		await test.step('Open creation modal and assert modal content', async () => {
@@ -69,14 +82,14 @@ test(
 			await creationModal.searchInput.press('Enter');
 
 			await expect(classicSampleListItem).toBeVisible();
-			await expect(customizedSampleListItem).toBeHidden();
+			await expect(customizedSampleListItem).not.toBeAttached();
 
 			await creationModal.searchInput.fill('aaa');
 
 			await creationModal.searchInput.press('Enter');
 
-			await expect(classicSampleListItem).toBeHidden();
-			await expect(customizedSampleListItem).toBeHidden();
+			await expect(classicSampleListItem).not.toBeAttached();
+			await expect(customizedSampleListItem).not.toBeAttached();
 
 			await expect(
 				creationModal.container.getByText('No Results Found')
@@ -90,125 +103,273 @@ test(
 			await expect(customizedSampleListItem).toBeVisible();
 		});
 
-		await test.step('Select a system data set', async () => {
+		await test.step('Select and import system data sets', async () => {
 			await customizedSampleListItem.click();
 
 			await expect(customizedSampleListItem).toHaveClass(/selected/);
+
+			dataSetERCs.push(
+
+				// eslint-disable-next-line @liferay/no-get-data-attribute
+				await customizedSampleListItem.getAttribute('data-erc')
+			);
+
+			await creationModal.createButton.click();
+
+			await waitForAlert(systemDataSetsPage.page);
+
+			await systemDataSetsPage.createButton.click();
+
+			await classicSampleListItem.click();
+
+			await expect(classicSampleListItem).toHaveClass(/selected/);
+
+			dataSetERCs.push(
+
+				// eslint-disable-next-line @liferay/no-get-data-attribute
+				await classicSampleListItem.getAttribute('data-erc')
+			);
+
+			await creationModal.createButton.click();
+
+			await waitForAlert(systemDataSetsPage.page);
+
+			await systemDataSetsPage.createButton.click();
+
+			await reactSampleListItem.click();
+
+			await expect(reactSampleListItem).toHaveClass(/selected/);
+
+			dataSetERCs.push(
+
+				// eslint-disable-next-line @liferay/no-get-data-attribute
+				await reactSampleListItem.getAttribute('data-erc')
+			);
 
 			await creationModal.createButton.click();
 
 			await waitForAlert(systemDataSetsPage.page);
 		});
 
-		const customizedSampleRow = systemDataSetsPage.pageContainer
-			.locator('.fds tr')
-			.filter({hasText: 'Customized Sample'});
+		const fdsRows = systemDataSetsPage.pageContainer.locator('.fds tr');
 
-		try {
-			await test.step('Check system data set is imported', async () => {
-				await expect(customizedSampleRow).toBeVisible();
-			});
+		const customizedSampleRow = fdsRows.filter({
+			hasText: 'Customized Sample',
+		});
 
-			await test.step('Check the creation modal labels the data set as created and is disabled', async () => {
-				await systemDataSetsPage.createButton.click();
+		await test.step('Check system data set is imported and are "Active" by default', async () => {
+			await expect(customizedSampleRow).toBeVisible();
 
-				await expect(customizedSampleListItem).toContainText('Created');
-				await expect(customizedSampleListItem).toHaveClass(/disabled/);
+			expect(
+				fdsRows.filter({
+					hasText: 'Classic Sample',
+				})
+			).toBeVisible();
+			expect(
+				fdsRows.filter({
+					hasText: 'React Sample',
+				})
+			).toBeVisible();
 
-				await creationModal.cancelButton.click();
-			});
+			await expect(systemDataSetsPage.activeToggle.first()).toBeVisible();
+		});
 
-			await test.step('Check item actions are imported', async () => {
-				await actionsPage.open({dataSetLabel: 'Customized Sample'});
+		await test.step('Can deactivate the system data set', async () => {
+			await systemDataSetsPage.activeToggle.first().click();
 
-				const itemActionRow = actionsPage.itemActionsTable
-					.locator('tr')
-					.filter({hasText: 'Nav Links'})
-					.first();
+			await waitForAlert(page);
 
-				await itemActionRow.locator('.dropdown-toggle').click();
+			await expect(
+				systemDataSetsPage.inactiveToggle.first()
+			).toBeVisible();
+		});
 
-				await actionsPage.page
-					.locator('.dropdown-menu.show')
-					.getByRole('menuitem', {name: 'Edit'})
-					.click();
+		await test.step('Can activate the system data set', async () => {
+			await systemDataSetsPage.inactiveToggle.first().click();
 
-				const form = actionsPage.actionForm;
+			await waitForAlert(page);
 
-				await expect(form.labelInput).toHaveValue('Nav Links');
-				await expect(form.iconInput).toHaveValue('home');
-				await expect(form.typeSelect).toHaveValue('link');
-				await expect(form.urlInput).toHaveValue('#');
-				await expect(form.headlessActionKeyInput).toHaveValue('view');
-				await expect(form.confirmationMessageInput).toHaveValue(
-					'Are you sure?'
-				);
-				await expect(form.confirmationMessageTypeSelect).toHaveValue(
-					'danger'
-				);
+			await expect(systemDataSetsPage.activeToggle.first()).toBeVisible();
+		});
 
-				await form.cancelButton.click();
-			});
-
-			await test.step('Check creation actions are imported', async () => {
-				await actionsPage.selectTab({
-					container: actionsPage.actionsTabs,
-					label: 'Creation Actions',
-				});
-
-				const creationActionRow = actionsPage.creationActionsTable
-					.locator('tr')
-					.filter({hasText: 'Open Form'})
-					.first();
-
-				await creationActionRow.locator('.dropdown-toggle').click();
-
-				await actionsPage.page
-					.locator('.dropdown-menu.show')
-					.getByRole('menuitem', {name: 'Edit'})
-					.click();
-
-				const form = actionsPage.actionForm;
-
-				await expect(form.labelInput).toHaveValue('Open Form');
-				await expect(form.iconInput).toHaveValue('bolt');
-				await expect(form.typeSelect).toHaveValue('modal');
-				await expect(form.variantSelect).toHaveValue('full-screen');
-				await expect(form.titleInput).toHaveValue('My Products');
-				await expect(form.urlInput).toHaveValue('#');
-				await expect(form.headlessActionKeyInput).toHaveValue('update');
-
-				await form.cancelButton.click();
-			});
-		}
-		finally {
-			await test.step('Navigate to system data sets page', async () => {
-				await systemDataSetsPage.goto();
-			});
-
-			await test.step('Delete system data set', async () => {
-				await customizedSampleRow.locator('.dropdown-toggle').click();
-
-				await systemDataSetsPage.page
-					.locator('.dropdown-menu.show')
-					.getByRole('menuitem', {name: 'Delete'})
-					.click();
-
-				const deleteModal = systemDataSetsPage.page.getByRole('dialog');
-
-				await deleteModal.getByRole('button', {name: 'Delete'}).click();
-
-				await waitForAlert(systemDataSetsPage.page);
-
-				await expect(customizedSampleRow).toBeHidden();
-			});
-		}
-
-		await test.step('Check the creation modal that the data set is enabled', async () => {
+		await test.step('Check the creation modal labels the data set as created and is disabled', async () => {
 			await systemDataSetsPage.createButton.click();
 
-			await expect(classicSampleListItem).not.toContainText('Created');
-			await expect(classicSampleListItem).not.toHaveClass(/disabled/);
+			await expect(customizedSampleListItem).toContainText('Created');
+			await expect(customizedSampleListItem).toHaveClass(/disabled/);
+
+			await creationModal.cancelButton.click();
+		});
+
+		await test.step('Item actions are imported with "detached" import policy', async () => {
+			await actionsPage.open({dataSetLabel: 'Customized Sample'});
+
+			const itemActionRow = actionsPage.itemActionsTable
+				.locator('tr')
+				.filter({hasText: 'Nav Links'})
+				.first();
+
+			await itemActionRow.locator('.dropdown-toggle').click();
+
+			await actionsPage.page
+				.locator('.dropdown-menu.show')
+				.getByRole('menuitem', {name: 'Edit'})
+				.click();
+
+			const form = actionsPage.actionForm;
+
+			await expect(form.labelInput).toHaveValue('Nav Links');
+			await expect(form.iconInput).toHaveValue('home');
+			await expect(form.typeSelect).toHaveValue('link');
+			await expect(form.urlInput).toHaveValue('#');
+			await expect(form.headlessActionKeyInput).toHaveValue('view');
+			await expect(form.confirmationMessageInput).toHaveValue(
+				'Are you sure?'
+			);
+			await expect(form.confirmationMessageTypeSelect).toHaveValue(
+				'danger'
+			);
+
+			await form.cancelButton.click();
+		});
+
+		await test.step('Creation actions are imported with "detached" import policy', async () => {
+			await actionsPage.selectTab({
+				container: actionsPage.actionsTabs,
+				label: 'Creation Actions',
+			});
+
+			const creationActionRow = actionsPage.creationActionsTable
+				.locator('tr')
+				.filter({hasText: 'Open Form'})
+				.first();
+
+			await creationActionRow.locator('.dropdown-toggle').click();
+
+			await actionsPage.page
+				.locator('.dropdown-menu.show')
+				.getByRole('menuitem', {name: 'Edit'})
+				.click();
+
+			const form = actionsPage.actionForm;
+
+			await expect(form.labelInput).toHaveValue('Open Form');
+			await expect(form.iconInput).toHaveValue('bolt');
+			await expect(form.typeSelect).toHaveValue('modal');
+			await expect(form.variantSelect).toHaveValue('full-screen');
+			await expect(form.titleInput).toHaveValue('My Products');
+			await expect(form.urlInput).toHaveValue('#');
+			await expect(form.headlessActionKeyInput).toHaveValue('update');
+
+			await form.cancelButton.click();
+
+			await page.getByTitle('Back').click();
+		});
+
+		await test.step('Item actions are imported with "item proxy" import policy', async () => {
+			await actionsPage.open({dataSetLabel: 'Classic Sample'});
+
+			const itemActionRows = actionsPage.itemActionsTable
+				.locator('tr')
+				.filter({hasText: 'ITEM_PROXY'});
+
+			await expect(itemActionRows).toHaveCount(2);
+
+			const firstDropdownToggle = itemActionRows
+				.first()
+				.locator('.dropdown-toggle');
+
+			await firstDropdownToggle.click();
+
+			await expect(
+				actionsPage.page
+					.locator('.dropdown-menu.show')
+					.getByRole('menuitem', {name: 'Edit'})
+			).not.toBeAttached();
+
+			await firstDropdownToggle.click();
+		});
+
+		await test.step('Creation actions are imported with "item proxy" import policy', async () => {
+			await actionsPage.selectTab({
+				container: actionsPage.actionsTabs,
+				label: 'Creation Actions',
+			});
+
+			const creationActionRows = actionsPage.creationActionsTable
+				.locator('tr')
+				.filter({hasText: 'ITEM_PROXY'});
+
+			await expect(creationActionRows).toHaveCount(1);
+
+			await expect(
+				creationActionRows.getByText('Calendar', {exact: true})
+			).toBeVisible();
+
+			await page.getByTitle('Back').click();
+		});
+
+		await test.step('Item actions are imported with "group proxy" import policy', async () => {
+			await actionsPage.open({dataSetLabel: 'React Sample'});
+
+			const itemActionRows = actionsPage.itemActionsTable
+				.locator('tr')
+				.filter({hasText: 'GROUP_PROXY'});
+
+			await expect(itemActionRows).toHaveCount(1);
+
+			const firstDropdownToggle = itemActionRows
+				.first()
+				.locator('.dropdown-toggle');
+
+			await firstDropdownToggle.click();
+
+			await expect(
+				actionsPage.page
+					.locator('.dropdown-menu.show')
+					.getByRole('menuitem', {name: 'Edit'})
+			).not.toBeAttached();
+
+			await firstDropdownToggle.click();
+		});
+
+		await test.step('Creation actions are imported with "group proxy" import policy', async () => {
+			await actionsPage.selectTab({
+				container: actionsPage.actionsTabs,
+				label: 'Creation Actions',
+			});
+
+			const creationActionRows = actionsPage.creationActionsTable
+				.locator('tr')
+				.filter({hasText: 'GROUP_PROXY'});
+
+			await expect(creationActionRows).toHaveCount(1);
+
+			await page.getByTitle('Back').click();
+		});
+
+		await test.step('Delete an imported system data set', async () => {
+			await customizedSampleRow.locator('.dropdown-toggle').click();
+
+			await systemDataSetsPage.page
+				.locator('.dropdown-menu.show')
+				.getByRole('menuitem', {name: 'Delete'})
+				.click();
+
+			const deleteModal = systemDataSetsPage.page.getByRole('dialog');
+
+			await deleteModal.getByRole('button', {name: 'Delete'}).click();
+
+			await waitForAlert(systemDataSetsPage.page);
+
+			await expect(customizedSampleRow).not.toBeAttached();
+		});
+
+		await test.step('Check that deleted data set is again available for import ', async () => {
+			await systemDataSetsPage.createButton.click();
+
+			await expect(customizedSampleListItem).not.toContainText('Created');
+			await expect(customizedSampleListItem).not.toHaveClass(/disabled/);
 
 			await creationModal.cancelButton.click();
 		});
