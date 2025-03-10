@@ -3483,7 +3483,7 @@ tell application "Safari" to quit
 				<isset property="test.analytics.cloud.url" />
 				<then>
 					<echo append="true" file="${test.ext.properties.file}">
-						analytics.cloud.url=${test.analytics.cloud.url}
+						analytics.cloud.url=${analytics.cloud.staging.url}
 					</echo>
 				</then>
 				<elseif>
