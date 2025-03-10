@@ -54,7 +54,7 @@ function onRemoveFile() {
 	removeButton.removeEventListener('click', onRemoveFile);
 }
 
-function onSelectFile(event, onChange) {
+function onSelectFile(event, onChange, setTranslationInputValue) {
 	event.preventDefault();
 
 	Liferay.Util.openSelectionModal({
@@ -62,7 +62,12 @@ function onSelectFile(event, onChange) {
 			const {fileEntryId, title} = JSON.parse(selectedItem.value);
 
 			if (onChange) {
-				onChange(fileEntryId, title);
+				setTranslationInputValue({
+					fileName: title,
+					value: fileEntryId,
+				});
+
+				onChange();
 			}
 
 			fileInput.value = fileEntryId;
@@ -79,6 +84,28 @@ const onSelectFromUserComputer = () => {
 	previousFiles = fileInput.files[0] || null;
 
 	fileInput.click();
+};
+
+function getTranslationInput(namespace, languageId, inputName) {
+	const inputId = `${namespace}${inputName}-file-upload_${languageId}`;
+
+	return document.getElementById(inputId);
+}
+
+const setFileName = (input) => {
+	if (!input) {
+		fileName.innerText = '';
+	}
+	else {
+		fileName.innerText = input.dataset.fileName || '';
+	}
+
+	if (fileName.innerText) {
+		removeButton.classList.remove('d-none');
+	}
+	else {
+		removeButton.classList.add('d-none');
+	}
 };
 
 if (layoutMode === 'edit') {
@@ -101,58 +128,127 @@ else {
 		const defaultLanguageId = themeDisplay.getDefaultLanguageId();
 		const inputElement = fileInput;
 
+		let currentLanguageId = defaultLanguageId;
+
 		import('@liferay/fragment-impl').then(
-			({registerLocalizedFileInput, registerUnlocalizedInput}) => {
+			({
+				getOrCreateTranslationInput,
+				registerLocalizedInput,
+				registerUnlocalizedInput,
+			}) => {
 				if (input.localizable) {
-					const initialValues = Object.fromEntries(
-						Object.keys(input.valueI18n).map((key) => [
+
+					// Set initial values
+
+					const initialValues = Object.keys(input.valueI18n).map(
+						(key) => [
 							key,
 							{
 								fileEntryId: input.valueI18n[key],
 								name: input.attributes.fileNameI18n[key] || '',
 							},
-						])
+						]
+					);
+
+					Object.entries(initialValues).forEach(
+						([languageId, value]) => {
+							const input = getOrCreateTranslationInput(
+								inputElement?.id,
+								inputElement.name,
+								languageId,
+								inputElement.parentNode,
+								fragmentNamespace
+							);
+
+							input.value = value.fileEntryId;
+							input.dataset.fileName = value.name;
+						}
 					);
 
 					const isFromDocumentLibrary =
 						input.attributes.selectFromDocumentLibrary;
 
-					const {onChange, onRemoveFile} = registerLocalizedFileInput(
-						{
-							defaultLanguageId,
-							initialValues,
-							inputName: input.name,
-							isFromDocumentLibrary,
-							localizationInputsContainer:
-								inputElement.parentNode,
-							namespace: fragmentNamespace,
-							onLocaleChange: (input) => {
-								if (!input) {
-									fileName.innerText = '';
-								}
-								else {
-									fileName.innerText =
-										input.dataset.fileName || '';
+					const {onChange} = registerLocalizedInput({
+						changeTextDirection: false,
+						customLocaleChangeHandler: true,
+						defaultLanguageId,
+						onLocaleChange: ({languageId}) => {
+							currentLanguageId = languageId;
+
+							const translationInput = getTranslationInput(
+								fragmentNamespace,
+								languageId,
+								input.name
+							);
+
+							if (translationInput) {
+								setFileName(translationInput);
+							}
+							else {
+								const defaultTranslationInput =
+									getTranslationInput(
+										fragmentNamespace,
+										defaultLanguageId,
+										input.name
+									);
+
+								setFileName(defaultTranslationInput);
+							}
+						},
+					});
+
+					const setTranslationInputValue = ({fileName, value}) => {
+						const type =
+							isFromDocumentLibrary === false ? 'file' : 'hidden';
+
+						const translationInput = getOrCreateTranslationInput(
+							`${input.name}-file-upload`,
+							input.name,
+							currentLanguageId,
+							inputElement.parentNode,
+							fragmentNamespace,
+							type
+						);
+
+						if (isFromDocumentLibrary) {
+							translationInput.value = value;
+							translationInput.dataset.fileName = fileName;
+						}
+						else {
+							const files = value;
+
+							if (files?.length) {
+								const dataTransfer = new DataTransfer();
+
+								if (files?.length) {
+									[...files].forEach((file) => {
+										dataTransfer.items.add(file);
+									});
 								}
 
-								if (fileName.innerText) {
-									removeButton.classList.remove('d-none');
-								}
-								else {
-									removeButton.classList.add('d-none');
-								}
-							},
+								translationInput.files = dataTransfer.files;
+								translationInput.dataset.fileName =
+									dataTransfer.files[0].name;
+							}
 						}
-					);
+					};
 
 					if (isFromDocumentLibrary) {
-						selectButton.addEventListener('click', (event) =>
-							onSelectFile(event, onChange)
-						);
+						selectButton.addEventListener('click', (event) => {
+							onSelectFile(
+								event,
+								onChange,
+								setTranslationInputValue
+							);
+						});
 					}
 					else {
 						inputElement.addEventListener('change', (event) => {
-							onChange(event.target.files);
+							setTranslationInputValue({
+								value: event.target.files,
+							});
+
+							onChange();
 						});
 
 						selectButton.addEventListener(
@@ -166,7 +262,16 @@ else {
 
 						removeButton.classList.add('d-none');
 
-						onRemoveFile();
+						const translationInput = getOrCreateTranslationInput(
+							`${input.name}-file-upload`,
+							input.name,
+							currentLanguageId,
+							inputElement.parentNode,
+							fragmentNamespace
+						);
+
+						translationInput.value = '';
+						translationInput.dataset.fileName = '';
 					});
 				}
 				else {
@@ -174,6 +279,8 @@ else {
 						input.attributes.unlocalizedFieldsState;
 
 					registerUnlocalizedInput({
+						changeTextDirection: false,
+						customLocaleChangeHandler: true,
 						defaultLanguageId,
 						inputElement,
 						onLocaleChange: (languageId) => {

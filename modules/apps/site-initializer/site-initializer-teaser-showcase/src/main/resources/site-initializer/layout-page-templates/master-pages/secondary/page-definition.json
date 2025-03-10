@@ -227,8 +227,8 @@
 																	"expandedLevels": "auto",
 																	"rootMenuItemLevel": "0",
 																	"rootMenuItemType": "absolute",
-																	"siteNavigationMenuExternalReferenceCode": "HEADER_PAGE_MENU",
-																	"siteNavigationMenuName": "Header Page Menu",
+																	"siteNavigationMenuExternalReferenceCode": "HEADER-PAGE",
+																	"siteNavigationMenuName": "Header Page",
 																	"siteNavigationMenuType": "-1"
 																},
 																"widgetInstanceId": "navMain",
@@ -587,8 +587,8 @@
 																	"expandedLevels": "auto",
 																	"rootMenuItemLevel": "0",
 																	"rootMenuItemType": "absolute",
-																	"siteNavigationMenuExternalReferenceCode": "FOOTER_LEGAL_MENU",
-																	"siteNavigationMenuName": "Footer Legal Menu",
+																	"siteNavigationMenuExternalReferenceCode": "FOOTER-LEGAL",
+																	"siteNavigationMenuName": "Footer Legal",
 																	"siteNavigationMenuType": "-1"
 																},
 																"widgetInstanceId": "navMain",
@@ -617,7 +617,7 @@
 	},
 	"settings": {
 		"colorSchemeName": "01",
-		"themeName": "Classic",
+		"themeName": "Dialect",
 		"themeSettings": {
 			"lfr-theme:regular:show-footer": "false",
 			"lfr-theme:regular:show-header": "false",

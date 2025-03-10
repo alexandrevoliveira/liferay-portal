@@ -5,6 +5,7 @@
 
 package com.liferay.site.cms.site.initializer.internal.display.context;
 
+import com.liferay.frontend.data.set.model.FDSActionDropdownItem;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.CreationMenu;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.CreationMenuBuilder;
 import com.liferay.petra.string.StringPool;
@@ -12,12 +13,12 @@ import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
-import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.service.LayoutLocalServiceUtil;
-import com.liferay.portal.kernel.theme.ThemeDisplay;
+import com.liferay.portal.kernel.util.HttpComponentsUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
-import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.site.cms.site.initializer.internal.configuration.CMSSiteInitializerConfiguration;
+
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -44,29 +45,46 @@ public class StructuresSectionDisplayContext extends BaseSectionDisplayContext {
 	public CreationMenu getCreationMenu() {
 		return CreationMenuBuilder.addPrimaryDropdownItem(
 			dropdownItem -> {
-				dropdownItem.setHref(_getHref());
+				dropdownItem.setHref(_getHref("L_CMS_CONTENT_STRUCTURES"));
 				dropdownItem.setLabel(
 					LanguageUtil.get(httpServletRequest, "content"));
 			}
 		).addPrimaryDropdownItem(
 			dropdownItem -> {
-				dropdownItem.setHref(_getHref());
+				dropdownItem.setHref(_getHref("L_CMS_FILE_TYPES"));
 				dropdownItem.setLabel(
 					LanguageUtil.get(httpServletRequest, "file"));
 			}
 		).build();
 	}
 
-	private String _getHref() {
-		ThemeDisplay themeDisplay =
-			(ThemeDisplay)httpServletRequest.getAttribute(
-				WebKeys.THEME_DISPLAY);
+	@Override
+	public List<FDSActionDropdownItem> getFDSActionDropdownItems()
+		throws Exception {
 
+		return List.of(
+			new FDSActionDropdownItem(
+				HttpComponentsUtil.addParameters(
+					PortalUtil.getLayoutFullURL(
+						LayoutLocalServiceUtil.getLayoutByFriendlyURL(
+							themeDisplay.getScopeGroupId(), false,
+							"/structure-builder"),
+						themeDisplay),
+					"objectDefinitionId", "{id}"),
+				"pencil", "edit", LanguageUtil.get(httpServletRequest, "edit"),
+				"get", null, null));
+	}
+
+	private String _getHref(String objectFolderExternalReferenceCode) {
 		try {
-			Layout layout = LayoutLocalServiceUtil.getLayoutByFriendlyURL(
-				themeDisplay.getScopeGroupId(), false, "/structure-builder");
-
-			return PortalUtil.getLayoutFullURL(layout, themeDisplay);
+			return HttpComponentsUtil.addParameters(
+				PortalUtil.getLayoutFullURL(
+					LayoutLocalServiceUtil.getLayoutByFriendlyURL(
+						themeDisplay.getScopeGroupId(), false,
+						"/structure-builder"),
+					themeDisplay),
+				"objectFolderExternalReferenceCode",
+				objectFolderExternalReferenceCode);
 		}
 		catch (PortalException portalException) {
 			_log.error(portalException);

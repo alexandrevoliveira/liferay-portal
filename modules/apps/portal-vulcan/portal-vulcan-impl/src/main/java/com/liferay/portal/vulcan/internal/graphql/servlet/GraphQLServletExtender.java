@@ -1894,6 +1894,10 @@ public class GraphQLServletExtender {
 		else if (String.class.equals(clazz)) {
 			return Scalars.GraphQLString;
 		}
+		else if (clazz.isArray()) {
+			return new GraphQLList(
+				_toGraphQLType(clazz.getComponentType(), graphQLTypes, input));
+		}
 
 		String key = (input ? "Input" : "") + clazz.getSimpleName();
 

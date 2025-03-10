@@ -4983,15 +4983,6 @@ tell application "Safari" to quit
 				</then>
 			</if>
 
-			<get-testcase-property property.name="release.feature.flags.disable.DISABLE_PRIVATE_LAYOUTS" />
-
-			<if>
-				<equals arg1="${release.feature.flags.disable.DISABLE_PRIVATE_LAYOUTS}" arg2="true" />
-				<then>
-					<echo file="${liferay.home}/osgi/configs/com.liferay.release.feature.flag.web.internal.configuration.ReleaseFeatureFlagConfiguration.config">disabledReleaseFeatureFlags=["DISABLE_PRIVATE_LAYOUTS"]</echo>
-				</then>
-			</if>
-
 			<get-testcase-property property.name="test.assert.javascript.errors" />
 
 			<if>
@@ -7131,7 +7122,10 @@ log.sanitizer.enabled=false</echo>
 		<sequential>
 			<setup-testable-jboss-jsp-configuration />
 
-			<ant antfile="build-dist.xml" target="set-up-jakarta-ee-transformer-agent" />
+			<ant antfile="build-dist.xml" target="set-up-jakarta-ee-transformer-agent">
+				<property name="app.server.type" value="jboss" />
+				<property name="app.server.version" value="${app.server.jboss.version}" />
+			</ant>
 		</sequential>
 	</macrodef>
 
@@ -7164,7 +7158,10 @@ log.sanitizer.enabled=false</echo>
 
 			<setup-testable-tomcat-setenv />
 
-			<ant antfile="build-dist.xml" target="set-up-jakarta-ee-transformer-agent" />
+			<ant antfile="build-dist.xml" target="set-up-jakarta-ee-transformer-agent">
+				<property name="app.server.type" value="tomcat" />
+				<property name="app.server.version" value="${app.server.tomcat.version}" />
+			</ant>
 		</sequential>
 	</macrodef>
 
@@ -9716,29 +9713,11 @@ go</echo>
 	</target>
 
 	<target name="cluster-session-replication">
-		<if>
-			<not>
-				<resourcecontains
-					resource="${app.server.tomcat.dir}/webapps/ROOT/WEB-INF/classes/logging.properties"
-					substring="org.apache.catalina.ha.session.handlers"
-				/>
-			</not>
-			<then>
-				<echo append="true" file="${app.server.tomcat.dir}/webapps/ROOT/WEB-INF/classes/logging.properties">
-			<![CDATA[
-org.apache.catalina.ha.session.handlers=java.util.logging.ConsoleHandler
-org.apache.catalina.ha.session.level=INFO]]>
-				</echo>
-			</then>
-		</if>
-
 		<replace
-			failOnNoReplacements="true"
-			file="${app.server.tomcat.dir}/webapps/ROOT/WEB-INF/web.xml"
+			file="${app.server.tomcat.dir}/conf/context.xml"
 		>
-			<replacetoken><![CDATA[xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">]]></replacetoken>
-			<replacevalue><![CDATA[xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">
-	<distributable />]]></replacevalue>
+			<replacetoken><![CDATA[    <Manager pathname="SESSIONS.ser" />]]></replacetoken>
+			<replacevalue><![CDATA[]]></replacevalue>
 		</replace>
 
 		<echo append="true" file="${app.server.tomcat.dir}/conf/logging.properties">
@@ -9783,6 +9762,31 @@ org.apache.catalina.tribes.level = FINE]]>
 			</Sender>
 		</Channel>
 	</Cluster>]]></replacevalue>
+		</replace>
+
+		<if>
+			<not>
+				<resourcecontains
+					resource="${app.server.tomcat.dir}/webapps/ROOT/WEB-INF/classes/logging.properties"
+					substring="org.apache.catalina.ha.session.handlers"
+				/>
+			</not>
+			<then>
+				<echo append="true" file="${app.server.tomcat.dir}/webapps/ROOT/WEB-INF/classes/logging.properties">
+			<![CDATA[
+org.apache.catalina.ha.session.handlers=java.util.logging.ConsoleHandler
+org.apache.catalina.ha.session.level=INFO]]>
+				</echo>
+			</then>
+		</if>
+
+		<replace
+			failOnNoReplacements="true"
+			file="${app.server.tomcat.dir}/webapps/ROOT/WEB-INF/web.xml"
+		>
+			<replacetoken><![CDATA[xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">]]></replacetoken>
+			<replacevalue><![CDATA[xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">
+	<distributable />]]></replacevalue>
 		</replace>
 	</target>
 

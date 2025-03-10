@@ -62,7 +62,6 @@ create unique index IX_E7B95510 on BrowserTracker (userId);
 create unique index IX_B27A301F on ClassName_ (value[$COLUMN_LENGTH:200$]);
 
 create index IX_38EFE3FD on Company (logoId);
-create index IX_12566EC2 on Company (mx[$COLUMN_LENGTH:200$]);
 create unique index IX_EC00543C on Company (webId[$COLUMN_LENGTH:75$]);
 
 create unique index IX_85C63FD7 on CompanyInfo (companyId);
@@ -287,7 +286,7 @@ create unique index IX_7171B2E8 on PluginSetting (companyId, pluginId[$COLUMN_LE
 create unique index IX_D5E35599 on PortalPreferenceValue (portalPreferencesId, namespace[$COLUMN_LENGTH:255$], key_[$COLUMN_LENGTH:1024$], index_);
 create index IX_737DBC36 on PortalPreferenceValue (portalPreferencesId, namespace[$COLUMN_LENGTH:255$], key_[$COLUMN_LENGTH:1024$], smallValue[$COLUMN_LENGTH:255$]);
 
-create index IX_D1846D13 on PortalPreferences (ownerType, ownerId);
+create unique index IX_D1846D13 on PortalPreferences (ownerType, ownerId);
 
 create unique index IX_12B5E51D on Portlet (companyId, portletId[$COLUMN_LENGTH:200$]);
 
@@ -394,7 +393,7 @@ create index IX_241D10A4 on SocialActivitySet (userId, type_, classNameId, class
 create index IX_6D0C8733 on SocialActivitySet (userId, type_, groupId, classNameId);
 
 create index IX_384788CD on SocialActivitySetting (groupId, activityType);
-create index IX_D984AABA on SocialActivitySetting (groupId, classNameId, activityType, name[$COLUMN_LENGTH:75$]);
+create unique index IX_4FC6CD18 on SocialActivitySetting (groupId, classNameId, activityType, name[$COLUMN_LENGTH:75$], ctCollectionId);
 
 create index IX_61171E99 on SocialRelation (companyId);
 create index IX_5E1F07A2 on SocialRelation (type_, companyId);

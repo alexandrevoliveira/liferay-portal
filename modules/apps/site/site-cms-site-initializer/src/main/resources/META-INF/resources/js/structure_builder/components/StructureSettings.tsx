@@ -4,26 +4,50 @@
  */
 
 import ClayAlert from '@clayui/alert';
-import ClayForm, {ClayInput} from '@clayui/form';
+import ClayEmptyState from '@clayui/empty-state';
+import ClayForm from '@clayui/form';
 import ClayLabel from '@clayui/label';
 import ClayLayout from '@clayui/layout';
-import React from 'react';
+import ClayTabs from '@clayui/tabs';
+import {InputLocalized} from 'frontend-js-components-web';
+import React, {useState} from 'react';
 
-import {
-	useSelectedItem,
-	useStateDispatch,
-	useStructureError,
-	useStructureLabel,
-} from '../contexts/StateContext';
+import {useSelector, useStateDispatch} from '../contexts/StateContext';
+import selectSelection from '../selectors/selectSelection';
+import selectStructureERC from '../selectors/selectStructureERC';
+import selectStructureError from '../selectors/selectStructureError';
+import selectStructureLabel from '../selectors/selectStructureLabel';
+import selectStructureName from '../selectors/selectStructureName';
+import {getImage} from '../utils/getImage';
+import ERCInput from './ERCInput';
+import Input from './Input';
 import StructureFieldSettings from './StructureFieldSettings';
 
-export function StructureSettings() {
+export default function () {
+	const selection = useSelector(selectSelection);
+
+	if (!selection.length) {
+		return <StructureSettings />;
+	}
+	else if (selection.length > 1) {
+		return <MultiselectionState />;
+	}
+
+	const [fieldName] = selection;
+
+	return <StructureFieldSettings fieldName={fieldName} key={fieldName} />;
+}
+
+function StructureSettings() {
 	const dispatch = useStateDispatch();
-	const error = useStructureError();
-	const label = useStructureLabel();
+	const error = useSelector(selectStructureError);
+	const structureLabel = useSelector(selectStructureLabel);
+
+	const [label, setLabel] =
+		useState<Liferay.Language.LocalizedValue<string>>(structureLabel);
 
 	return (
-		<ClayLayout.ContainerFluid view>
+		<ClayLayout.ContainerFluid size="md" view>
 			{error ? (
 				<ClayAlert
 					displayType="danger"
@@ -39,27 +63,88 @@ export function StructureSettings() {
 			</ClayLabel>
 
 			<ClayForm.Group>
-				<ClayInput
+				<InputLocalized
 					aria-label={Liferay.Language.get('structure-label')}
 					className="form-control-inline structure-builder__title-input"
-					onChange={(event) =>
-						dispatch({label: event.target.value, type: 'set-label'})
+					label=""
+					onBlur={() => {
+						dispatch({
+							label,
+							type: 'set-label',
+						});
+					}}
+					onChange={(label) => setLabel(label)}
+					required
+					translations={
+						label as Liferay.Language.LocalizedValue<string>
 					}
-					sizing="lg"
-					type="text"
-					value={label}
 				/>
 			</ClayForm.Group>
+
+			<ClayTabs>
+				<ClayTabs.List>
+					<ClayTabs.Item>
+						{Liferay.Language.get('general')}
+					</ClayTabs.Item>
+
+					<ClayTabs.Item>
+						{Liferay.Language.get('validations')}
+					</ClayTabs.Item>
+				</ClayTabs.List>
+
+				<ClayTabs.Panels fade>
+					<ClayTabs.TabPane>
+						<GeneralTab />
+					</ClayTabs.TabPane>
+
+					<ClayTabs.TabPane>
+						<ValidationsTab />
+					</ClayTabs.TabPane>
+				</ClayTabs.Panels>
+			</ClayTabs>
 		</ClayLayout.ContainerFluid>
 	);
 }
 
-export default function () {
-	const selectedItem = useSelectedItem();
+function GeneralTab() {
+	const dispatch = useStateDispatch();
+	const name = useSelector(selectStructureName);
+	const erc = useSelector(selectStructureERC);
 
-	if (selectedItem.type === 'structure') {
-		return <StructureSettings />;
-	}
+	return (
+		<div>
+			<Input
+				label={Liferay.Language.get('structure-name')}
+				onValueChange={(value) =>
+					dispatch({name: value, type: 'update-structure'})
+				}
+				required
+				value={name}
+			/>
 
-	return <StructureFieldSettings fieldName={selectedItem.name} />;
+			<ERCInput
+				onValueChange={(value) =>
+					dispatch({erc: value, type: 'update-structure'})
+				}
+				value={erc}
+			/>
+		</div>
+	);
+}
+
+function ValidationsTab() {
+	return <div></div>;
+}
+
+function MultiselectionState() {
+	return (
+		<ClayEmptyState
+			className="justify-content-center structure-builder__empty-state"
+			description=""
+			imgSrc={getImage('multiselection_state.svg')}
+			imgSrcReducedMotion={getImage('multiselection_state.svg')}
+			small
+			title={Liferay.Language.get('multiple-items-selected')}
+		/>
+	);
 }

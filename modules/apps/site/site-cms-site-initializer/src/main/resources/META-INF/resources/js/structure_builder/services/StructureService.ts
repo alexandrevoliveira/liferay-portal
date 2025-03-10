@@ -3,21 +3,25 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {Field, State} from '../contexts/StateContext';
+import {State} from '../contexts/StateContext';
 import buildObjectDefinition from '../utils/buildObjectDefinition';
-import normalizeName from '../utils/normalizeName';
+import {Field} from '../utils/field';
+import getRandomId from '../utils/getRandomId';
 import ApiHelper from './ApiHelper';
 
 async function createStructure({
+	erc = getRandomId(),
 	fields,
 	label,
-	name = normalizeName(label),
+	name,
 }: {
+	erc?: string;
 	fields: Field[];
 	label: State['label'];
 	name?: State['name'];
 }) {
 	const objectDefinition = buildObjectDefinition({
+		erc,
 		fields,
 		label,
 		name,
@@ -40,17 +44,25 @@ async function publishStructure({id}: {id: State['id']}) {
 }
 
 async function updateStructure({
+	erc,
 	fields,
 	id,
 	label,
 	name,
 }: {
+	erc: string;
 	fields: Field[];
 	id: State['id'];
 	label: State['label'];
 	name: State['name'];
 }) {
-	const objectDefinition = buildObjectDefinition({fields, id, label, name});
+	const objectDefinition = buildObjectDefinition({
+		erc,
+		fields,
+		id,
+		label,
+		name,
+	});
 
 	return await ApiHelper.put(
 		`/o/object-admin/v1.0/object-definitions/${id}`,

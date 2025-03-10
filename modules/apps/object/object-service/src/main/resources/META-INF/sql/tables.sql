@@ -94,6 +94,7 @@ create table ObjectEntry (
 	rootObjectEntryId LONG,
 	defaultLanguageId VARCHAR(75) null,
 	treePath STRING null,
+	version INTEGER,
 	lastPublishDate DATE null,
 	status INTEGER,
 	statusByUserId LONG,
@@ -116,6 +117,21 @@ create table ObjectEntryFolder (
 	label STRING null,
 	name VARCHAR(75) null,
 	treePath STRING null
+);
+
+create table ObjectEntryVersion (
+	mvccVersion LONG default 0 not null,
+	uuid_ VARCHAR(75) null,
+	objectEntryVersionId LONG not null primary key,
+	companyId LONG,
+	userId LONG,
+	userName VARCHAR(75) null,
+	createDate DATE null,
+	modifiedDate DATE null,
+	objectEntryId LONG,
+	content TEXT null,
+	version INTEGER,
+	status INTEGER
 );
 
 create table ObjectField (

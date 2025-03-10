@@ -14,7 +14,7 @@
 		_journalDDMTemplateModel = defaultJournalDDMTemplateModel
 	/>
 
-	<#if dataFactory.maxFragmentHeadingsCount == 0>
+	<#if dataFactory.maxFragmentEntryLinkCount == 0>
 		<#assign fragmentCollectionModel = dataFactory.newFragmentCollectionModel(groupId) />
 
 		${dataFactory.toInsertSQL(fragmentCollectionModel)}
@@ -34,7 +34,7 @@
 		</#list>
 	</#if>
 
-	<#if dataFactory.maxFragmentHeadingsCount != 0>
+	<#if dataFactory.maxFragmentEntryLinkCount != 0>
 		<#list dataFactory.getSequence(dataFactory.maxContentLayoutCount) as contentLayoutCount>
 			<#assign
 				contentLayoutModels = dataFactory.newContentPageLayoutModels(groupId, groupId + "_web_content_" + contentLayoutCount)
@@ -65,7 +65,9 @@
 
 				${dataFactory.toInsertSQL(dataFactory.newLayoutPageTemplateStructureRelModel(contentLayoutModel, layoutPageTemplateStructureModel, fragmentEntryLinkModels))}
 
-				${csvFileWriter.write("fragment", virtualHostModel.hostname + "," + groupModel.friendlyURL + "," + contentLayoutModel.friendlyURL + "\n")}
+				 <#if contentLayoutModel.friendlyURL?contains("_web_content_")>
+					${csvFileWriter.write("fragment", virtualHostModel.hostname + "," + groupModel.friendlyURL + "," + contentLayoutModel.friendlyURL + "\n")}
+				</#if>
 			</#list>
 		</#list>
 	</#if>

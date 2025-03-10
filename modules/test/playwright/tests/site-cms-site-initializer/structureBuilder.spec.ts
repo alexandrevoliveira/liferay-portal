@@ -3,82 +3,269 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {ObjectDefinitionApi} from '@liferay/object-admin-rest-client-js';
 import {expect, mergeTests} from '@playwright/test';
 
-import {apiHelpersTest} from '../../fixtures/apiHelpersTest';
+import {featureFlagsTest} from '../../fixtures/featureFlagsTest';
 import {loginTest} from '../../fixtures/loginTest';
+import {clickAndExpectToBeVisible} from '../../utils/clickAndExpectToBeVisible';
 import {getRandomInt} from '../../utils/getRandomInt';
+import getRandomString from '../../utils/getRandomString';
 import {cmsPagesTest} from './fixtures/cmsPagesTest';
+import {FIELD_TYPES} from './pages/StructureBuilderPage';
 
-const test = mergeTests(apiHelpersTest, cmsPagesTest, loginTest());
+const test = mergeTests(
+	cmsPagesTest,
+	featureFlagsTest({
+		'LPD-32050': {enabled: true},
+	}),
+	loginTest()
+);
 
-test('Structures can be saved and published', async ({
-	apiHelpers,
-	page,
-	structureBuilderPage,
-}) => {
+test(
+	'Structures can be saved and published',
+	{tag: '@LPD-36752'},
+	async ({page, structureBuilderPage}) => {
 
-	// Go to the Structure Builder
+		// Go to the Structure Builder
 
-	await structureBuilderPage.goto();
+		await structureBuilderPage.goto();
 
-	// Check invalid labels don't work
+		// Change label and name
 
-	await structureBuilderPage.changeStructureLabel('1');
+		const label = `Structure${getRandomInt()}`;
 
-	await expect(async () => {
-		await structureBuilderPage.saveStructure();
-	}).not.toPass();
+		await structureBuilderPage.changeStructureSettings({
+			label,
+			name: label,
+		});
 
-	// Put valid label
+		// Save structure
 
-	const label = `Structure ${getRandomInt()}`;
+		const {id} = await structureBuilderPage.saveStructure();
 
-	await structureBuilderPage.changeStructureLabel(label);
+		await expect(page.locator('.alert-danger')).not.toBeVisible();
 
-	// Save structure and capture object definition id
+		// Check we can't publish without adding a field
 
-	const [response] = await Promise.all([
-		page.waitForResponse(
-			(response) =>
-				response.url().includes('object-definitions') &&
-				response.status() === 200
-		),
-		await structureBuilderPage.saveStructure(),
-	]);
+		await expect(async () => {
+			await structureBuilderPage.publishStructure();
+		}).not.toPass();
 
-	const {id} = await response.json();
+		// Add two fields
 
-	await expect(page.locator('.alert-danger')).not.toBeVisible();
+		await structureBuilderPage.addField('Text');
+		await structureBuilderPage.addField('Text');
 
-	// Check we can't publish without adding a field
+		// Remove a field
 
-	await expect(async () => {
+		await structureBuilderPage.deleteField({label: 'Text', nth: 1});
+
+		// Publish it
+
 		await structureBuilderPage.publishStructure();
-	}).not.toPass();
 
-	// Add two fields
+		// Check name changes in management bar
 
-	await structureBuilderPage.addField('Text');
-	await structureBuilderPage.addField('Text');
+		await expect(
+			page.locator('.management-bar').getByText(label)
+		).toBeVisible();
 
-	// Remove a field
+		// Check another field with same name can not be added
 
-	await structureBuilderPage.deleteField({label: 'Text', nth: 1});
+		await structureBuilderPage.addField('Text');
+		await structureBuilderPage.selectField({label: 'Text', nth: 1});
+		await structureBuilderPage.changeFieldSettings({name: 'text'});
 
-	// Save it again and publish it
+		// Delete structure
 
-	await structureBuilderPage.saveStructure();
-	await structureBuilderPage.publishStructure();
+		await structureBuilderPage.deleteStructure(id);
+	}
+);
 
-	// Delete structure
+test(
+	'Structures can be saved with all type of fields',
+	{tag: '@LPD-36752'},
+	async ({structureBuilderPage}) => {
 
-	const APIClient = await apiHelpers.buildRestClient(ObjectDefinitionApi);
+		// Go to the Structure Builder
 
-	const {
-		response: {statusCode},
-	} = await APIClient.deleteObjectDefinition(id);
+		await structureBuilderPage.goto();
 
-	expect(statusCode).toBe(204);
-});
+		// Change label and name
+
+		const label = `Structure${getRandomInt()}`;
+
+		await structureBuilderPage.changeStructureSettings({
+			label,
+			name: label,
+		});
+
+		// Add a field of each type
+
+		for (const type of FIELD_TYPES) {
+			await structureBuilderPage.addField(type);
+		}
+
+		// Save and publish the structure
+
+		const {id} = await structureBuilderPage.saveStructure();
+
+		await structureBuilderPage.publishStructure();
+
+		// Delete structure
+
+		await structureBuilderPage.deleteStructure(id);
+	}
+);
+
+test(
+	'Can delete multiple fields',
+	{tag: '@LPD-36767'},
+	async ({page, structureBuilderPage}) => {
+
+		// Go to the Structure Builder
+
+		await structureBuilderPage.goto();
+
+		// Change label and name
+
+		const label = `Structure${getRandomInt()}`;
+
+		await structureBuilderPage.changeStructureSettings({
+			label,
+			name: label,
+		});
+
+		// Add four fields
+
+		const types = ['Text', 'Long Text', 'Upload', 'Integer'] as const;
+
+		for (const type of types) {
+			await structureBuilderPage.addField(type);
+		}
+
+		// Save and publish the structure
+
+		const {id} = await structureBuilderPage.saveStructure();
+		await structureBuilderPage.publishStructure();
+
+		// Select and delete three fields
+
+		const textField = page
+			.locator('.treeview-item')
+			.getByLabel('Text', {exact: true});
+
+		await textField.click();
+
+		await textField.focus();
+
+		await expect(async () => {
+			await page.keyboard.down('Control');
+
+			await page.keyboard.press('ArrowDown');
+			await page.keyboard.press('Space');
+
+			await expect(page.getByText('3 Items Selected')).toBeVisible({
+				timeout: 1000,
+			});
+		}).toPass();
+
+		await clickAndExpectToBeVisible({
+			autoClick: true,
+			target: page.getByRole('menuitem', {name: 'Delete'}),
+			trigger: page.getByLabel('Selection Options'),
+		});
+
+		// Check tree node count is 2 (Root and remaining field)
+
+		await expect(page.locator('.treeview-link')).toHaveCount(2);
+
+		// Delete structure
+
+		await structureBuilderPage.deleteStructure(id);
+	}
+);
+
+test(
+	'Can configure a text field',
+	{tag: '@LPD-49168'},
+	async ({page, structureBuilderPage}) => {
+
+		// Go to the Structure Builder
+
+		await structureBuilderPage.goto();
+
+		// Change label,name and erc
+
+		const label = `Structure${getRandomInt()}`;
+		const erc = getRandomString();
+
+		await structureBuilderPage.changeStructureSettings({
+			erc,
+			label,
+			name: label,
+		});
+
+		// Add a text field
+
+		await structureBuilderPage.addField('Text');
+
+		await structureBuilderPage.selectField({label: 'Text'});
+
+		// Configure the field
+
+		await structureBuilderPage.changeFieldSettings({
+			erc,
+			label: 'Text Edited',
+			localizable: true,
+			name: 'textEdited',
+		});
+
+		await page.getByLabel('Accept Unique Values Only').click();
+
+		await page.getByLabel('Limit Characters').click();
+
+		const maximumNumberOfCharactersInput = page.getByLabel(
+			'Maximum Number of Characters'
+		);
+		maximumNumberOfCharactersInput.fill('10');
+
+		await maximumNumberOfCharactersInput.blur();
+
+		// Save and publish the structure
+
+		const {id} = await structureBuilderPage.saveStructure();
+
+		await expect(page.locator('.alert-danger')).not.toBeVisible();
+
+		const {objectFields} = await structureBuilderPage.publishStructure();
+
+		// Check the text field is created with the correct settings
+
+		const textObjectField = objectFields.find(
+			(objectField) => objectField.name === 'textEdited'
+		);
+
+		expect(textObjectField).toBeDefined();
+
+		expect(textObjectField.label).toStrictEqual({en_US: 'Text Edited'});
+		expect(textObjectField.localized).toBe(true);
+		expect(textObjectField.name).toBe('textEdited');
+		expect(textObjectField.objectFieldSettings[0]).toStrictEqual({
+			name: 'uniqueValues',
+			value: true,
+		});
+		expect(textObjectField.objectFieldSettings[1]).toStrictEqual({
+			name: 'maxLength',
+			value: 10,
+		});
+		expect(textObjectField.objectFieldSettings[2]).toStrictEqual({
+			name: 'showCounter',
+			value: true,
+		});
+
+		// Delete structure
+
+		await structureBuilderPage.deleteStructure(id);
+	}
+);

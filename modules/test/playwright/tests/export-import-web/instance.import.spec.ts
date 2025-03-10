@@ -4,8 +4,8 @@
  */
 
 import {
+	ObjectDefinition,
 	ObjectDefinitionApi,
-	ObjectField,
 } from '@liferay/object-admin-rest-client-js';
 import {expect, mergeTests} from '@playwright/test';
 
@@ -62,8 +62,8 @@ test('can export and import custom object entries at instance level', async ({
 			name: 'Test',
 			objectFields: [
 				{
-					DBType: ObjectField.DBTypeEnum.String,
-					businessType: ObjectField.BusinessTypeEnum.Text,
+					DBType: 'String',
+					businessType: 'Text',
 					indexed: true,
 					indexedAsKeyword: true,
 					label: {
@@ -122,6 +122,86 @@ test('can export and import custom object entries at instance level', async ({
 	);
 });
 
+test('can only import custom object entries when their definitions are already in the system', async ({
+	apiHelpers,
+	companyExportImportPage,
+}) => {
+	const objectActionApiClient =
+		await apiHelpers.buildRestClient(ObjectDefinitionApi);
+
+	const objectDefinitionRequestBody: ObjectDefinition = {
+		active: true,
+		className: 'com.liferay.object.model.ObjectDefinition#test_definition',
+		externalReferenceCode: 'test-definition',
+		label: {
+			en_US: 'Test',
+		},
+		name: 'Test',
+		objectFields: [
+			{
+				DBType: 'String',
+				businessType: 'Text',
+				indexed: true,
+				indexedAsKeyword: true,
+				label: {
+					en_US: 'textField',
+				},
+				name: 'textField',
+				required: true,
+			},
+		],
+		pluralLabel: {
+			en_US: 'Tests',
+		},
+		portlet: true,
+		scope: 'company',
+		status: {
+			code: 0,
+		},
+	};
+
+	let {body: objectDefinition} =
+		await objectActionApiClient.postObjectDefinition(
+			objectDefinitionRequestBody
+		);
+
+	const objectEntry = await apiHelpers.objectEntry.postObjectEntry(
+		{externalReferenceCode: 'testERC', textField: 'test'},
+		'c/tests'
+	);
+
+	const exportFilePath =
+		await companyExportImportPage.export('Tests 1 Items');
+
+	objectActionApiClient.deleteObjectDefinition(objectDefinition.id);
+
+	await companyExportImportPage.import(
+		exportFilePath,
+		false,
+		'The Data Handler for the "Tests" portlet is missing from the system.'
+	);
+
+	({body: objectDefinition} =
+		await objectActionApiClient.postObjectDefinition(
+			objectDefinitionRequestBody
+		));
+
+	apiHelpers.data.push({id: objectDefinition.id, type: 'objectDefinition'});
+
+	await companyExportImportPage.import(exportFilePath);
+
+	expect(
+		await apiHelpers.get(
+			`${apiHelpers.baseUrl}c/tests/by-external-reference-code/${objectEntry.externalReferenceCode}`
+		)
+	).toEqual(
+		expect.objectContaining({
+			externalReferenceCode: objectEntry.externalReferenceCode,
+			textField: objectEntry.textField,
+		})
+	);
+});
+
 test('can import custom object entries at instance level with or without permissions based on selection', async ({
 	apiHelpers,
 	companyExportImportPage,
@@ -139,8 +219,8 @@ test('can import custom object entries at instance level with or without permiss
 			name: 'Test',
 			objectFields: [
 				{
-					DBType: ObjectField.DBTypeEnum.String,
-					businessType: ObjectField.BusinessTypeEnum.Text,
+					DBType: 'String',
+					businessType: 'Text',
 					indexed: true,
 					indexedAsKeyword: true,
 					label: {
@@ -257,8 +337,8 @@ test('can see corresponding elements at instance level', async ({
 			name: 'Test',
 			objectFields: [
 				{
-					DBType: ObjectField.DBTypeEnum.String,
-					businessType: ObjectField.BusinessTypeEnum.Text,
+					DBType: 'String',
+					businessType: 'Text',
 					indexed: true,
 					indexedAsKeyword: true,
 					label: {
@@ -280,8 +360,7 @@ test('can see corresponding elements at instance level', async ({
 
 	apiHelpers.data.push({id: objectDefinition.id, type: 'objectDefinition'});
 
-	const exportFilePath =
-		await companyExportImportPage.export('Tests 1 Items');
+	const exportFilePath = await companyExportImportPage.export('Tests');
 
 	await companyExportImportPage.page.goto('/');
 
@@ -293,6 +372,28 @@ test('can see corresponding elements at instance level', async ({
 
 	await expect(
 		companyExportImportPage.page.getByText('Comments, Ratings')
+	).not.toBeVisible();
+
+	await expect(
+		companyExportImportPage.page.getByText('C_Tests Change')
+	).not.toBeVisible();
+
+	await expect(
+		companyExportImportPage.page.getByLabel('Delete Application Data')
+	).not.toBeVisible();
+
+	await expect(
+		companyExportImportPage.page.getByText(
+			'Mirror: All data and content inside the imported LAR is created as new the first time while maintaining a reference to the source. Subsequent imports from the same source update the entries instead of creating new entries.'
+		)
+	).toBeVisible();
+
+	await expect(
+		companyExportImportPage.page.getByText('Mirror with overwriting:')
+	).not.toBeVisible();
+
+	await expect(
+		companyExportImportPage.page.getByText('Copy as New:')
 	).not.toBeVisible();
 });
 

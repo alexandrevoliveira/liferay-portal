@@ -1315,12 +1315,23 @@ public class JavaParserUtil {
 	private static JavaInstanceofStatement _parseJavaInstanceofStatement(
 		DetailAST literalInstanceofDetailAST) {
 
+		JavaExpression javaExpression = _parseJavaExpression(
+			literalInstanceofDetailAST.getFirstChild());
+
 		DetailAST typeDetailAST = literalInstanceofDetailAST.findFirstToken(
 			TokenTypes.TYPE);
 
+		if (typeDetailAST != null) {
+			return new JavaInstanceofStatement(
+				_parseJavaType(typeDetailAST), null, javaExpression);
+		}
+
 		return new JavaInstanceofStatement(
-			_parseJavaType(typeDetailAST),
-			_parseJavaExpression(literalInstanceofDetailAST.getFirstChild()));
+			null,
+			_parseJavaVariableDefinition(
+				literalInstanceofDetailAST.findFirstToken(
+					TokenTypes.PATTERN_VARIABLE_DEF)),
+			javaExpression);
 	}
 
 	private static JavaLoopStatement _parseJavaLabeledStatement(

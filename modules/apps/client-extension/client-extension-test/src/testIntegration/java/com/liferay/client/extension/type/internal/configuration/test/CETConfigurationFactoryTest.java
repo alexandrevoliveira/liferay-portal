@@ -18,7 +18,6 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.test.util.ConfigurationTestUtil;
 import com.liferay.portal.kernel.exception.NoSuchLayoutException;
-import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Company;
@@ -131,18 +130,16 @@ public class CETConfigurationFactoryTest {
 	public void testAddControlPanelThemeCSSClientExtensionEntryRel()
 		throws Exception {
 
+		Layout layout = _getControlPanelLayout(_virtualInstanceCompanyId);
 		String pid1 = ConfigurationTestUtil.createFactoryConfiguration(
 			_PID,
 			_getThemeCSSCETConfigurationProperties(_virtualInstanceCompanyId));
-
 		String pid2 = null;
 
 		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
 				"com.liferay.client.extension.type.internal.configuration." +
 					"CETConfigurationFactory",
 				LoggerTestUtil.ERROR)) {
-
-			Layout layout = _getControlPanelLayout(_virtualInstanceCompanyId);
 
 			List<ClientExtensionEntryRel> clientExtensionEntryRels =
 				_clientExtensionEntryRelLocalService.
@@ -182,13 +179,23 @@ public class CETConfigurationFactoryTest {
 		}
 		finally {
 			ConfigurationTestUtil.deleteConfiguration(pid1);
-			ConfigurationTestUtil.deleteConfiguration(pid2);
+
+			if (pid2 != null) {
+				ConfigurationTestUtil.deleteConfiguration(pid2);
+			}
 		}
+
+		List<ClientExtensionEntryRel> clientExtensionEntryRels =
+			_clientExtensionEntryRelLocalService.getClientExtensionEntryRels(
+				_portal.getClassNameId(Layout.class), layout.getPlid(),
+				ClientExtensionEntryConstants.TYPE_THEME_CSS);
+
+		Assert.assertEquals(
+			clientExtensionEntryRels.toString(), 0,
+			clientExtensionEntryRels.size());
 	}
 
-	private Layout _getControlPanelLayout(long companyId)
-		throws PortalException {
-
+	private Layout _getControlPanelLayout(long companyId) throws Exception {
 		Group group = _groupLocalService.fetchGroup(
 			companyId, GroupConstants.CONTROL_PANEL);
 

@@ -6,7 +6,6 @@
 import {
 	ObjectActionApi,
 	ObjectDefinitionApi,
-	ObjectField,
 } from '@liferay/object-admin-rest-client-js';
 import {expect, mergeTests} from '@playwright/test';
 
@@ -584,8 +583,8 @@ test(
 				name: 'PotatoProvider',
 				objectFields: [
 					{
-						DBType: ObjectField.DBTypeEnum.String,
-						businessType: ObjectField.BusinessTypeEnum.Text,
+						DBType: 'String',
+						businessType: 'Text',
 						externalReferenceCode: 'nameERC',
 						indexed: true,
 						indexedAsKeyword: false,
@@ -597,8 +596,8 @@ test(
 						required: false,
 					},
 					{
-						DBType: ObjectField.DBTypeEnum.String,
-						businessType: ObjectField.BusinessTypeEnum.Text,
+						DBType: 'String',
+						businessType: 'Text',
 						externalReferenceCode: 'locationERC',
 						indexed: true,
 						indexedAsKeyword: false,

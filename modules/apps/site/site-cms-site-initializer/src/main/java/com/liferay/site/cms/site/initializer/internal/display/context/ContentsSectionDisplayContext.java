@@ -7,15 +7,15 @@ package com.liferay.site.cms.site.initializer.internal.display.context;
 
 import com.liferay.frontend.data.set.model.FDSActionDropdownItem;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.CreationMenu;
-import com.liferay.frontend.taglib.clay.servlet.taglib.util.CreationMenuBuilder;
+import com.liferay.frontend.taglib.clay.servlet.taglib.util.DropdownItem;
+import com.liferay.object.model.ObjectDefinition;
+import com.liferay.object.service.ObjectDefinitionService;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.portlet.LiferayWindowState;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
-import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
-import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.site.cms.site.initializer.internal.configuration.CMSSiteInitializerConfiguration;
 
 import java.util.List;
@@ -32,44 +32,53 @@ public class ContentsSectionDisplayContext extends BaseSectionDisplayContext {
 
 	public ContentsSectionDisplayContext(
 		CMSSiteInitializerConfiguration cmsSiteInitializerConfiguration,
-		HttpServletRequest httpServletRequest, Language language) {
+		HttpServletRequest httpServletRequest, Language language,
+		ObjectDefinitionService objectDefinitionService) {
 
 		super(cmsSiteInitializerConfiguration, httpServletRequest);
 
 		_language = language;
+		_objectDefinitionService = objectDefinitionService;
+	}
 
-		_themeDisplay = (ThemeDisplay)httpServletRequest.getAttribute(
-			WebKeys.THEME_DISPLAY);
+	@Override
+	public List<DropdownItem> getBulkActionDropdownItems() {
+		return ListUtil.fromArray(
+			new FDSActionDropdownItem(
+				"#", "document", "sampleBulkAction",
+				_language.get(httpServletRequest, "label"), null, null, null));
 	}
 
 	@Override
 	public CreationMenu getCreationMenu() {
-		return CreationMenuBuilder.addPrimaryDropdownItem(
-			dropdownItem -> {
-				dropdownItem.setIcon("forms");
-				dropdownItem.setLabel(
-					_language.get(httpServletRequest, "basic-content"));
+		return new CreationMenu() {
+			{
+				addPrimaryDropdownItem(
+					dropdownItem -> {
+						dropdownItem.putData("action", "createFolder");
+						dropdownItem.setIcon("folder");
+						dropdownItem.setLabel(
+							_language.get(httpServletRequest, "folder"));
+					});
+
+				for (ObjectDefinition objectDefinition :
+						_objectDefinitionService.getCMSObjectDefinitions(
+							themeDisplay.getCompanyId(),
+							new String[] {"L_CMS_CONTENT_STRUCTURES"})) {
+
+					addPrimaryDropdownItem(
+						dropdownItem -> {
+							dropdownItem.setHref(
+								getAddStructuredContentItemURL(
+									objectDefinition.getObjectDefinitionId()));
+							dropdownItem.setIcon("forms");
+							dropdownItem.setLabel(
+								objectDefinition.getLabel(
+									themeDisplay.getLocale()));
+						});
+				}
 			}
-		).addPrimaryDropdownItem(
-			dropdownItem -> {
-				dropdownItem.setIcon("blogs");
-				dropdownItem.setLabel(
-					_language.get(httpServletRequest, "blog"));
-			}
-		).addPrimaryDropdownItem(
-			dropdownItem -> {
-				dropdownItem.setIcon("wiki");
-				dropdownItem.setLabel(
-					_language.get(httpServletRequest, "knowledge-base"));
-			}
-		).addPrimaryDropdownItem(
-			dropdownItem -> {
-				dropdownItem.putData("action", "createFolder");
-				dropdownItem.setIcon("folder");
-				dropdownItem.setLabel(
-					_language.get(httpServletRequest, "folder"));
-			}
-		).build();
+		};
 	}
 
 	@Override
@@ -86,11 +95,6 @@ public class ContentsSectionDisplayContext extends BaseSectionDisplayContext {
 		).build();
 	}
 
-	@Override
-	public String[] getEntryClassNames() {
-		return cmsSiteInitializerConfiguration.contentsClassNames();
-	}
-
 	public List<FDSActionDropdownItem> getFDSActionDropdownItems() {
 		return ListUtil.fromArray(
 			new FDSActionDropdownItem(
@@ -103,7 +107,7 @@ public class ContentsSectionDisplayContext extends BaseSectionDisplayContext {
 				).setMVCPath(
 					"/edit_permissions.jsp"
 				).setRedirect(
-					_themeDisplay.getURLCurrent()
+					themeDisplay.getURLCurrent()
 				).setParameter(
 					"modelResource", "{entryClassName}"
 				).setParameter(
@@ -118,7 +122,13 @@ public class ContentsSectionDisplayContext extends BaseSectionDisplayContext {
 				"modal-permissions"));
 	}
 
+	@Override
+	public String[] getObjectDefinitionFolderExternalReferenceCodes() {
+		return cmsSiteInitializerConfiguration.
+			contentsObjectDefinitionFolderExternalReferenceCodes();
+	}
+
 	private final Language _language;
-	private final ThemeDisplay _themeDisplay;
+	private final ObjectDefinitionService _objectDefinitionService;
 
 }

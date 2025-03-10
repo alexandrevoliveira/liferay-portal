@@ -161,9 +161,6 @@
 		<finder name="WebId" return-type="Company" unique="true">
 			<finder-column name="webId" />
 		</finder>
-		<finder name="Mx" return-type="Company">
-			<finder-column name="mx" />
-		</finder>
 		<finder name="LogoId" return-type="Collection">
 			<finder-column name="logoId" />
 		</finder>
@@ -1532,7 +1529,7 @@
 		<finder name="OwnerType" return-type="Collection">
 			<finder-column name="ownerType" />
 		</finder>
-		<finder name="O_O" return-type="PortalPreferences">
+		<finder name="O_O" return-type="PortalPreferences" unique="true">
 			<finder-column name="ownerId" />
 			<finder-column name="ownerType" />
 		</finder>
@@ -2548,7 +2545,7 @@
 		<finder name="EmailAddress" return-type="Collection">
 			<finder-column name="emailAddress" />
 		</finder>
-		<finder name="PortraitId" return-type="User">
+		<finder name="PortraitId" return-type="Collection">
 			<finder-column name="portraitId" />
 		</finder>
 		<finder db-index="false" name="GtU_C" return-type="Collection" where="type_ = 1">

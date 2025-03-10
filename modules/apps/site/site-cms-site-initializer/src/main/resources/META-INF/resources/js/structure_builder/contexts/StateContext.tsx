@@ -12,40 +12,37 @@ import React, {
 	useReducer,
 } from 'react';
 
-import {ObjectField} from '../types/ObjectDefinition';
+import {Field} from '../utils/field';
 import findAvailableFieldName from '../utils/findAvailableFieldName';
-import updateFields from '../utils/updateFields';
+import getRandomId from '../utils/getRandomId';
 
 const DEFAULT_STRUCTURE_LABEL = Liferay.Language.get('untitled-structure');
 
-export type FieldType = 'text';
-
 type Status = 'new' | 'draft' | 'published';
 
-export type Field = {
-	erc: string;
-	label: string;
-	name: string;
-	type: FieldType;
-};
-
 export type State = {
+	erc: string;
 	error: string | null;
 	fields: Map<string, Field>;
 	id: number | null;
-	label: string;
+	label: Liferay.Language.LocalizedValue<string>;
 	name: string;
-	selectedItem: {type: 'structure'} | {name: string; type: 'field'};
+	publishedFields: Set<Field['name']>;
+	selection: Field['name'][];
 	status: Status;
 };
 
 const INITIAL_STATE: State = {
+	erc: getRandomId(),
 	error: null,
 	fields: new Map(),
 	id: null,
-	label: DEFAULT_STRUCTURE_LABEL,
+	label: {
+		[Liferay.ThemeDisplay.getDefaultLanguageId()]: DEFAULT_STRUCTURE_LABEL,
+	},
 	name: objectDefinitionUtils.normalizeName(DEFAULT_STRUCTURE_LABEL),
-	selectedItem: {type: 'structure'},
+	publishedFields: new Set(),
+	selection: [],
 	status: 'new',
 };
 
@@ -54,25 +51,46 @@ type AddFieldAction = {field: Field; type: 'add-field'};
 type CreateStructureAction = {
 	id: number;
 	name: string;
-	objectFields: ObjectField[];
 	type: 'create-structure';
 };
 
 type DeleteFieldAction = {fieldName: Field['name']; type: 'delete-field'};
 
+type DeleteSelectionAction = {type: 'delete-selection'};
+
 type PublishStructureAction = {type: 'publish-structure'};
 
-type SelectItemAction = {
-	item: {type: 'structure'} | {name: string; type: 'field'};
-	type: 'select-item';
+type SaveStructureAction = {
+	type: 'save-structure';
 };
 
 type SetErrorAction = {error: string | null; type: 'set-error'};
 
-type SetLabelAction = {label: string; type: 'set-label'};
+type SetLabelAction = {
+	label: Liferay.Language.LocalizedValue<string>;
+	type: 'set-label';
+};
+
+type SetSelection = {
+	selection: State['selection'];
+	type: 'set-selection';
+};
+
+type UpdateFieldAction = {
+	erc?: string;
+	indexableConfig?: Field['indexableConfig'];
+	label?: Liferay.Language.LocalizedValue<string>;
+	localized?: boolean;
+	name: string;
+	newName?: string;
+	required?: boolean;
+	settings?: Field['settings'];
+	type: 'update-field';
+};
 
 type UpdateStructureAction = {
-	objectFields: ObjectField[];
+	erc?: string;
+	name?: string;
 	type: 'update-structure';
 };
 
@@ -80,13 +98,16 @@ export type Action =
 	| AddFieldAction
 	| CreateStructureAction
 	| DeleteFieldAction
+	| DeleteSelectionAction
 	| PublishStructureAction
-	| SelectItemAction
+	| SaveStructureAction
 	| SetErrorAction
 	| SetLabelAction
+	| SetSelection
+	| UpdateFieldAction
 	| UpdateStructureAction;
 
-function reducer(state: State, action: Action) {
+function reducer(state: State, action: Action): State {
 	switch (action.type) {
 		case 'add-field': {
 			const {field} = action;
@@ -100,12 +121,9 @@ function reducer(state: State, action: Action) {
 			return {...state, fields: nextFields};
 		}
 		case 'create-structure': {
-			const fields = updateFields(state.fields, action.objectFields);
-
 			return {
 				...state,
 				error: null,
-				fields,
 				id: action.id,
 				name: action.name,
 				status: 'draft' as Status,
@@ -120,38 +138,124 @@ function reducer(state: State, action: Action) {
 
 			let nextState = {...state, fields: nextFields};
 
-			if (
-				'name' in state.selectedItem &&
-				state.selectedItem.name === fieldName
-			) {
+			if (state.selection.includes(fieldName)) {
 				nextState = {
 					...nextState,
-					selectedItem: INITIAL_STATE.selectedItem,
+					selection: INITIAL_STATE.selection,
 				};
 			}
 
 			return nextState;
 		}
-		case 'publish-structure':
-			return {...state, error: null, status: 'published' as Status};
-		case 'update-structure': {
-			const fields = updateFields(state.fields, action.objectFields);
+		case 'delete-selection': {
+			const nextFields = new Map(state.fields);
+
+			for (const fieldName of state.selection) {
+				nextFields.delete(fieldName);
+			}
+
+			return {
+				...state,
+				fields: nextFields,
+				selection: INITIAL_STATE.selection,
+			};
+		}
+		case 'publish-structure': {
+			return {
+				...state,
+				error: null,
+				publishedFields: new Set(
+					Array.from(state.fields.values()).map((field) => field.name)
+				),
+				status: 'published' as Status,
+			};
+		}
+		case 'save-structure': {
+			let nextPublishedFields = state.publishedFields;
+
+			if (state.status === 'published') {
+				nextPublishedFields = new Set(
+					Array.from(state.fields.values()).map((field) => field.name)
+				);
+			}
 
 			return {
 				...state,
 				error: null,
-				fields,
+				publishedFields: nextPublishedFields,
 			};
-		}
-		case 'select-item': {
-			const {item} = action;
-
-			return {...state, selectedItem: item};
 		}
 		case 'set-error':
 			return {...state, error: action.error};
 		case 'set-label':
 			return {...state, label: action.label};
+		case 'set-selection': {
+			const {selection} = action;
+
+			return {...state, selection};
+		}
+		case 'update-field': {
+			const {
+				erc,
+				indexableConfig,
+				label,
+				localized,
+				name,
+				newName,
+				required,
+				settings,
+			} = action;
+
+			const nextFields = new Map(state.fields);
+
+			const field = nextFields.get(name);
+
+			if (!field) {
+				return state;
+			}
+
+			const nextField = {
+				...field,
+				erc: erc ?? field.erc,
+				indexableConfig: indexableConfig ?? field.indexableConfig,
+				label: label ?? field.label,
+				localized: localized ?? field.localized,
+				name: newName ?? field.name,
+				required: required ?? field.required,
+				settings: settings ?? field.settings,
+			};
+
+			if (newName) {
+				nextFields.delete(name);
+			}
+
+			nextFields.set(nextField.name, nextField);
+
+			return {
+				...state,
+				fields: nextFields,
+				selection: [nextField.name],
+			};
+		}
+		case 'update-structure': {
+			let nextErc = state.erc;
+			let nextName = state.name;
+
+			if (action.erc) {
+				nextErc = action.erc;
+			}
+
+			if (action.name) {
+				nextName = action.name;
+			}
+
+			return {
+				...state,
+				erc: nextErc,
+				error: null,
+				name: nextName,
+			};
+		}
 		default:
 			return state;
 	}
@@ -164,12 +268,14 @@ const StateContext = createContext<{dispatch: Dispatch<Action>; state: State}>({
 
 export default function StateContextProvider({
 	children,
+	initialState,
 }: {
 	children: ReactNode;
+	initialState: State | null;
 }) {
 	const [state, dispatch] = useReducer<React.Reducer<State, Action>>(
 		reducer,
-		INITIAL_STATE
+		initialState ?? INITIAL_STATE
 	);
 
 	return (
@@ -179,68 +285,14 @@ export default function StateContextProvider({
 	);
 }
 
-function useSelectedItem() {
+function useSelector<T>(selector: (state: State) => T) {
 	const {state} = useContext(StateContext);
 
-	return state.selectedItem;
+	return selector(state);
 }
 
 function useStateDispatch() {
 	return useContext(StateContext).dispatch;
 }
 
-function useStructureError() {
-	const {state} = useContext(StateContext);
-
-	return state.error;
-}
-
-function useStructureField(name: Field['name']) {
-	const {state} = useContext(StateContext);
-
-	return state.fields.get(name);
-}
-
-function useStructureFields() {
-	const {state} = useContext(StateContext);
-
-	return Array.from(state.fields.values());
-}
-
-function useStructureId() {
-	const {state} = useContext(StateContext);
-
-	return state.id;
-}
-
-function useStructureLabel() {
-	const {state} = useContext(StateContext);
-
-	return state.label;
-}
-
-function useStructureName() {
-	const {state} = useContext(StateContext);
-
-	return state.name;
-}
-
-function useStructureStatus() {
-	const {state} = useContext(StateContext);
-
-	return state.status;
-}
-
-export {
-	StateContext,
-	StateContextProvider,
-	useSelectedItem,
-	useStateDispatch,
-	useStructureError,
-	useStructureField,
-	useStructureFields,
-	useStructureId,
-	useStructureLabel,
-	useStructureName,
-	useStructureStatus,
-};
+export {StateContext, StateContextProvider, useSelector, useStateDispatch};

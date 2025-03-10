@@ -65,6 +65,7 @@ import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 
 import org.wso2.charon3.core.exceptions.AbstractCharonException;
+import org.wso2.charon3.core.exceptions.BadRequestException;
 import org.wso2.charon3.core.exceptions.CharonException;
 import org.wso2.charon3.core.exceptions.ConflictException;
 import org.wso2.charon3.core.exceptions.NotFoundException;
@@ -250,9 +251,12 @@ public class UserManagerImpl implements UserManager {
 
 	@Override
 	public GroupsGetResponse listGroupsWithGET(
-		Node node, Integer startIndex, Integer count, String sortBy,
-		String sortOrder, String domainName,
-		Map<String, Boolean> requiredAttributes) {
+			Node node, Integer startIndex, Integer count, String sortBy,
+			String sortOrder, String domainName,
+			Map<String, Boolean> requiredAttributes)
+		throws BadRequestException {
+
+		_validate(node, "displayName");
 
 		if (startIndex != null) {
 			startIndex--;
@@ -341,9 +345,12 @@ public class UserManagerImpl implements UserManager {
 
 	@Override
 	public UsersGetResponse listUsersWithGET(
-		Node node, Integer startIndex, Integer count, String sortBy,
-		String sortOrder, String domainName,
-		Map<String, Boolean> requiredAttributes) {
+			Node node, Integer startIndex, Integer count, String sortBy,
+			String sortOrder, String domainName,
+			Map<String, Boolean> requiredAttributes)
+		throws BadRequestException {
+
+		_validate(node, "externalId", "userName");
 
 		if (startIndex != null) {
 			startIndex--;
@@ -436,6 +443,13 @@ public class UserManagerImpl implements UserManager {
 		throws NotImplementedException {
 
 		throw new NotImplementedException();
+	}
+
+	@Override
+	public void updateGroup(Group oldGroup, Group newGroup)
+		throws CharonException {
+
+		_addOrUpdateGroup(newGroup);
 	}
 
 	@Override
@@ -1025,6 +1039,27 @@ public class UserManagerImpl implements UserManager {
 
 					return GetterUtil.getLong(userId);
 				}));
+	}
+
+	private void _validate(Node node, String... fieldNames)
+		throws BadRequestException {
+
+		if (node == null) {
+			return;
+		}
+
+		ExpressionNode expressionNode = (ExpressionNode)node;
+
+		for (String fieldName : fieldNames) {
+			if (StringUtil.contains(
+					expressionNode.getAttributeValue(), fieldName,
+					StringPool.COLON)) {
+
+				return;
+			}
+		}
+
+		throw new BadRequestException();
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(

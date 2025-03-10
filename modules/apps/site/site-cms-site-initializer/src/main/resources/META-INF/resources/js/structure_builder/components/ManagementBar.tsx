@@ -10,17 +10,20 @@ import {API} from '@liferay/object-js-components-web';
 import {ManagementToolbar, openToast} from 'frontend-js-components-web';
 import React from 'react';
 
-import {
-	useStateDispatch,
-	useStructureFields,
-	useStructureId,
-	useStructureLabel,
-	useStructureName,
-	useStructureStatus,
-} from '../contexts/StateContext';
+import {useSelector, useStateDispatch} from '../contexts/StateContext';
+import selectStructureERC from '../selectors/selectStructureERC';
+import selectStructureFields from '../selectors/selectStructureFields';
+import selectStructureId from '../selectors/selectStructureId';
+import selectStructureLabel from '../selectors/selectStructureLabel';
+import selectStructureLocalizedLabel from '../selectors/selectStructureLocalizedLabel';
+import selectStructureName from '../selectors/selectStructureName';
+import selectStructureStatus from '../selectors/selectStructureStatus';
 import StructureService from '../services/StructureService';
 
 export default function ManagementBar() {
+	const label = useSelector(selectStructureLocalizedLabel);
+	const status = useSelector(selectStructureStatus);
+
 	return (
 		<ManagementToolbar.Container className="border">
 			<ManagementToolbar.ItemList className="c-gap-3" expand>
@@ -36,7 +39,9 @@ export default function ManagementBar() {
 
 				<ManagementToolbar.Item className="nav-item-expand">
 					<h2 className="font-weight-semi-bold m-0 text-5">
-						{Liferay.Language.get('new-structure')}
+						{status === 'published'
+							? label
+							: Liferay.Language.get('new-structure')}
 					</h2>
 				</ManagementToolbar.Item>
 
@@ -63,33 +68,36 @@ export default function ManagementBar() {
 
 function SaveButton() {
 	const dispatch = useStateDispatch();
-	const fields = useStructureFields();
-	const label = useStructureLabel();
-	const status = useStructureStatus();
-	const structureId = useStructureId();
-	const structureName = useStructureName();
+	const fields = useSelector(selectStructureFields);
+	const label = useSelector(selectStructureLabel);
+	const localizedLabel = useSelector(selectStructureLocalizedLabel);
+	const status = useSelector(selectStructureStatus);
+	const structureId = useSelector(selectStructureId);
+	const structureName = useSelector(selectStructureName);
+	const structureERC = useSelector(selectStructureERC);
 
 	const create = async () => {
-		const {id, name, objectFields} = await StructureService.createStructure(
-			{
-				fields,
-				label,
-			}
-		);
+		const {id, name} = await StructureService.createStructure({
+			erc: structureERC,
+			fields,
+			label,
+			name: structureName,
+		});
 
 		openToast({
 			message: Liferay.Util.sub(
 				Liferay.Language.get('x-was-created-successfully'),
-				label
+				localizedLabel
 			),
 			type: 'success',
 		});
 
-		dispatch({id, name, objectFields, type: 'create-structure'});
+		dispatch({id, name, type: 'create-structure'});
 	};
 
 	const update = async () => {
-		const {objectFields} = await StructureService.updateStructure({
+		await StructureService.updateStructure({
+			erc: structureERC,
 			fields,
 			id: structureId,
 			label,
@@ -99,12 +107,12 @@ function SaveButton() {
 		openToast({
 			message: Liferay.Util.sub(
 				Liferay.Language.get('x-was-updated-successfully'),
-				label
+				localizedLabel
 			),
 			type: 'success',
 		});
 
-		dispatch({objectFields, type: 'update-structure'});
+		dispatch({type: 'save-structure'});
 	};
 
 	const onSave = async () => {
@@ -136,9 +144,13 @@ function SaveButton() {
 
 function PublishButton() {
 	const dispatch = useStateDispatch();
-	const id = useStructureId();
-	const label = useStructureLabel();
-	const status = useStructureStatus();
+	const erc = useSelector(selectStructureERC);
+	const fields = useSelector(selectStructureFields);
+	const id = useSelector(selectStructureId);
+	const label = useSelector(selectStructureLabel);
+	const localizedLabel = useSelector(selectStructureLocalizedLabel);
+	const name = useSelector(selectStructureName);
+	const status = useSelector(selectStructureStatus);
 
 	if (status === 'published') {
 		return null;
@@ -146,12 +158,20 @@ function PublishButton() {
 
 	const onPublish = async () => {
 		try {
+			await StructureService.updateStructure({
+				erc,
+				fields,
+				id,
+				label,
+				name,
+			});
+
 			await StructureService.publishStructure({id});
 
 			openToast({
 				message: Liferay.Util.sub(
 					Liferay.Language.get('x-was-published-successfully'),
-					label
+					localizedLabel
 				),
 				type: 'success',
 			});

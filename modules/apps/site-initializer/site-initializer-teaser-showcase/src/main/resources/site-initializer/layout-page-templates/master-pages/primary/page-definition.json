@@ -200,8 +200,8 @@
 																	"expandedLevels": "auto",
 																	"rootMenuItemLevel": "0",
 																	"rootMenuItemType": "absolute",
-																	"siteNavigationMenuExternalReferenceCode": "HEADER_PAGE_MENU",
-																	"siteNavigationMenuName": "Header Page Menu",
+																	"siteNavigationMenuExternalReferenceCode": "HEADER-PAGE",
+																	"siteNavigationMenuName": "Header Page",
 																	"siteNavigationMenuType": "-1"
 																},
 																"widgetInstanceId": "header",
@@ -632,18 +632,23 @@
 														"pageElements": [
 															{
 																"definition": {
-																	"customCSS": ".custom-navigation .[$FRAGMENT_CLASS$]{\n    font-size: 0.875rem;\n\t  margin-top: 25px;\n    font-weight: 600;\n}\n\n.custom-navigation .[$FRAGMENT_CLASS$] .tree-node{\n\tmargin-bottom:20px !important;\n}\n\n\n.custom-navigation .[$FRAGMENT_CLASS$] .panel-title {\n\tdisplay: none;\n}\n\n.custom-navigation .[$FRAGMENT_CLASS$] .panel-body,.custom-navigation .[$FRAGMENT_CLASS$] .tree-node,.custom-navigation .[$FRAGMENT_CLASS$] .portlet-content{\n\tpadding: 0;\n}\n\n.custom-navigation .[$FRAGMENT_CLASS$] .tree-node{\n  margin-bottom: 15px;\n}\n",
+																	"cssClasses": [
+																		"clarity-horizontal-nav"
+																	],
 																	"widgetInstance": {
 																		"widgetConfig": {
-																			"assetVocabularyId": "[$TAXONOMY_VOCABULARY_ID:Products$]",
-																			"displayStyle": "default",
+																			"displayDepth": "0",
+																			"displayStyle": "ddmTemplate_NAV-PILLS-STACKED-FTL",
 																			"displayStyleGroupId": "[$GROUP_ID$]",
-																			"displayStyleGroupKey": "Liferay Teaser Demo",
-																			"rootAssetCategoryId": "",
-																			"useCategoryFromRequest": "false",
-																			"useRootCategory": "false"
+																			"expandedLevels": "auto",
+																			"rootMenuItemLevel": "0",
+																			"rootMenuItemType": "absolute",
+																			"siteNavigationMenuExternalReferenceCode": "FOOTER-PRODUCTS",
+																			"siteNavigationMenuName": "Footer Products",
+																			"siteNavigationMenuType": "-1"
 																		},
-																		"widgetName": "com_liferay_commerce_product_asset_categories_navigation_web_internal_portlet_CPAssetCategoriesNavigationPortlet"
+																		"widgetInstanceId": "footer1",
+																		"widgetName": "com_liferay_site_navigation_menu_web_portlet_SiteNavigationMenuPortlet"
 																	}
 																},
 																"type": "Widget"
@@ -739,8 +744,8 @@
 																	"expandedLevels": "auto",
 																	"rootMenuItemLevel": "0",
 																	"rootMenuItemType": "absolute",
-																	"siteNavigationMenuExternalReferenceCode": "FOOTER_ABOUT_US_MENU",
-																	"siteNavigationMenuName": "Footer About Us Menu",
+																	"siteNavigationMenuExternalReferenceCode": "FOOTER-ABOUT-US",
+																	"siteNavigationMenuName": "Footer About Us",
 																	"siteNavigationMenuType": "-1"
 																},
 																"widgetInstanceId": "footer2",
@@ -837,8 +842,8 @@
 																	"expandedLevels": "auto",
 																	"rootMenuItemLevel": "0",
 																	"rootMenuItemType": "absolute",
-																	"siteNavigationMenuExternalReferenceCode": "FOOTER_RESOURCES_MENU",
-																	"siteNavigationMenuName": "Footer Resources Menu",
+																	"siteNavigationMenuExternalReferenceCode": "FOOTER-RESOURCES",
+																	"siteNavigationMenuName": "Footer Resources",
 																	"siteNavigationMenuType": "-1"
 																},
 																"widgetInstanceId": "footer3",
@@ -934,8 +939,8 @@
 																	"expandedLevels": "auto",
 																	"rootMenuItemLevel": "0",
 																	"rootMenuItemType": "absolute",
-																	"siteNavigationMenuExternalReferenceCode": "FOOTER_GET_IN_TOUCH_MENU",
-																	"siteNavigationMenuName": "Footer Get In Touch Menu",
+																	"siteNavigationMenuExternalReferenceCode": "FOOTER-GET-IN-TOUCH",
+																	"siteNavigationMenuName": "Footer Get In Touch",
 																	"siteNavigationMenuType": "-1"
 																},
 																"widgetInstanceId": "footer4",
@@ -1108,8 +1113,8 @@
 																	"expandedLevels": "auto",
 																	"rootMenuItemLevel": "0",
 																	"rootMenuItemType": "absolute",
-																	"siteNavigationMenuExternalReferenceCode": "FOOTER_LEGAL_MENU",
-																	"siteNavigationMenuName": "Footer Legal Menu",
+																	"siteNavigationMenuExternalReferenceCode": "FOOTER-LEGAL",
+																	"siteNavigationMenuName": "Footer Legal",
 																	"siteNavigationMenuType": "-1"
 																},
 																"widgetInstanceId": "footer5",
@@ -1138,7 +1143,7 @@
 	},
 	"settings": {
 		"colorSchemeName": "01",
-		"themeName": "Classic",
+		"themeName": "Dialect",
 		"themeSettings": {
 			"lfr-theme:regular:show-footer": "false",
 			"lfr-theme:regular:show-header": "false",

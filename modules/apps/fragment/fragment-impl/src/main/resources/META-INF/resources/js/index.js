@@ -4,8 +4,6 @@
  */
 
 export {LocalizationSelect} from './LocalizationSelect';
-export {registerLocalizedFileInput} from './registerLocalizedFileInput';
+export {getOrCreateTranslationInput} from './getOrCreateTranslationInput';
 export {registerLocalizedInput} from './registerLocalizedInput';
-export {registerLocalizedMultiSelect} from './registerLocalizedMultiSelect';
 export {registerUnlocalizedInput} from './registerUnlocalizedInput';
-export {registerUnlocalizedMultiSelect} from './registerUnlocalizedMultiSelect';

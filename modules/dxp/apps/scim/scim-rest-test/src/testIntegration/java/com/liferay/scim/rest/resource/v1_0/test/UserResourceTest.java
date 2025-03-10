@@ -215,6 +215,13 @@ public class UserResourceTest extends BaseUserResourceTestCase {
 				5, 0, "userName eq \"" + user1.getUserName() + "\""),
 			1, 1, user1);
 
+		assertHttpResponseStatusCode(
+			400,
+			userResource.getV2UsersHttpResponse(
+				5, 0,
+				RandomTestUtil.randomString() + "eq \"" +
+					RandomTestUtil.randomString() + "\""));
+
 		ConfigurationTestUtil.deleteConfiguration(_pid);
 
 		assertHttpResponseStatusCode(
@@ -363,6 +370,19 @@ public class UserResourceTest extends BaseUserResourceTestCase {
 
 		assertHttpResponseStatusCode(
 			409, userResource.postV2UserHttpResponse(postUser3));
+
+		User postUser4 = randomUser();
+
+		postUser4.setActive((Boolean)null);
+
+		assertHttpResponseStatusCode(
+			201, userResource.postV2UserHttpResponse(postUser4));
+
+		com.liferay.portal.kernel.model.User portalUser4 =
+			_userLocalService.getUserByExternalReferenceCode(
+				postUser4.getExternalId(), TestPropsValues.getCompanyId());
+
+		Assert.assertTrue(portalUser4.isActive());
 
 		ConfigurationTestUtil.deleteConfiguration(_pid);
 

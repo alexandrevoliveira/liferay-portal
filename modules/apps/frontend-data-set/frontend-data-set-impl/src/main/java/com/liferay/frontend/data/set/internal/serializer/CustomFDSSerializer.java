@@ -17,7 +17,6 @@ import com.liferay.frontend.data.set.model.FDSSortItemBuilder;
 import com.liferay.frontend.data.set.serializer.FDSSerializer;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.CreationMenu;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.DropdownItem;
-import com.liferay.frontend.taglib.clay.servlet.taglib.util.DropdownItemBuilder;
 import com.liferay.list.type.model.ListTypeDefinition;
 import com.liferay.list.type.model.ListTypeEntry;
 import com.liferay.list.type.service.ListTypeDefinitionLocalService;
@@ -41,6 +40,7 @@ import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
+import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
@@ -49,6 +49,7 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
+import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
 import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
 import com.liferay.portal.vulcan.pagination.Page;
@@ -81,6 +82,26 @@ import org.osgi.service.component.annotations.Reference;
 )
 public class CustomFDSSerializer
 	extends BaseFDSSerializer implements FDSSerializer {
+
+	@Override
+	public boolean isAvailable(
+		String fdsName, HttpServletRequest httpServletRequest) {
+
+		ObjectEntry objectEntry = _getObjectEntry(
+			fdsName, _getObjectDefinition(httpServletRequest));
+
+		if (objectEntry == null) {
+			return false;
+		}
+
+		Map<String, Object> properties = objectEntry.getProperties();
+
+		if (properties.isEmpty()) {
+			return false;
+		}
+
+		return _isActive(objectEntry);
+	}
 
 	@Override
 	public String serializeAPIURL(
@@ -162,31 +183,30 @@ public class CustomFDSSerializer
 		List<DropdownItem> dropdownItems = TransformUtil.transform(
 			getSortedRelatedObjectEntries(
 				fdsName, httpServletRequest,
-				(ObjectEntry objectEntry) -> Objects.equals(
-					_getType(objectEntry), "creation"),
+				(ObjectEntry objectEntry) ->
+					Objects.equals(_getType(objectEntry), "creation") &&
+					_isActive(objectEntry),
 				"creationActionsOrder", "dataSetToDataSetActions"),
 			objectEntry -> {
 				Map<String, Object> properties = objectEntry.getProperties();
 
-				return DropdownItemBuilder.putData(
+				FDSActionDropdownItem fdsActionDropdownItem =
+					new FDSActionDropdownItem(
+						String.valueOf(properties.get("url")),
+						String.valueOf(properties.get("icon")),
+						objectEntry.getExternalReferenceCode(),
+						String.valueOf(properties.get("label")), null,
+						String.valueOf(properties.get("permissionKey")),
+						String.valueOf(properties.get("target")));
+
+				fdsActionDropdownItem.putData(
 					"disableHeader",
-					String.valueOf(Validator.isNull(properties.get("title")))
-				).putData(
-					"permissionKey",
-					String.valueOf(properties.get("permissionKey"))
-				).putData(
-					"size", String.valueOf(properties.get("modalSize"))
-				).putData(
-					"title", String.valueOf(properties.get("title"))
-				).setHref(
-					properties.get("url")
-				).setIcon(
-					String.valueOf(properties.get("icon"))
-				).setLabel(
-					String.valueOf(properties.get("label"))
-				).setTarget(
-					String.valueOf(properties.get("target"))
-				).build();
+					(boolean)Validator.isNull(properties.get("title")));
+				fdsActionDropdownItem.putData(
+					"size", properties.get("modalSize"));
+				fdsActionDropdownItem.putData("title", properties.get("title"));
+
+				return fdsActionDropdownItem;
 			});
 
 		for (DropdownItem dropdownItem : dropdownItems) {
@@ -225,8 +245,9 @@ public class CustomFDSSerializer
 		return TransformUtil.transform(
 			getSortedRelatedObjectEntries(
 				fdsName, httpServletRequest,
-				(ObjectEntry objectEntry) -> Objects.equals(
-					_getType(objectEntry), "item"),
+				(ObjectEntry objectEntry) ->
+					Objects.equals(_getType(objectEntry), "item") &&
+					_isActive(objectEntry),
 				"itemActionsOrder", "dataSetToDataSetActions"),
 			objectEntry -> {
 				Map<String, Object> properties = objectEntry.getProperties();
@@ -255,9 +276,67 @@ public class CustomFDSSerializer
 					"status", properties.get("confirmationMessageType"));
 				fdsActionDropdownItem.putData(
 					"successMessage", properties.get("successMessage"));
+				fdsActionDropdownItem.putData("title", properties.get("title"));
 
 				return fdsActionDropdownItem;
 			});
+	}
+
+	@Override
+	public JSONObject serializePagination(
+		String fdsName, HttpServletRequest httpServletRequest) {
+
+		Map<String, Object> properties = getDataSetObjectEntryProperties(
+			fdsName, httpServletRequest);
+
+		return JSONUtil.put(
+			"deltas",
+			() -> {
+				String[] listOfItemsPerPage = StringUtil.split(
+					String.valueOf(properties.get("listOfItemsPerPage")),
+					StringPool.COMMA_AND_SPACE);
+
+				if (ArrayUtil.isNotEmpty(listOfItemsPerPage)) {
+					return JSONUtil.toJSONArray(
+						listOfItemsPerPage,
+						(String itemsPerPage) -> {
+							if (GetterUtil.getInteger(itemsPerPage) < 1) {
+								return null;
+							}
+
+							return JSONUtil.put(
+								"label", GetterUtil.getInteger(itemsPerPage));
+						});
+				}
+
+				return JSONUtil.toJSONArray(
+					ListUtil.fromArray(
+						PropsValues.SEARCH_CONTAINER_PAGE_DELTA_VALUES),
+					itemsPerPage -> JSONUtil.put("label", itemsPerPage));
+			}
+		).put(
+			"initialDelta",
+			() -> {
+				Integer defaultItemsPerPage = GetterUtil.getInteger(
+					String.valueOf(properties.get("defaultItemsPerPage")));
+
+				if (defaultItemsPerPage > 1) {
+					return defaultItemsPerPage;
+				}
+
+				return PropsValues.SEARCH_CONTAINER_PAGE_DEFAULT_DELTA;
+			}
+		);
+	}
+
+	@Override
+	public String serializePropsTransformer(
+		String fdsName, HttpServletRequest httpServletRequest) {
+
+		Map<String, Object> properties = getDataSetObjectEntryProperties(
+			fdsName, httpServletRequest);
+
+		return String.valueOf(properties.get("propsTransformer"));
 	}
 
 	@Override
@@ -266,7 +345,8 @@ public class CustomFDSSerializer
 
 		return TransformUtil.transform(
 			getSortedRelatedObjectEntries(
-				fdsName, httpServletRequest, (Predicate<ObjectEntry>)null,
+				fdsName, httpServletRequest,
+				(ObjectEntry objectEntry) -> _isActive(objectEntry),
 				"sortsOrder", "dataSetToDataSetSorts"),
 			objectEntry -> {
 				Map<String, Object> properties = objectEntry.getProperties();
@@ -599,6 +679,12 @@ public class CustomFDSSerializer
 		return GetterUtil.getString(properties.get("type"));
 	}
 
+	private Boolean _isActive(ObjectEntry objectEntry) {
+		Map<String, Object> properties = objectEntry.getProperties();
+
+		return (Boolean)properties.get("active");
+	}
+
 	private JSONObject _serializeFilter(
 			HttpServletRequest httpServletRequest, ObjectEntry objectEntry)
 		throws Exception {
@@ -712,8 +798,9 @@ public class CustomFDSSerializer
 
 		return JSONUtil.toJSONArray(
 			getSortedRelatedObjectEntries(
-				fdsName, httpServletRequest, (Predicate)null, "filtersOrder",
-				"dataSetToDataSetClientExtensionFilters",
+				fdsName, httpServletRequest,
+				(ObjectEntry objectEntry) -> _isActive(objectEntry),
+				"filtersOrder", "dataSetToDataSetClientExtensionFilters",
 				"dataSetToDataSetDateFilters",
 				"dataSetToDataSetSelectionFilters"),
 			(ObjectEntry objectEntry) -> _serializeFilter(

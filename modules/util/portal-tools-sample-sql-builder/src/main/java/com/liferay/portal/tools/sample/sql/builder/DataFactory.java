@@ -805,8 +805,8 @@ public class DataFactory {
 		return BenchmarksPropsValues.MAX_DL_FOLDER_DEPTH;
 	}
 
-	public int getMaxFragmentHeadingsCount() {
-		return BenchmarksPropsValues.MAX_FRAGMENT_HEADINGS_COUNT;
+	public int getMaxFragmentEntryLinkCount() {
+		return BenchmarksPropsValues.MAX_FRAGMENT_ENTRY_LINK_COUNT;
 	}
 
 	public int getMaxGroupCount() {
@@ -4323,7 +4323,7 @@ public class DataFactory {
 		List<FragmentEntryLinkModel> fragmentEntryLinkModels =
 			new ArrayList<>();
 
-		for (int i = 0; i < BenchmarksPropsValues.MAX_FRAGMENT_HEADINGS_COUNT;
+		for (int i = 0; i < BenchmarksPropsValues.MAX_FRAGMENT_ENTRY_LINK_COUNT;
 			 i++) {
 
 			fragmentEntryLinkModels.add(
@@ -6114,10 +6114,25 @@ public class DataFactory {
 		return new ObjectValuePair<>(key, value);
 	}
 
-	public List<PortalPreferencesModel> newPortalPreferencesModels() {
-		return ListUtil.fromArray(
-			newPortalPreferencesModel(_companyId),
-			newPortalPreferencesModel(0));
+	public PortalPreferencesModel newPortalPreferencesModel(long ownerId) {
+		PortalPreferencesModel portalPreferencesModel =
+			new PortalPreferencesModelImpl();
+
+		// PK fields
+
+		portalPreferencesModel.setPortalPreferencesId(_counter.get());
+
+		// Audit fields
+
+		portalPreferencesModel.setCompanyId(_companyId);
+
+		// Other fields
+
+		portalPreferencesModel.setOwnerId(ownerId);
+		portalPreferencesModel.setOwnerType(
+			PortletKeys.PREFS_OWNER_TYPE_COMPANY);
+
+		return portalPreferencesModel;
 	}
 
 	public PortletPreferencesModel newPortletPreferencesModel(
@@ -8298,27 +8313,6 @@ public class DataFactory {
 		objectStateTransitionModel.setTargetObjectStateId(targetObjectStateId);
 
 		return objectStateTransitionModel;
-	}
-
-	protected PortalPreferencesModel newPortalPreferencesModel(long ownerId) {
-		PortalPreferencesModel portalPreferencesModel =
-			new PortalPreferencesModelImpl();
-
-		// PK fields
-
-		portalPreferencesModel.setPortalPreferencesId(_counter.get());
-
-		// Audit fields
-
-		portalPreferencesModel.setCompanyId(_companyId);
-
-		// Other fields
-
-		portalPreferencesModel.setOwnerId(ownerId);
-		portalPreferencesModel.setOwnerType(
-			PortletKeys.PREFS_OWNER_TYPE_COMPANY);
-
-		return portalPreferencesModel;
 	}
 
 	protected ReleaseModelImpl newReleaseModel(

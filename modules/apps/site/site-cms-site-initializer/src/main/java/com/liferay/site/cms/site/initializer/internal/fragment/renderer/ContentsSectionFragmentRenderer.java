@@ -7,14 +7,9 @@ package com.liferay.site.cms.site.initializer.internal.fragment.renderer;
 
 import com.liferay.fragment.renderer.FragmentRenderer;
 import com.liferay.fragment.renderer.FragmentRendererContext;
+import com.liferay.object.service.ObjectDefinitionService;
 import com.liferay.portal.configuration.metatype.bnd.util.ConfigurableUtil;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.Language;
-import com.liferay.portal.kernel.model.Group;
-import com.liferay.portal.kernel.model.GroupConstants;
-import com.liferay.portal.kernel.service.GroupLocalService;
-import com.liferay.portal.kernel.theme.ThemeDisplay;
-import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.site.cms.site.initializer.internal.configuration.CMSSiteInitializerConfiguration;
 import com.liferay.site.cms.site.initializer.internal.display.context.ContentsSectionDisplayContext;
 
@@ -22,7 +17,6 @@ import java.io.IOException;
 
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
@@ -41,7 +35,8 @@ import org.osgi.service.component.annotations.Reference;
 	configurationPid = "com.liferay.site.cms.site.initializer.internal.configuration.CMSSiteInitializerConfiguration",
 	service = FragmentRenderer.class
 )
-public class ContentsSectionFragmentRenderer implements FragmentRenderer {
+public class ContentsSectionFragmentRenderer
+	extends BaseSectionFragmentRenderer {
 
 	@Override
 	public String getCollectionKey() {
@@ -51,30 +46,6 @@ public class ContentsSectionFragmentRenderer implements FragmentRenderer {
 	@Override
 	public String getLabel(Locale locale) {
 		return _language.get(locale, "contents");
-	}
-
-	@Override
-	public boolean isSelectable(HttpServletRequest httpServletRequest) {
-		ThemeDisplay themeDisplay =
-			(ThemeDisplay)httpServletRequest.getAttribute(
-				WebKeys.THEME_DISPLAY);
-
-		if (!FeatureFlagManagerUtil.isEnabled(
-				themeDisplay.getCompanyId(), "LPD-17809")) {
-
-			return false;
-		}
-
-		Group group = _groupLocalService.fetchGroup(
-			themeDisplay.getScopeGroupId());
-
-		if ((group == null) ||
-			!Objects.equals(group.getGroupKey(), GroupConstants.CMS)) {
-
-			return false;
-		}
-
-		return true;
 	}
 
 	@Override
@@ -92,7 +63,7 @@ public class ContentsSectionFragmentRenderer implements FragmentRenderer {
 				ContentsSectionDisplayContext.class.getName(),
 				new ContentsSectionDisplayContext(
 					_cmsSiteInitializerConfiguration, httpServletRequest,
-					_language));
+					_language, _objectDefinitionService));
 
 			requestDispatcher.include(httpServletRequest, httpServletResponse);
 		}
@@ -112,10 +83,10 @@ public class ContentsSectionFragmentRenderer implements FragmentRenderer {
 		_cmsSiteInitializerConfiguration;
 
 	@Reference
-	private GroupLocalService _groupLocalService;
+	private Language _language;
 
 	@Reference
-	private Language _language;
+	private ObjectDefinitionService _objectDefinitionService;
 
 	@Reference(
 		target = "(osgi.web.symbolicname=com.liferay.site.cms.site.initializer)"

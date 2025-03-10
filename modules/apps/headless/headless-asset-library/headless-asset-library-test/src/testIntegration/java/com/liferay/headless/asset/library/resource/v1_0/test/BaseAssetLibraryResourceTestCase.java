@@ -33,7 +33,7 @@ import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
@@ -47,7 +47,7 @@ import com.liferay.portal.vulcan.util.TransformUtil;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -86,7 +86,7 @@ public abstract class BaseAssetLibraryResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
 	}
 
@@ -111,12 +111,12 @@ public abstract class BaseAssetLibraryResourceTestCase {
 
 		_assetLibraryResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
 		assetLibraryResource = AssetLibraryResource.builder(
 		).authentication(
-			testCompanyAdminUser.getEmailAddress(),
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
 			testCompany.getVirtualHostname(), 8080, "http"
@@ -416,6 +416,100 @@ public abstract class BaseAssetLibraryResourceTestCase {
 			"This method needs to be implemented");
 	}
 
+	@Test
+	public void testDeleteAssetLibraryUserAccountUser() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		AssetLibrary assetLibrary =
+			testDeleteAssetLibraryUserAccountUser_addAssetLibrary();
+
+		assertHttpResponseStatusCode(
+			204,
+			assetLibraryResource.deleteAssetLibraryUserAccountUserHttpResponse(
+				assetLibrary.getId(),
+				testDeleteAssetLibraryUserAccountUser_getUserId()));
+	}
+
+	protected Long testDeleteAssetLibraryUserAccountUser_getUserId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected AssetLibrary
+			testDeleteAssetLibraryUserAccountUser_addAssetLibrary()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testPostAssetLibraryUserAccountUser() throws Exception {
+		AssetLibrary randomAssetLibrary = randomAssetLibrary();
+
+		AssetLibrary postAssetLibrary =
+			testPostAssetLibraryUserAccountUser_addAssetLibrary(
+				randomAssetLibrary);
+
+		assertEquals(randomAssetLibrary, postAssetLibrary);
+		assertValid(postAssetLibrary);
+	}
+
+	protected AssetLibrary testPostAssetLibraryUserAccountUser_addAssetLibrary(
+			AssetLibrary assetLibrary)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testDeleteAssetLibraryUserGroup() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		AssetLibrary assetLibrary =
+			testDeleteAssetLibraryUserGroup_addAssetLibrary();
+
+		assertHttpResponseStatusCode(
+			204,
+			assetLibraryResource.deleteAssetLibraryUserGroupHttpResponse(
+				assetLibrary.getId(),
+				testDeleteAssetLibraryUserGroup_getUserGroupId()));
+	}
+
+	protected Long testDeleteAssetLibraryUserGroup_getUserGroupId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected AssetLibrary testDeleteAssetLibraryUserGroup_addAssetLibrary()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testPostAssetLibraryUserGroup() throws Exception {
+		AssetLibrary randomAssetLibrary = randomAssetLibrary();
+
+		AssetLibrary postAssetLibrary =
+			testPostAssetLibraryUserGroup_addAssetLibrary(randomAssetLibrary);
+
+		assertEquals(randomAssetLibrary, postAssetLibrary);
+		assertValid(postAssetLibrary);
+	}
+
+	protected AssetLibrary testPostAssetLibraryUserGroup_addAssetLibrary(
+			AssetLibrary assetLibrary)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
 	protected AssetLibrary testGraphQLAssetLibrary_addAssetLibrary()
 		throws Exception {
 
@@ -585,6 +679,14 @@ public abstract class BaseAssetLibraryResourceTestCase {
 
 			if (Objects.equals("name_i18n", additionalAssertFieldName)) {
 				if (assetLibrary.getName_i18n() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("usersCount", additionalAssertFieldName)) {
+				if (assetLibrary.getUsersCount() == null) {
 					valid = false;
 				}
 
@@ -825,6 +927,17 @@ public abstract class BaseAssetLibraryResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals("usersCount", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						assetLibrary1.getUsersCount(),
+						assetLibrary2.getUsersCount())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
 			throw new IllegalArgumentException(
 				"Invalid additional assert field name " +
 					additionalAssertFieldName);
@@ -987,13 +1100,11 @@ public abstract class BaseAssetLibraryResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1003,7 +1114,7 @@ public abstract class BaseAssetLibraryResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(_dateFormat.format(assetLibrary.getDateCreated()));
+				sb.append(_format.format(assetLibrary.getDateCreated()));
 			}
 
 			return sb.toString();
@@ -1018,13 +1129,11 @@ public abstract class BaseAssetLibraryResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1034,7 +1143,7 @@ public abstract class BaseAssetLibraryResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(_dateFormat.format(assetLibrary.getDateModified()));
+				sb.append(_format.format(assetLibrary.getDateModified()));
 			}
 
 			return sb.toString();
@@ -1208,6 +1317,12 @@ public abstract class BaseAssetLibraryResourceTestCase {
 				"Invalid entity field " + entityFieldName);
 		}
 
+		if (entityFieldName.equals("usersCount")) {
+			sb.append(String.valueOf(assetLibrary.getUsersCount()));
+
+			return sb.toString();
+		}
+
 		throw new IllegalArgumentException(
 			"Invalid entity field " + entityFieldName);
 	}
@@ -1264,6 +1379,7 @@ public abstract class BaseAssetLibraryResourceTestCase {
 				id = RandomTestUtil.randomLong();
 				name = StringUtil.toLowerCase(RandomTestUtil.randomString());
 				siteId = testGroup.getGroupId();
+				usersCount = RandomTestUtil.randomInt();
 			}
 		};
 	}
@@ -1482,7 +1598,9 @@ public abstract class BaseAssetLibraryResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseAssetLibraryResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private

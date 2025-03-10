@@ -11,7 +11,6 @@ import com.liferay.batch.engine.BatchEngineTaskExecuteStatus;
 import com.liferay.batch.engine.BatchEngineTaskOperation;
 import com.liferay.batch.engine.constants.BatchEngineImportTaskConstants;
 import com.liferay.batch.engine.constants.CreateStrategy;
-import com.liferay.batch.engine.model.BatchEngineExportTask;
 import com.liferay.batch.engine.model.BatchEngineImportTask;
 import com.liferay.batch.engine.service.BatchEngineExportTaskService;
 import com.liferay.batch.engine.service.BatchEngineImportTaskService;
@@ -24,23 +23,16 @@ import com.liferay.exportimport.kernel.lar.PortletDataHandlerControl;
 import com.liferay.exportimport.kernel.lar.PortletDataHandlerKeys;
 import com.liferay.petra.io.StreamUtil;
 import com.liferay.petra.io.unsync.UnsyncByteArrayOutputStream;
-import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
-import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
-import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.MapUtil;
 
-import java.io.File;
 import java.io.InputStream;
 import java.io.Serializable;
 
-import java.text.Format;
-
 import java.util.Collections;
-import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -96,50 +88,9 @@ public class BatchEnginePortletDataHandler extends BasePortletDataHandler {
 		return true;
 	}
 
-	protected Map<String, Serializable> buildParameters(
-		PortletDataContext portletDataContext) {
-
-		return HashMapBuilder.<String, Serializable>put(
-			"batchNestedFields",
-			() -> {
-				if (MapUtil.getBoolean(
-						portletDataContext.getParameterMap(),
-						PortletDataHandlerKeys.PERMISSIONS)) {
-
-					return "permissions";
-				}
-
-				return null;
-			}
-		).put(
-			"filter",
-			() -> {
-				if ((portletDataContext.getEndDate() == null) &&
-					(portletDataContext.getStartDate() == null)) {
-
-					return null;
-				}
-
-				StringBundler sb = new StringBundler(5);
-
-				if (portletDataContext.getEndDate() != null) {
-					sb.append("dateModified le ");
-					sb.append(_format.format(portletDataContext.getEndDate()));
-				}
-
-				if (portletDataContext.getStartDate() != null) {
-					if (sb.length() > 0) {
-						sb.append(" and ");
-					}
-
-					sb.append("dateModified ge ");
-					sb.append(
-						_format.format(portletDataContext.getStartDate()));
-				}
-
-				return sb.toString();
-			}
-		).build();
+	@Override
+	public boolean isModelCountSupported() {
+		return false;
 	}
 
 	@Override
@@ -148,17 +99,33 @@ public class BatchEnginePortletDataHandler extends BasePortletDataHandler {
 			PortletPreferences portletPreferences)
 		throws Exception {
 
-		BatchEngineExportTask batchEngineExportTask =
-			_batchEngineExportTaskService.addBatchEngineExportTask(
-				null, portletDataContext.getCompanyId(), _getUserId(), null,
-				_className, "JSON", BatchEngineTaskExecuteStatus.INITIAL.name(),
-				Collections.emptyList(), buildParameters(portletDataContext),
-				_taskItemDelegateName);
+		BatchEngineExportTaskExecutor.Result result =
+			_batchEngineExportTaskExecutor.execute(
+				_batchEngineExportTaskService.addBatchEngineExportTask(
+					null, portletDataContext.getCompanyId(), _getUserId(), null,
+					_className, "JSON",
+					BatchEngineTaskExecuteStatus.INITIAL.name(),
+					Collections.emptyList(),
+					BatchEnginePortletDataHandlerUtil.buildParameters(
+						portletDataContext),
+					_taskItemDelegateName),
+				new BatchEngineExportTaskExecutor.Settings() {
 
-		_batchEngineExportTaskExecutor.execute(batchEngineExportTask);
+					@Override
+					public boolean isCompressContent() {
+						return false;
+					}
 
-		portletDataContext.addZipEntry(
-			_fileName, _getBytes(batchEngineExportTask));
+					@Override
+					public boolean isPersistContent() {
+						return false;
+					}
+
+				});
+
+		portletDataContext.addZipEntry(_fileName, result.getInputStream());
+
+		portletDataContext.setValidateExistingDataHandler(true);
 
 		return getExportDataRootElementString(
 			addExportDataRootElement(portletDataContext));
@@ -230,26 +197,7 @@ public class BatchEnginePortletDataHandler extends BasePortletDataHandler {
 
 		// TODO LPD-45048
 
-		return 1;
-	}
-
-	private byte[] _getBytes(BatchEngineExportTask batchEngineExportTask)
-		throws Exception {
-
-		try (InputStream inputStream =
-				_batchEngineExportTaskService.openContentInputStream(
-					batchEngineExportTask.getBatchEngineExportTaskId())) {
-
-			// TODO LPD-45048
-
-			File batchZipFile = FileUtil.createTempFile(inputStream);
-
-			File tempFolder = FileUtil.createTempFolder();
-
-			FileUtil.unzip(batchZipFile, tempFolder);
-
-			return FileUtil.getBytes(new File(tempFolder, "export.json"));
-		}
+		return 0;
 	}
 
 	private byte[] _getBytes(String fileName, InputStream inputStream)
@@ -277,10 +225,6 @@ public class BatchEnginePortletDataHandler extends BasePortletDataHandler {
 
 		return permissionChecker.getUserId();
 	}
-
-	private static final Format _format =
-		FastDateFormatFactoryUtil.getSimpleDateFormat(
-			"yyyy-MM-dd'T'HH:mm:ss'Z'");
 
 	private final BatchEngineExportTaskExecutor _batchEngineExportTaskExecutor;
 	private final BatchEngineExportTaskService _batchEngineExportTaskService;

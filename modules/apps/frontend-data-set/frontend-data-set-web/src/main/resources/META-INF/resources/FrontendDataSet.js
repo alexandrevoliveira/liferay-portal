@@ -248,7 +248,24 @@ const FrontendDataSet = ({
 	const isMounted = useIsMounted();
 
 	function updateDataSetItems(dataSetData) {
-		setItems(dataSetData.items);
+		const remappedItems = dataSetData.items.map((item) => {
+			if (item.embedded && item.embedded.actions) {
+				const actions = item.embedded.actions;
+
+				delete item.embedded.actions;
+
+				return {
+					...item,
+					actions,
+				};
+			}
+
+			return {
+				...item,
+			};
+		});
+
+		setItems(remappedItems);
 		setTotal(dataSetData.totalCount);
 
 		if (!dataSetData.items.length && dataSetData.totalCount > 0) {
@@ -1012,7 +1029,7 @@ const FrontendDataSet = ({
 							<div className="data-set data-set-fluid">
 								{managementBar}
 
-								<div className="container-fluid container-xl mt-3">
+								<div className="container-fluid mt-3">
 									{view}
 
 									{paginationComponent}

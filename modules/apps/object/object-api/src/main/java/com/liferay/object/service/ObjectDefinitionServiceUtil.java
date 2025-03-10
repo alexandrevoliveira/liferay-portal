@@ -97,6 +97,13 @@ public class ObjectDefinitionServiceUtil {
 			externalReferenceCode, companyId);
 	}
 
+	public static List<ObjectDefinition> getCMSObjectDefinitions(
+		long companyId, String[] objectFolderExternalReferenceCodes) {
+
+		return getService().getCMSObjectDefinitions(
+			companyId, objectFolderExternalReferenceCodes);
+	}
+
 	public static ObjectDefinition getObjectDefinition(long objectDefinitionId)
 		throws PortalException {
 

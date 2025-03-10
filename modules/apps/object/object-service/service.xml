@@ -179,6 +179,14 @@
 			<finder-column name="system" />
 			<finder-column name="status" />
 		</finder>
+		<finder name="C_OFI_A_E_S_S" return-type="Collection">
+			<finder-column name="companyId" />
+			<finder-column arrayable-operator="OR" name="objectFolderId" />
+			<finder-column name="active" />
+			<finder-column name="enableObjectEntryDraft" />
+			<finder-column name="scope" />
+			<finder-column name="status" />
+		</finder>
 	</entity>
 	<entity local-service="true" name="ObjectDefinitionSetting" remote-service="false" uuid="true">
 
@@ -239,6 +247,7 @@
 		<column name="rootObjectEntryId" type="long" />
 		<column name="defaultLanguageId" type="String" />
 		<column name="treePath" type="String" />
+		<column name="version" type="int" />
 		<column name="lastPublishDate" type="Date" />
 		<column name="status" type="int" />
 		<column name="statusByUserId" type="long" />
@@ -344,6 +353,33 @@
 			<finder-column name="companyId" />
 			<finder-column name="parentObjectEntryFolderId" />
 			<finder-column name="name" />
+		</finder>
+	</entity>
+	<entity local-service="true" name="ObjectEntryVersion" remote-service="true" uuid="true">
+
+		<!-- PK fields -->
+
+		<column name="objectEntryVersionId" primary="true" type="long" />
+
+		<!-- Audit fields -->
+
+		<column name="companyId" type="long" />
+		<column name="userId" type="long" />
+		<column name="userName" type="String" />
+		<column name="createDate" type="Date" />
+		<column name="modifiedDate" type="Date" />
+
+		<!-- Other fields -->
+
+		<column name="objectEntryId" type="long" />
+		<column name="content" type="String" />
+		<column name="version" type="int" />
+		<column name="status" type="int" />
+
+		<!-- Finder methods -->
+
+		<finder name="ObjectEntryId" return-type="Collection">
+			<finder-column name="objectEntryId" />
 		</finder>
 	</entity>
 	<entity local-service="true" name="ObjectField" remote-service="true" uuid="true">
