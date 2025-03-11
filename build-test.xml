@@ -3481,36 +3481,46 @@ tell application "Safari" to quit
 			<get-testcase-property property.name="analytics.cloud.enabled" />
 
 			<if>
-				<isset property="test.analytics.cloud.url" />
+				<contains string="${env.JOB_NAME}" substring="release" />
 				<then>
 					<echo append="true" file="${test.ext.properties.file}">
+						analytics.cloud.url=${analytics.cloud.staging.url}
+					</echo>
+				</then>
+				<elseif>
+					<if>
+						<isset property="test.analytics.cloud.url" />
+						<then>
+							<echo append="true" file="${test.ext.properties.file}">
 						analytics.cloud.url=${test.analytics.cloud.url}
-					</echo>
-				</then>
-				<elseif>
-					<equals arg1="${analytics.cloud.enabled}" arg2="true" />
-					<then>
-						<echo append="true" file="${test.ext.properties.file}">
+							</echo>
+						</then>
+						<elseif>
+							<equals arg1="${analytics.cloud.enabled}" arg2="true" />
+							<then>
+								<echo append="true" file="${test.ext.properties.file}">
 							analytics.cloud.url=${analytics.cloud.faro.frontend.url}
-						</echo>
-					</then>
-				</elseif>
-			</if>
+								</echo>
+							</then>
+						</elseif>
+					</if>
 
-			<if>
-				<isset property="test.analytics.cloud.publisher.url" />
-				<then>
-					<echo append="true" file="${test.ext.properties.file}">
+					<if>
+						<isset property="test.analytics.cloud.publisher.url" />
+						<then>
+							<echo append="true" file="${test.ext.properties.file}">
 						analytics.cloud.publisher.url=${test.analytics.cloud.publisher.url}
-					</echo>
-				</then>
-				<elseif>
-					<equals arg1="${analytics.cloud.enabled}" arg2="true" />
-					<then>
-						<echo append="true" file="${test.ext.properties.file}">
+							</echo>
+						</then>
+						<elseif>
+							<equals arg1="${analytics.cloud.enabled}" arg2="true" />
+							<then>
+								<echo append="true" file="${test.ext.properties.file}">
 							analytics.cloud.publisher.url=${analytics.cloud.asah.publisher.url}
-						</echo>
-					</then>
+								</echo>
+							</then>
+						</elseif>
+					</if>
 				</elseif>
 			</if>
 
