@@ -928,13 +928,19 @@ if (Os.isFamily(Os.FAMILY_WINDOWS)) {
 
 	<macrodef name="stop-analytics-cloud">
 		<sequential>
-			<fail message="Please set the property ${env.DOCKER_ENABLED}." unless="env.DOCKER_ENABLED" />
+			<if>
+				<contains string="${env.JOB_NAME}" substring="release" />
+				<then>
+					<echo>Release!</echo>
+				</then>
+				<else>
+					<fail message="Please set the property ${env.DOCKER_ENABLED}." unless="env.DOCKER_ENABLED" />
 
-			<create-analytics-cloud-docker-compose start.analytics.cloud="true" />
+					<create-analytics-cloud-docker-compose start.analytics.cloud="true" />
 
-			<property location="${analytics.cloud.asah.dir}/docker-compose.test.yml" name="analytics.cloud.docker.test.yaml" />
+					<property location="${analytics.cloud.asah.dir}/docker-compose.test.yml" name="analytics.cloud.docker.test.yaml" />
 
-			<execute dir="${analytics.cloud.asah.dir}">
+					<execute dir="${analytics.cloud.asah.dir}">
 				docker ps -a
 
 				touch local.env
@@ -942,7 +948,9 @@ if (Os.isFamily(Os.FAMILY_WINDOWS)) {
 				docker-compose --file=${analytics.cloud.docker.test.yaml} --project-name=${analytics.cloud.project.name} down --volumes
 
 				docker system df
-			</execute>
+					</execute>
+				</else>
+			</if>
 		</sequential>
 	</macrodef>
 
