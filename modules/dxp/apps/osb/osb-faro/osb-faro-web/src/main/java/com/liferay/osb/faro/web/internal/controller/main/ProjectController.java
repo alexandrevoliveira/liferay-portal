@@ -685,7 +685,7 @@ public class ProjectController extends BaseFaroController {
 									faroProject.getGroupId(),
 									startDateString)));
 					}
-					
+
 					if (_log.isInfoEnabled()) {
 						_log.info("Usage reset finished successfully");
 					}
@@ -1284,6 +1284,8 @@ public class ProjectController extends BaseFaroController {
 
 		if (DateUtil.compareTo(startDate, lastAnniversaryDate) < 0) {
 			startDate = lastAnniversaryDate;
+
+			calendar1.setTime(lastAnniversaryDate);
 		}
 
 		while (DateUtil.compareTo(date, startDate) > 0) {
