@@ -5,6 +5,15 @@
 
 import ProcessLock from 'browser-tabs-lock';
 
+const hasLiferayUserConsent = () => {
+	const hasLocalStorageApi = Liferay?.Util?.LocalStorage;
+	const performanceConsent = Liferay?.Util?.Cookie?.get?.(
+		'CONSENT_TYPE_PERFORMANCE'
+	);
+
+	return hasLocalStorageApi && performanceConsent === 'true';
+};
+
 const getItem = (key) => {
 	const Liferay = window.Liferay;
 
@@ -13,7 +22,7 @@ const getItem = (key) => {
 	try {
 		let item;
 
-		if (Liferay?.Util?.LocalStorage) {
+		if (hasLiferayUserConsent()) {
 			item = Liferay.Util.LocalStorage.getItem(
 				key,
 				Liferay.Util.LocalStorage.TYPES.PERFORMANCE
@@ -36,7 +45,7 @@ const setItem = (key, value) => {
 	const Liferay = window.Liferay;
 
 	try {
-		if (Liferay?.Util?.LocalStorage) {
+		if (hasLiferayUserConsent()) {
 			Liferay.Util.LocalStorage.setItem(
 				key,
 				JSON.stringify(value),
@@ -56,7 +65,7 @@ const removeItem = (key) => {
 	const Liferay = window.Liferay;
 
 	try {
-		if (Liferay?.Util?.LocalStorage) {
+		if (hasLiferayUserConsent()) {
 			Liferay.Util.LocalStorage.removeItem(
 				key,
 				Liferay.Util.LocalStorage.TYPES.PERFORMANCE
