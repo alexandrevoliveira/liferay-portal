@@ -6,6 +6,7 @@
 import ProcessLock from 'browser-tabs-lock';
 
 const hasLiferayUserConsent = () => {
+	const Liferay = window.Liferay;
 	const hasLocalStorageApi = Liferay?.Util?.LocalStorage;
 	const performanceConsent = Liferay?.Util?.Cookie?.get?.(
 		'CONSENT_TYPE_PERFORMANCE'
