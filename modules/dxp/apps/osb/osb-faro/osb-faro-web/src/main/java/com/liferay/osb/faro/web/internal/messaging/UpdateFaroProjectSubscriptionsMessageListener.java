@@ -122,6 +122,8 @@ public class UpdateFaroProjectSubscriptionsMessageListener
 
 		date = calendar.getTime();
 
+		_log.info("Faro project subscription update has started");
+
 		Map<String, Map<String, ProjectUsageMetric>> projectUsageMetricsMap =
 			new HashMap<>();
 
@@ -192,6 +194,8 @@ public class UpdateFaroProjectSubscriptionsMessageListener
 					FaroProjectConstants.STATE_UNAVAILABLE);
 			}
 		}
+
+		_log.info("Faro project subscription update finished successfully");
 	}
 
 	private void _addOrUpdateFaroProjectUsage(
@@ -221,6 +225,8 @@ public class UpdateFaroProjectSubscriptionsMessageListener
 			faroProject.getProjectId());
 
 		if (projectUsageMetric == null) {
+			_log.info("Project usage metric not found for faro project " + faroProject.getProjectId());
+
 			return;
 		}
 
@@ -229,6 +235,8 @@ public class UpdateFaroProjectSubscriptionsMessageListener
 				faroProject.getFaroProjectId(), date);
 
 		if (faroProjectUsage == null) {
+			_log.info("Adding new faro project usage for faro project " + faroProject.getProjectId());
+
 			_faroProjectUsageLocalService.addFaroProjectUsage(
 				faroProject.getCompanyId(), 0, faroProject.getFaroProjectId(),
 				projectUsageMetric.getKnownIndividualsCount(),
@@ -236,6 +244,8 @@ public class UpdateFaroProjectSubscriptionsMessageListener
 				date);
 		}
 		else {
+			_log.info("Updating existing faro project usage for faro project " + faroProject.getProjectId());
+
 			_faroProjectUsageLocalService.updateFaroProjectUsage(
 				faroProjectUsage.getFaroProjectUsageId(),
 				projectUsageMetric.getKnownIndividualsCount(),
