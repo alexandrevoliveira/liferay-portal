@@ -30,6 +30,8 @@ public class FaroEngineClientExceptionMapper
 
 		try {
 			ErrorResponse errorResponse = null;
+			
+			_log.info(faroEngineClientException.getMessage());
 
 			JSONObject jsonObject = JSONFactoryUtil.createJSONObject(
 				faroEngineClientException.getMessage());
