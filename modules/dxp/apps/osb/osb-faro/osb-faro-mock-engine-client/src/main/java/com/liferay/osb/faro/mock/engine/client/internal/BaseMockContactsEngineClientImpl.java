@@ -183,6 +183,20 @@ public abstract class BaseMockContactsEngineClientImpl
 	}
 
 	@Override
+	public SegmentActivation addSegmentActivation(
+			FaroProject faroProject, String cronExpression,
+			SegmentActivation.FrequencyType frequencyType, Date scheduleEndDate,
+			Date scheduleStartDate, SegmentActivation.ScheduleType scheduleType,
+			String segmentId){
+
+		return contactsEngineClient.addSegmentActivation(
+				faroProject, cronExpression,
+				frequencyType, scheduleEndDate, scheduleStartDate, scheduleType,
+				segmentId);
+	}
+
+
+	@Override
 	public void assignChannelToIndividualSegment(
 		FaroProject faroProject, String individualSegmentId, String channelId) {
 

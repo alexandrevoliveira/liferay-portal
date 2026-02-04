@@ -41,6 +41,7 @@ import com.liferay.osb.faro.engine.client.model.ProjectUsageMetric;
 import com.liferay.osb.faro.engine.client.model.Provider;
 import com.liferay.osb.faro.engine.client.model.RealTimeMembershipMetric;
 import com.liferay.osb.faro.engine.client.model.Results;
+import com.liferay.osb.faro.engine.client.model.SegmentActivation;
 import com.liferay.osb.faro.engine.client.model.provider.LiferayProvider;
 import com.liferay.osb.faro.engine.client.util.FilterBuilder;
 import com.liferay.osb.faro.engine.client.util.OrderByField;
@@ -108,6 +109,12 @@ public interface ContactsEngineClient {
 	public void addNanites(FaroProject faroProject, List<String> classNames);
 
 	public String addProject(FaroProject faroProject) throws Exception;
+
+	public SegmentActivation addSegmentActivation(
+		FaroProject faroProject, String cronExpression,
+		SegmentActivation.FrequencyType frequencyType, Date scheduleEndDate,
+		Date scheduleStartDate, SegmentActivation.ScheduleType scheduleType,
+		String segmentId);
 
 	public void assignChannelToIndividualSegment(
 		FaroProject faroProject, String individualSegmentId, String channelId);
