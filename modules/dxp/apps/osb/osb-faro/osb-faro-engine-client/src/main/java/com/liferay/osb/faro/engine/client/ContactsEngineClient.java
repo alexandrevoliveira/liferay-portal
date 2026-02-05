@@ -545,4 +545,10 @@ public interface ContactsEngineClient {
 		String filterString, boolean includeAnonymousUsers, String name,
 		String segmentType);
 
+	public SegmentActivation updateSegmentActivation(
+		FaroProject faroProject, String cronExpression,
+		SegmentActivation.FrequencyType frequencyType, Date scheduleEndDate,
+		Date scheduleStartDate, SegmentActivation.ScheduleType scheduleType,
+		String segmentId);
+
 }

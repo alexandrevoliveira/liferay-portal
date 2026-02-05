@@ -2965,6 +2965,34 @@ public class ContactsEngineClientImpl
 			IndividualSegment.class, getUriVariables(faroProject, id));
 	}
 
+	@Override
+	public SegmentActivation updateSegmentActivation(
+		FaroProject faroProject, String cronExpression,
+		SegmentActivation.FrequencyType frequencyType, Date scheduleEndDate,
+		Date scheduleStartDate, SegmentActivation.ScheduleType scheduleType,
+		String segmentId) {
+
+		SegmentActivation segmentActivation = new SegmentActivation();
+
+		segmentActivation.setCronExpression(cronExpression);
+		segmentActivation.setFrequencyType(frequencyType);
+
+		if (scheduleEndDate != null) {
+			segmentActivation.setScheduleEndDate(scheduleEndDate);
+		}
+
+		if (scheduleStartDate != null) {
+			segmentActivation.setScheduleStartDate(scheduleStartDate);
+		}
+
+		segmentActivation.setScheduleType(scheduleType);
+		segmentActivation.setSegmentId(segmentId);
+
+		return put(
+			faroProject, Rels.INDIVIDUAL_SEGMENT_ACTIVATION, segmentActivation,
+			SegmentActivation.class, getUriVariables(faroProject, segmentId));
+	}
+
 	protected void addActionFilter(
 		FilterBuilder filterBuilder, List<String> actionKeys) {
 
