@@ -13,6 +13,7 @@ import com.liferay.osb.faro.engine.client.model.IndividualSegmentMembershipChang
 import com.liferay.osb.faro.engine.client.model.IndividualSegmentRealTimeMembership;
 import com.liferay.osb.faro.engine.client.model.RealTimeMembershipMetric;
 import com.liferay.osb.faro.engine.client.model.Results;
+import com.liferay.osb.faro.engine.client.model.SegmentActivation;
 import com.liferay.osb.faro.engine.client.util.OrderByField;
 import com.liferay.osb.faro.model.FaroProject;
 import com.liferay.osb.faro.web.internal.constants.FaroConstants;
@@ -323,6 +324,25 @@ public class IndividualSegmentController extends BaseFaroController {
 			delta, orderByFieldsFaroParam.getValue());
 	}
 
+	@Path("/{id}/activation")
+	@POST
+	@RolesAllowed(RoleConstants.SITE_MEMBER)
+	public SegmentActivation create(
+			@PathParam("groupId") long groupId,
+			@FormParam("cronExpression") String cronExpression,
+			@FormParam("frequencyType") String frequencyType,
+			@PathParam("id") long segmentId,
+			@DefaultValue(StringPool.BLANK) @FormParam("scheduleEndDate") FaroParam
+				<Date> scheduleEndDateFaroParam,
+			@DefaultValue(StringPool.BLANK) @FormParam("scheduleStartDate") FaroParam
+				<Date> scheduleStartDateFaroParam,
+			@FormParam("scheduleType") String scheduleType,
+			throws Exception {
+
+		return createSegmentActivation(cronExpression,
+				frequencyType, groupId, segmentId, scheduleEndDateFaroParam.getValue(), scheduleStartDateFaroParam.getValue(), scheduleType);
+	}
+
 	@Path("/{id}")
 	@PUT
 	@RolesAllowed(RoleConstants.SITE_MEMBER)
@@ -361,6 +381,19 @@ public class IndividualSegmentController extends BaseFaroController {
 				faroProject, getUserId(), channelId, filterString,
 				includeAnonymousUsers, name, segmentType,
 				IndividualSegment.Status.ACTIVE.name()));
+	}
+
+	protected SegmentActivation createSegmentActivation(
+			String cronExpression, String frequencyType, long groupId,
+			String id, Date scheduleEndDate, Date scheduleStartDate, String scheduleType)
+			throws Exception {
+
+		FaroProject faroProject =
+				faroProjectLocalService.getFaroProjectByGroupId(groupId);
+
+		return new SegmentActivation(
+				contactsEngineClient.addSegmentActivation(faroProject, cronExpression,
+				frequencyType, scheduleEndDate, scheduleStartDate, scheduleType, id));
 	}
 
 	protected FaroResultsDisplay<IndividualSegment> search(
